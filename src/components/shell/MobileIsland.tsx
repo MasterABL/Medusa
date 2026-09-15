@@ -222,7 +222,10 @@ export function MobileIsland() {
           /* Estado Minimal de Repouso (Pill fluido) */
           <div className="flex items-center gap-2 py-0.5">
             {renderIndicator()}
-            <span className="text-[12px] font-medium text-text-primary tracking-tight whitespace-nowrap">
+            <span
+              key={fixture.tag}
+              className="text-[12px] font-medium text-text-primary tracking-tight whitespace-nowrap island-content-swap"
+            >
               {fixture.tag}
             </span>
             {fixture.timerBadge && (

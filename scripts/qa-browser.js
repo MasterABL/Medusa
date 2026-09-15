@@ -141,10 +141,10 @@ async function runFullQA() {
   };
 
   // =========================================================================
-  // CARREGAR APLICAÇÃO PRINCIPAL (PRODUÇÃO)
+  // CARREGAR APLICAÇÃO PRINCIPAL (PRODUÇÃO) EM DESKTOP (1440 × 900)
   // =========================================================================
-  console.log('\n--> Carregando http://localhost:3000...');
-  await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
+  console.log('\n--> Carregando http://localhost:3000 em Desktop 1440 × 900...');
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
   await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
   await wait(600);
 
@@ -171,7 +171,7 @@ async function runFullQA() {
       await setMode(m.name);
       const filename = `desktop_${t.name === 'light' ? 'claro' : t.name === 'sepia' ? 'sepia' : 'escuro'}_${m.name}.png`;
       await saveScreenshot(page, filename);
-      console.log(`[${count}/17] ✓ Capturado: ${filename} (${t.label} × ${m.label})`);
+      console.log(`[${count}] ✓ Capturado: ${filename} (${t.label} × ${m.label})`);
     }
   }
 
@@ -180,7 +180,20 @@ async function runFullQA() {
   await setMode('amplo');
 
   // =========================================================================
-  // MATRIZ 10 a 14: ISLAND STATES (5 SCREENSHOTS) NO DEV MOTION LAB
+  // CAPTURA TABLET VIEWPORT (820 × 1180)
+  // =========================================================================
+  console.log('\n--> Testando Tablet Viewport (820 × 1180)...');
+  await page.setViewport({ width: 820, height: 1180, deviceScaleFactor: 2 });
+  await wait(400);
+  count++;
+  await saveScreenshot(page, 'tablet_view.png');
+  console.log(`[${count}] ✓ Capturado: tablet_view.png (Tablet 820 × 1180)`);
+
+  // Retornar para Desktop 1440 × 900
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+
+  // =========================================================================
+  // MATRIZ: TODOS OS 10 ESTADOS DO ISLAND NO DEV MOTION LAB
   // =========================================================================
   console.log('\n--> Navegando para http://localhost:3000/dev/motion-lab...');
   await page.goto('http://localhost:3000/dev/motion-lab', { waitUntil: 'networkidle0' });
@@ -188,10 +201,15 @@ async function runFullQA() {
 
   const islandStates = [
     { state: 'idle', file: 'island_state_idle.png' },
+    { state: 'context', file: 'island_state_context.png' },
+    { state: 'active', file: 'island_state_active.png' },
     { state: 'processing', file: 'island_state_processing.png' },
     { state: 'success', file: 'island_state_success.png' },
     { state: 'attention', file: 'island_state_attention.png' },
+    { state: 'error', file: 'island_state_error.png' },
+    { state: 'summary', file: 'island_state_summary.png' },
     { state: 'focus', file: 'island_state_focus.png' },
+    { state: 'collapsed', file: 'island_state_collapsed.png' },
   ];
 
   for (const st of islandStates) {
@@ -200,26 +218,140 @@ async function runFullQA() {
       const btn = document.querySelector(`button[data-state="${targetState}"]`);
       btn?.click();
     }, st.state);
-    await wait(300);
+    await wait(280);
 
     await saveScreenshot(page, st.file);
-    console.log(`[${count}/17] ✓ Capturado: ${st.file} (Island State: ${st.state})`);
+    console.log(`[${count}] ✓ Capturado: ${st.file} (Island State: ${st.state})`);
   }
 
   // =========================================================================
-  // MATRIZ 15 e 16: MOBILE ISLAND REAL NO SHELL (390x844)
+  // GEOMETRIC TRANSITION PROOFS (0%, ~50%, 100%)
+  // =========================================================================
+  console.log('\n=== CAPTURANDO EVIDÊNCIAS GEOMÉTRICAS DE TRANSIÇÃO (0%, 50%, 100%) ===');
+
+  const getElementMetrics = async (selectors) => {
+    return await page.evaluate((sels) => {
+      const res = {};
+      for (const s of sels) {
+        const el = document.querySelector(s);
+        if (el) {
+          const r = el.getBoundingClientRect();
+          res[s] = {
+            x: Math.round(r.x),
+            y: Math.round(r.y),
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+          };
+        }
+      }
+      return res;
+    }, selectors);
+  };
+
+  // 1. Transição Idle -> Active (160ms)
+  console.log('\n--> Provando transição Island: idle -> active (160ms)...');
+  await page.evaluate(() => {
+    const btn = document.querySelector('button[data-state="idle"]');
+    btn?.click();
+  });
+  await wait(300);
+
+  const idleActive0 = await getElementMetrics(['#island-capsule']);
+  await saveScreenshot(page, 'transition_island_idle_to_active_0pct.png');
+  console.log('   [0% Idle]:', idleActive0['#island-capsule']);
+
+  // Disparar active e capturar ~50% (75ms)
+  await page.evaluate(() => {
+    const btn = document.querySelector('button[data-state="active"]');
+    btn?.click();
+  });
+  await wait(75);
+  const idleActive50 = await getElementMetrics(['#island-capsule']);
+  await saveScreenshot(page, 'transition_island_idle_to_active_50pct.png');
+  console.log('   [~50% Morph]:', idleActive50['#island-capsule']);
+
+  // Capturar 100% (estabelecido em ~240ms)
+  await wait(180);
+  const idleActive100 = await getElementMetrics(['#island-capsule']);
+  await saveScreenshot(page, 'transition_island_idle_to_active_100pct.png');
+  console.log('   [100% Active]:', idleActive100['#island-capsule']);
+
+  // 2. Transição Active -> Processing (160ms)
+  console.log('\n--> Provando transição Island: active -> processing (160ms)...');
+  const activeProc0 = await getElementMetrics(['#island-capsule']);
+  await saveScreenshot(page, 'transition_island_active_to_proc_0pct.png');
+  console.log('   [0% Active]:', activeProc0['#island-capsule']);
+
+  await page.evaluate(() => {
+    const btn = document.querySelector('button[data-state="processing"]');
+    btn?.click();
+  });
+  await wait(75);
+  const activeProc50 = await getElementMetrics(['#island-capsule']);
+  await saveScreenshot(page, 'transition_island_active_to_proc_50pct.png');
+  console.log('   [~50% Morph]:', activeProc50['#island-capsule']);
+
+  await wait(180);
+  const activeProc100 = await getElementMetrics(['#island-capsule']);
+  await saveScreenshot(page, 'transition_island_active_to_proc_100pct.png');
+  console.log('   [100% Processing]:', activeProc100['#island-capsule']);
+
+  // 3. Transição Shell Mode: Amplo -> Foco (280ms)
+  console.log('\n--> Provando transição Shell: amplo -> foco (280ms)...');
+  await setMode('amplo');
+  await wait(400);
+
+  const shellSelectors = ['#main-sidebar', '#context-panel', '#content-layout', '#island-capsule', '#top-header'];
+  const amploFoco0 = await getElementMetrics(shellSelectors);
+  await saveScreenshot(page, 'transition_shell_amplo_to_foco_0pct.png');
+  console.log('   [0% Amplo]:', {
+    sidebarWidth: amploFoco0['#main-sidebar']?.width,
+    contentPaddingLeft: await page.evaluate(() => getComputedStyle(document.getElementById('content-layout')).paddingLeft),
+    contentPaddingRight: await page.evaluate(() => getComputedStyle(document.getElementById('content-layout')).paddingRight),
+    islandCenter: amploFoco0['#island-capsule']?.x + (amploFoco0['#island-capsule']?.width || 0) / 2,
+  });
+
+  // Disparar Foco e capturar ~50% (140ms)
+  await page.evaluate(() => {
+    document.getElementById('btn-lab-mode-foco')?.click();
+  });
+  await wait(135);
+  const amploFoco50 = await getElementMetrics(shellSelectors);
+  await saveScreenshot(page, 'transition_shell_amplo_to_foco_50pct.png');
+  console.log('   [~50% Reorganização]:', {
+    sidebarWidth: amploFoco50['#main-sidebar']?.width,
+    contentPaddingLeft: await page.evaluate(() => getComputedStyle(document.getElementById('content-layout')).paddingLeft),
+    islandCenter: amploFoco50['#island-capsule']?.x + (amploFoco50['#island-capsule']?.width || 0) / 2,
+  });
+
+  // Capturar 100% Foco (estabelecido em ~320ms)
+  await wait(220);
+  const amploFoco100 = await getElementMetrics(shellSelectors);
+  await saveScreenshot(page, 'transition_shell_amplo_to_foco_100pct.png');
+  console.log('   [100% Foco Estabilizado]:', {
+    sidebarWidth: amploFoco100['#main-sidebar']?.width,
+    contentPaddingLeft: await page.evaluate(() => getComputedStyle(document.getElementById('content-layout')).paddingLeft),
+    islandCenter: amploFoco100['#island-capsule']?.x + (amploFoco100['#island-capsule']?.width || 0) / 2,
+  });
+
+  // Restaurar Amplo
+  await page.evaluate(() => {
+    document.getElementById('btn-lab-mode-amplo')?.click();
+  });
+  await wait(350);
+
+  // =========================================================================
+  // MATRIZ: MOBILE ISLAND REAL NO SHELL (390x844)
   // =========================================================================
   console.log('\n--> Testando Mobile Viewport (390x844) no Shell Real...');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
   await wait(600);
 
-  // Screenshot 15: Mobile Island em Repouso
   count++;
   await saveScreenshot(page, 'mobile_island_minimal.png');
-  console.log(`[${count}/17] ✓ Capturado: mobile_island_minimal.png (Mobile Island Repouso no Shell)`);
+  console.log(`[${count}] ✓ Capturado: mobile_island_minimal.png (Mobile Island Repouso no Shell)`);
 
-  // Screenshot 16: Mobile Island Expandido com Toque
   count++;
   await page.evaluate(() => {
     const mobileIsland = document.getElementById('mobile-dynamic-island');
@@ -227,20 +359,20 @@ async function runFullQA() {
   });
   await wait(350); // 220ms expansion transition
   await saveScreenshot(page, 'mobile_island_expanded.png');
-  console.log(`[${count}/17] ✓ Capturado: mobile_island_expanded.png (Mobile Island Expandido)`);
+  console.log(`[${count}] ✓ Capturado: mobile_island_expanded.png (Mobile Island Expandido)`);
 
   // =========================================================================
-  // MATRIZ 17: PREFERS-REDUCED-MOTION
+  // MATRIZ: PREFERS-REDUCED-MOTION
   // =========================================================================
   console.log('\n--> Testando Prefers-Reduced-Motion...');
-  await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto('http://localhost:3000/dev/motion-lab', { waitUntil: 'networkidle0' });
   await wait(500);
 
   count++;
   await saveScreenshot(page, 'reduced_motion_proof.png');
-  console.log(`[${count}/17] ✓ Capturado: reduced_motion_proof.png (Reduced Motion Ativo)`);
+  console.log(`[${count}] ✓ Capturado: reduced_motion_proof.png (Reduced Motion Ativo)`);
 
   // =========================================================================
   // ASSERÇÕES PROGRAMÁTICAS
@@ -264,11 +396,11 @@ async function runFullQA() {
 
   const tokensValid =
     motionTokens.durationMicro === '100ms' &&
-    motionTokens.durationIsland === '180ms' &&
+    motionTokens.durationIsland === '160ms' &&
     motionTokens.durationLayout === '280ms' &&
     motionTokens.durationTheme === '380ms' &&
     motionTokens.durationMobile === '220ms';
-  console.log('Asserção Tokens de Duração (100/180/280/380/220ms):', tokensValid ? 'PASSED ✓' : 'FAILED ✗');
+  console.log('Asserção Tokens de Duração (100/160/280/380/220ms):', tokensValid ? 'PASSED ✓' : 'FAILED ✗');
 
   // Asserção 2: Reduced motion desativa transform e animação
   const reducedMotionActive = await page.evaluate(() => {
@@ -366,6 +498,21 @@ async function runFullQA() {
     };
   });
   console.log('Asserção Centralização do Island (diff <= 1px):', islandCentering?.diff <= 1 ? 'PASSED ✓' : 'FAILED ✗', islandCentering);
+
+  // Asserção 7: Estados pulsantes finitos (Attention termina após 1.2s sem loop contínuo)
+  await page.goto('http://localhost:3000/dev/motion-lab', { waitUntil: 'networkidle0' });
+  await wait(300);
+  await page.evaluate(() => {
+    document.querySelector('button[data-state="attention"]')?.click();
+  });
+  await wait(1400); // 1.2s animation duration
+  const attentionTerminated = await page.evaluate(() => {
+    const el = document.getElementById('island-capsule');
+    if (!el) return false;
+    const style = getComputedStyle(el);
+    return style.animationIterationCount === '1' && style.animationFillMode.includes('forwards');
+  });
+  console.log('Asserção Attention Pulsante Finito (termina em 1.2s sem loop infinito):', attentionTerminated ? 'PASSED ✓' : 'FAILED ✗');
 
   await browser.close();
 

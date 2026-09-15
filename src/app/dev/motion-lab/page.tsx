@@ -471,7 +471,7 @@ export default function MotionLabPage() {
           </div>
           <div className="p-3 rounded-xl bg-surface-secondary/60 border border-border/50">
             <span className="text-text-muted block text-[9px] uppercase">Island</span>
-            <strong className="text-text-primary text-[13px] tabular-nums">180ms</strong>
+            <strong className="text-text-primary text-[13px] tabular-nums">160ms</strong>
             <span className="text-text-muted block text-[9px] mt-1">Snappy ease</span>
           </div>
           <div className="p-3 rounded-xl bg-surface-secondary/60 border border-border/50">

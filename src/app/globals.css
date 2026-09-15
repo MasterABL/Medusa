@@ -43,7 +43,7 @@
 
   /* Canonical Motion System Tokens */
   --duration-micro: 100ms;
-  --duration-island: 180ms;
+  --duration-island: 160ms;
   --duration-layout: 280ms;
   --duration-theme: 380ms;
   --duration-mobile: 220ms;
@@ -302,7 +302,53 @@ html.theme-transitioning *::after {
               right var(--duration-layout) var(--ease-smooth),
               transform var(--duration-layout) var(--ease-smooth),
               padding var(--duration-layout) var(--ease-smooth),
+              margin var(--duration-layout) var(--ease-smooth),
+              border-color var(--duration-layout) var(--ease-smooth),
               opacity 200ms ease-out;
+}
+
+/* Dynamic Island: Fluid Dimensional Morphing & Continuity */
+.island-fluid-capsule {
+  transition: min-width var(--duration-island) var(--ease-snappy),
+              max-width var(--duration-island) var(--ease-snappy),
+              width var(--duration-island) var(--ease-snappy),
+              height var(--duration-island) var(--ease-snappy),
+              padding var(--duration-island) var(--ease-snappy),
+              gap var(--duration-island) var(--ease-snappy),
+              background-color var(--duration-island) var(--ease-snappy),
+              border-color var(--duration-island) var(--ease-snappy),
+              box-shadow var(--duration-island) var(--ease-snappy),
+              opacity var(--duration-island) var(--ease-snappy);
+}
+
+@keyframes islandContentSwap {
+  0% {
+    opacity: 0;
+    transform: translateY(2px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.island-content-swap {
+  animation: islandContentSwap var(--duration-island) var(--ease-snappy) forwards;
+}
+
+/* Fluid collapsing wrapper for internal items */
+.island-collapsible {
+  transition: max-width var(--duration-island) var(--ease-snappy),
+              opacity calc(var(--duration-island) * 0.85) var(--ease-snappy),
+              margin var(--duration-island) var(--ease-snappy),
+              transform var(--duration-island) var(--ease-snappy);
+}
+
+/* Sidebar label smooth collapse (240px -> 68px) without sudden unmount */
+.sidebar-label-collapse {
+  transition: max-width var(--duration-layout) var(--ease-smooth),
+              opacity calc(var(--duration-layout) * 0.75) ease-out,
+              margin var(--duration-layout) var(--ease-smooth);
 }
 
 /* Quiet State para o Island quando modal/command abre (opacity: 0.38, SEM BLUR) */

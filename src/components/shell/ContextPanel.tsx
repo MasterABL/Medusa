@@ -6,9 +6,9 @@ import { useShell } from '@/context/ShellContext';
 export function ContextPanel() {
   const { mode, isContextOpen, toggleContext, setContextOpen, breakpoint } = useShell();
 
-  // No Modo Foco ou viewports não-desktop, o Context Panel permanece oculto estruturalmente
-  const isAvailable = mode !== 'foco' && breakpoint === 'desktop';
-  const isOpen = isAvailable && isContextOpen;
+  // No Modo Foco, o Context Panel desliza continuamente para fora (translate-x-full) sem remount
+  const isDesktop = breakpoint === 'desktop';
+  const isOpen = isDesktop && mode !== 'foco' && isContextOpen;
 
   const getPanelWidthClass = () => {
     return mode === 'compacto' ? 'w-[260px]' : 'w-[320px]';
@@ -17,13 +17,14 @@ export function ContextPanel() {
   return (
     <>
       {/* Painel Estrutural */}
-      {isAvailable && (
+      {isDesktop && (
         <aside
           id="context-panel"
           aria-label="Painel de Contexto Regional"
           aria-hidden={!isOpen}
+          style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
           className={`fixed right-0 top-0 h-full bg-surface border-l border-border z-30 flex flex-col pt-16 pb-6 overflow-y-auto panel-transition shadow-sm ${getPanelWidthClass()} ${
-            isOpen ? 'translate-x-0' : 'translate-x-full'
+            isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
           }`}
         >
           <div className="px-6 flex flex-col space-y-6">
@@ -125,8 +126,8 @@ export function ContextPanel() {
         </aside>
       )}
 
-      {/* Botão Flutuante de Reabertura (quando recolhido no Desktop) */}
-      {isAvailable && !isOpen && (
+      {/* Botão Flutuante de Reabertura (quando recolhido no Desktop, exceto no Foco) */}
+      {isDesktop && mode !== 'foco' && !isOpen && (
         <button
           type="button"
           id="btn-reopen-context"
