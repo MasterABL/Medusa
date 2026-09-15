@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ContextPanel } from './ContextPanel';
 import { CommandModal } from './CommandModal';
+import { MobileIsland } from './MobileIsland';
 
 export function ShellLayout({ children }: { children: React.ReactNode }) {
   const { mode, isContextOpen, breakpoint } = useShell();
@@ -55,6 +56,10 @@ export function ShellLayout({ children }: { children: React.ReactNode }) {
 
         {/* Conteúdo Principal do Shell */}
         <div className="w-full flex-1 flex flex-col pt-14">
+          {/* Mobile Island Estrutural (Ativo exclusivamente em viewport mobile < md) */}
+          <div className="w-full flex md:hidden justify-center pt-2.5 pb-1 px-4 z-20" id="mobile-island-wrapper">
+            <MobileIsland />
+          </div>
           {children}
         </div>
       </div>

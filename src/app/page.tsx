@@ -3,9 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { useShell } from '@/context/ShellContext';
-import { ISLAND_STATE_LIST, ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
-import { MobileIsland } from '@/components/shell/MobileIsland';
-import { IslandState } from '@/types/shell';
 
 export default function HomePage() {
   const { setMode, mode, theme, setIslandState } = useShell();
@@ -77,10 +74,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => {
-                  setIslandState('success');
-                  setTimeout(() => setIslandState('idle'), 2500);
-                }}
+                onClick={() => setIslandState('success')}
                 className="bg-medusa-primary hover:opacity-90 active:scale-[0.98] text-[#1C2420] px-4 py-2 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
               >
                 <span className="material-symbols-outlined text-[16px]">check_circle</span>
@@ -126,40 +120,32 @@ export default function HomePage() {
           <div className="h-px bg-border/60 flex-1" />
         </div>
 
-        <div className="bg-surface p-6 sm:p-7 rounded-2xl border border-border/60 shadow-calm grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Canvas Interativo do Mobile Dynamic Island */}
-          <div className="lg:col-span-5 bg-surface-secondary/60 rounded-2xl p-5 border border-border/50 flex flex-col items-center justify-center min-h-[220px]">
-            <MobileIsland />
-          </div>
+        <div className="bg-surface p-6 sm:p-7 rounded-2xl border border-border/60 shadow-calm flex flex-col gap-3 text-[12px]">
+          <h4 className="text-[15px] font-semibold text-text-primary tracking-tight">
+            Protocolo de Engenharia Mobile
+          </h4>
+          <p className="text-text-secondary leading-relaxed">
+            O Dynamic Island mobile é uma cápsula de fluxo vivo integrada diretamente à raiz do Shell: <strong>não gera overlay destrutivo</strong> nem bloqueia a leitura de dados subjacentes.
+          </p>
 
-          {/* Especificação do Ciclo */}
-          <div className="lg:col-span-7 flex flex-col justify-between gap-3 text-[12px]">
-            <h4 className="text-[15px] font-semibold text-text-primary tracking-tight">
-              Protocolo de Engenharia Mobile
-            </h4>
-            <p className="text-text-secondary leading-relaxed">
-              O Dynamic Island mobile é uma cápsula de fluxo vivo: <strong>não gera overlay destrutivo</strong> nem bloqueia a leitura de dados subjacentes.
-            </p>
-
-            <div className="space-y-2">
-              <div className="p-3 bg-surface-secondary/60 rounded-xl border border-border/50">
-                <strong className="text-text-primary">1. Ciclo de Vida:</strong>
-                <p className="text-text-secondary mt-0.5">
-                  MINIMAL (idle: [• Hoje]) → TOUCH → EXPANSION (reflow orgânico) → INTERACTION → RETURN (180ms–260ms, cubic-bezier(0.16, 1, 0.3, 1)).
-                </p>
-              </div>
-              <div className="p-3 bg-surface-secondary/60 rounded-xl border border-border/50">
-                <strong className="text-text-primary">2. Safe Areas &amp; Touch Targets:</strong>
-                <p className="text-text-secondary mt-0.5">
-                  Respeito a <code className="font-mono text-[11px]">env(safe-area-inset-top)</code>. Touch targets interativos estritamente ≥ 44×44px.
-                </p>
-              </div>
-              <div className="p-3 bg-surface-secondary/60 rounded-xl border border-border/50">
-                <strong className="text-text-primary">3. Prioridade do Teclado Virtual:</strong>
-                <p className="text-text-secondary mt-0.5">
-                  Ao abrir teclado virtual, o Island contrai instantaneamente para a menor assinatura visual, liberando visão total dos campos.
-                </p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+            <div className="p-3.5 bg-surface-secondary/60 rounded-xl border border-border/50">
+              <strong className="text-text-primary block mb-1">1. Ciclo de Vida:</strong>
+              <p className="text-text-secondary">
+                MINIMAL (idle) → TOUCH → EXPANSION (reflow orgânico) → INTERACTION → RETURN (180ms–260ms, cubic-bezier(0.16, 1, 0.3, 1)).
+              </p>
+            </div>
+            <div className="p-3.5 bg-surface-secondary/60 rounded-xl border border-border/50">
+              <strong className="text-text-primary block mb-1">2. Safe Areas &amp; Touch Targets:</strong>
+              <p className="text-text-secondary">
+                Respeito a <code className="font-mono text-[11px]">env(safe-area-inset-top)</code>. Touch targets interativos estritamente ≥ 44×44px.
+              </p>
+            </div>
+            <div className="p-3.5 bg-surface-secondary/60 rounded-xl border border-border/50">
+              <strong className="text-text-primary block mb-1">3. Prioridade do Teclado:</strong>
+              <p className="text-text-secondary">
+                Ao abrir teclado virtual, o Island contrai instantaneamente para 68px, liberando visão total dos campos.
+              </p>
             </div>
           </div>
         </div>

@@ -7,18 +7,6 @@ import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
 export function DynamicIsland() {
   const { islandState, isQuiet, setIslandState, breakpoint } = useShell();
   const fixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
-  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  React.useEffect(() => {
-    return () => clearTimer();
-  }, []);
 
   const isExpanded = islandState !== 'collapsed';
   const isFocusMode = islandState === 'focus';
@@ -176,7 +164,6 @@ export function DynamicIsland() {
                 className="btn-interactive hidden 2xl:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
                 onClick={(e) => {
                   e.stopPropagation();
-                  clearTimer();
                   setIslandState('idle');
                 }}
               >
@@ -192,15 +179,16 @@ export function DynamicIsland() {
                 )}`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  clearTimer();
                   if (islandState === 'active') {
                     setIslandState('success');
-                    timerRef.current = setTimeout(() => setIslandState('idle'), 2200);
                   } else if (islandState === 'idle') {
                     setIslandState('active');
                   } else if (islandState === 'error') {
                     setIslandState('processing');
-                    timerRef.current = setTimeout(() => setIslandState('active'), 1200);
+                  } else if (islandState === 'attention') {
+                    setIslandState('context');
+                  } else {
+                    setIslandState('active');
                   }
                 }}
               >

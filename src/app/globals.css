@@ -4,24 +4,42 @@
 
 :root {
   --color-bg: #FAFCFA;
+  --color-bg-rgb: 250 252 250;
   --color-surface: #FFFFFF;
+  --color-surface-rgb: 255 255 255;
   --color-surface-elevated: #FFFFFF;
+  --color-surface-elevated-rgb: 255 255 255;
   --color-surface-secondary: #F4F8F5;
+  --color-surface-secondary-rgb: 244 248 245;
   --color-surface-subtle: #F0F4F2;
+  --color-surface-subtle-rgb: 240 244 242;
   --color-text-primary: #1C2420;
+  --color-text-primary-rgb: 28 36 32;
   --color-text-secondary: #586961;
+  --color-text-secondary-rgb: 88 105 97;
   --color-text-muted: #889B93;
+  --color-text-muted-rgb: 136 155 147;
   --color-border: #E5EDE8;
+  --color-border-rgb: 229 237 232;
   --color-border-subtle: #EDF3EF;
+  --color-border-subtle-rgb: 237 243 239;
   --color-border-strong: #D2DFD8;
+  --color-border-strong-rgb: 210 223 216;
   --color-primary: #71DBD2;
+  --color-primary-rgb: 113 219 210;
   --color-on-primary: #1C2420;
   --color-secondary: #EEFFDB;
+  --color-secondary-rgb: 238 255 219;
   --color-support: #ADE4B5;
+  --color-support-rgb: 173 228 181;
   --color-tertiary: #D0EAA3;
+  --color-tertiary-rgb: 208 234 163;
   --color-accent: #FFF18C;
+  --color-accent-rgb: 255 241 140;
   --color-focus-ring: #2C6956;
+  --color-focus-ring-rgb: 44 105 86;
   --color-overlay: rgba(28, 36, 32, 0.45);
+  --color-overlay-rgb: 28 36 32;
 
   /* Canonical Motion System Tokens */
   --duration-micro: 100ms;
@@ -35,46 +53,82 @@
 
 html.sepia {
   --color-bg: #F8F7F0;
+  --color-bg-rgb: 248 247 240;
   --color-surface: #FFFDF7;
+  --color-surface-rgb: 255 253 247;
   --color-surface-elevated: #FFFDF7;
+  --color-surface-elevated-rgb: 255 253 247;
   --color-surface-secondary: #F3F1E8;
+  --color-surface-secondary-rgb: 243 241 232;
   --color-surface-subtle: #EDEAE0;
+  --color-surface-subtle-rgb: 237 234 224;
   --color-text-primary: #343A36;
+  --color-text-primary-rgb: 52 58 54;
   --color-text-secondary: #65716A;
+  --color-text-secondary-rgb: 101 113 106;
   --color-text-muted: #8C9991;
+  --color-text-muted-rgb: 140 153 145;
   --color-border: #E4E5DA;
+  --color-border-rgb: 228 229 218;
   --color-border-subtle: #ECEEE3;
+  --color-border-subtle-rgb: 236 238 227;
   --color-border-strong: #D5D8CB;
+  --color-border-strong-rgb: 213 216 203;
   --color-primary: #71DBD2;
+  --color-primary-rgb: 113 219 210;
   --color-on-primary: #1C2420;
   --color-secondary: #EEFFDB;
+  --color-secondary-rgb: 238 255 219;
   --color-support: #ADE4B5;
+  --color-support-rgb: 173 228 181;
   --color-tertiary: #D0EAA3;
+  --color-tertiary-rgb: 208 234 163;
   --color-accent: #FFF18C;
+  --color-accent-rgb: 255 241 140;
   --color-focus-ring: #2C6956;
+  --color-focus-ring-rgb: 44 105 86;
   --color-overlay: rgba(52, 58, 54, 0.35);
+  --color-overlay-rgb: 52 58 54;
 }
 
 html.dark {
   --color-bg: #111614;
+  --color-bg-rgb: 17 22 20;
   --color-surface: #18201D;
+  --color-surface-rgb: 24 32 29;
   --color-surface-elevated: #1F2A26;
+  --color-surface-elevated-rgb: 31 42 38;
   --color-surface-secondary: #141B18;
+  --color-surface-secondary-rgb: 20 27 24;
   --color-surface-subtle: #1D2622;
+  --color-surface-subtle-rgb: 29 38 34;
   --color-text-primary: #E5EDE8;
+  --color-text-primary-rgb: 229 237 232;
   --color-text-secondary: #9EB1A7;
+  --color-text-secondary-rgb: 158 177 167;
   --color-text-muted: #6C8277;
-  --color-border: #24312B;
+  --color-text-muted-rgb: 108 130 119;
+  --color-border: #243128;
+  --color-border-rgb: 36 49 40;
   --color-border-subtle: #1C2621;
+  --color-border-subtle-rgb: 28 38 33;
   --color-border-strong: #2F3E37;
+  --color-border-strong-rgb: 47 62 55;
   --color-primary: #71DBD2;
+  --color-primary-rgb: 113 219 210;
   --color-on-primary: #111614;
   --color-secondary: #EEFFDB;
+  --color-secondary-rgb: 238 255 219;
   --color-support: #ADE4B5;
+  --color-support-rgb: 173 228 181;
   --color-tertiary: #D0EAA3;
+  --color-tertiary-rgb: 208 234 163;
   --color-accent: #FFF18C;
+  --color-accent-rgb: 255 241 140;
   --color-focus-ring: #71DBD2;
+  --color-focus-ring-rgb: 113 219 210;
   --color-overlay: rgba(8, 12, 10, 0.65);
+  --color-overlay-rgb: 8 12 10;
 }
 
 @layer base {
@@ -177,17 +231,14 @@ html.dark {
   0% {
     transform: translateX(0);
   }
-  20% {
+  25% {
     transform: translateX(-1.5px);
   }
-  40% {
+  50% {
     transform: translateX(1.5px);
   }
-  60% {
+  75% {
     transform: translateX(-0.8px);
-  }
-  80% {
-    transform: translateX(0.8px);
   }
   100% {
     transform: translateX(0);

@@ -2,16 +2,88 @@ const puppeteer = require('puppeteer-core');
 const path = require('path');
 const fs = require('fs');
 
-const ARTIFACTS_DIR = 'C:\\Users\\Abimael Balbino\\.gemini\\antigravity-ide\\brain\\e171ab28-d418-4139-8d4b-db830725aac3';
-const EDGE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+/**
+ * Resolução dinâmica e portável do executável do navegador:
+ * 1. Prioriza variável de ambiente MEDUSA_BROWSER_PATH
+ * 2. Varre caminhos canônicos multiplataforma (Windows, macOS, Linux)
+ * 3. Fallback para puppeteer caso instalado
+ */
+function resolveBrowserPath() {
+  if (process.env.MEDUSA_BROWSER_PATH) {
+    if (fs.existsSync(process.env.MEDUSA_BROWSER_PATH)) {
+      return process.env.MEDUSA_BROWSER_PATH;
+    }
+    console.warn(`[WARN] MEDUSA_BROWSER_PATH definido (${process.env.MEDUSA_BROWSER_PATH}) mas arquivo não existe. Buscando alternativas...`);
+  }
+
+  const candidatePaths = [
+    // Windows Edge & Chrome
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Google\\Chrome\\Application\\chrome.exe') : null,
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Microsoft\\Edge\\Application\\msedge.exe') : null,
+    // macOS
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    // Linux
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/microsoft-edge',
+  ].filter(Boolean);
+
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) return p;
+  }
+
+  try {
+    const puppeteerFull = require('puppeteer');
+    if (typeof puppeteerFull.executablePath === 'function') {
+      const execPath = puppeteerFull.executablePath();
+      if (fs.existsSync(execPath)) return execPath;
+    }
+  } catch {}
+
+  throw new Error('Nenhum executável de Chromium/Chrome/Edge encontrado. Configure MEDUSA_BROWSER_PATH apontando para o binário do navegador.');
+}
+
+// Diretório de artefatos portável com fallback para ./qa-screenshots
+const DEFAULT_ARTIFACTS_DIR = path.resolve(__dirname, '..', 'qa-screenshots');
+const ARTIFACTS_DIR = process.env.MEDUSA_QA_ARTIFACTS_DIR ? path.resolve(process.env.MEDUSA_QA_ARTIFACTS_DIR) : DEFAULT_ARTIFACTS_DIR;
+
+// Assegura existência dos diretórios de saída
+if (!fs.existsSync(ARTIFACTS_DIR)) {
+  fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
+}
+if (ARTIFACTS_DIR !== DEFAULT_ARTIFACTS_DIR && !fs.existsSync(DEFAULT_ARTIFACTS_DIR)) {
+  fs.mkdirSync(DEFAULT_ARTIFACTS_DIR, { recursive: true });
+}
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function saveScreenshot(page, filename) {
+  const primaryPath = path.join(ARTIFACTS_DIR, filename);
+  await page.screenshot({ path: primaryPath });
+  if (ARTIFACTS_DIR !== DEFAULT_ARTIFACTS_DIR) {
+    const secondaryPath = path.join(DEFAULT_ARTIFACTS_DIR, filename);
+    try {
+      fs.copyFileSync(primaryPath, secondaryPath);
+    } catch {}
+  }
+}
+
 async function runFullQA() {
-  console.log('=== INICIANDO MEDUSA SHELL V2 AUTOMATED MOTION & VISUAL QA (17 MATRIZES) ===');
+  console.log('=== INICIANDO MEDUSA SHELL V2 AUTOMATED MOTION & VISUAL QA (PORTABLE) ===');
+  const browserPath = resolveBrowserPath();
+  console.log(`--> Navegador detectado: ${browserPath}`);
+  console.log(`--> Diretório de artefatos: ${ARTIFACTS_DIR}`);
 
   const browser = await puppeteer.launch({
-    executablePath: EDGE_PATH,
+    executablePath: browserPath,
     headless: 'new',
     args: [
       '--no-sandbox',
@@ -45,9 +117,9 @@ async function runFullQA() {
 
   // Helpers para Tema e Modo
   const setTheme = async (t) => {
-    await page.evaluate((themeName) => {
+    await page.evaluate(() => {
       document.getElementById('btn-theme-dropdown')?.click();
-    }, t);
+    });
     await wait(200);
     await page.evaluate((themeName) => {
       const btn = document.querySelector(`button[data-theme="${themeName}"]`);
@@ -98,8 +170,7 @@ async function runFullQA() {
       count++;
       await setMode(m.name);
       const filename = `desktop_${t.name === 'light' ? 'claro' : t.name === 'sepia' ? 'sepia' : 'escuro'}_${m.name}.png`;
-      const shotPath = path.join(ARTIFACTS_DIR, filename);
-      await page.screenshot({ path: shotPath });
+      await saveScreenshot(page, filename);
       console.log(`[${count}/17] ✓ Capturado: ${filename} (${t.label} × ${m.label})`);
     }
   }
@@ -109,16 +180,12 @@ async function runFullQA() {
   await setMode('amplo');
 
   // =========================================================================
-  // NAVEGAR PARA O MOTION LAB ISOLADO (/dev/motion-lab)
+  // MATRIZ 10 a 14: ISLAND STATES (5 SCREENSHOTS) NO DEV MOTION LAB
   // =========================================================================
   console.log('\n--> Navegando para http://localhost:3000/dev/motion-lab...');
   await page.goto('http://localhost:3000/dev/motion-lab', { waitUntil: 'networkidle0' });
   await wait(500);
 
-  // =========================================================================
-  // MATRIZ 10 a 14: ISLAND STATES (5 SCREENSHOTS)
-  // Idle, Processing, Success, Attention, Focus
-  // =========================================================================
   const islandStates = [
     { state: 'idle', file: 'island_state_idle.png' },
     { state: 'processing', file: 'island_state_processing.png' },
@@ -129,71 +196,58 @@ async function runFullQA() {
 
   for (const st of islandStates) {
     count++;
-    await page.evaluate((stateName) => {
-      document.getElementById(`btn-state-${stateName}`)?.click();
+    await page.evaluate((targetState) => {
+      const btn = document.querySelector(`button[data-state="${targetState}"]`);
+      btn?.click();
     }, st.state);
-    await wait(300); // 180ms transition + settle
+    await wait(300);
 
-    const shotPath = path.join(ARTIFACTS_DIR, st.file);
-    await page.screenshot({ path: shotPath });
+    await saveScreenshot(page, st.file);
     console.log(`[${count}/17] ✓ Capturado: ${st.file} (Island State: ${st.state})`);
   }
 
-  // Restaurar Island para Idle
-  await page.evaluate(() => {
-    document.getElementById('btn-state-idle')?.click();
-  });
-  await wait(200);
-
   // =========================================================================
-  // MATRIZ 15 e 16: MOBILE DYNAMIC ISLAND (2 SCREENSHOTS)
-  // Minimal vs Expanded
+  // MATRIZ 15 e 16: MOBILE ISLAND REAL NO SHELL (390x844)
   // =========================================================================
-  console.log('\n--> Testando Mobile Viewport (390x844)...');
+  console.log('\n--> Testando Mobile Viewport (390x844) no Shell Real...');
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await wait(450);
+  await wait(600);
 
-  // 15. Mobile Minimal
+  // Screenshot 15: Mobile Island em Repouso
+  count++;
+  await saveScreenshot(page, 'mobile_island_minimal.png');
+  console.log(`[${count}/17] ✓ Capturado: mobile_island_minimal.png (Mobile Island Repouso no Shell)`);
+
+  // Screenshot 16: Mobile Island Expandido com Toque
   count++;
   await page.evaluate(() => {
-    const el = document.getElementById('mobile-dynamic-island');
-    el?.scrollIntoView({ behavior: 'instant', block: 'center' });
+    const mobileIsland = document.getElementById('mobile-dynamic-island');
+    mobileIsland?.click();
   });
-  await wait(300);
-  const shotMobileMin = path.join(ARTIFACTS_DIR, 'mobile_island_minimal.png');
-  await page.screenshot({ path: shotMobileMin });
-  console.log(`[${count}/17] ✓ Capturado: mobile_island_minimal.png (Mobile Island Repouso)`);
-
-  // 16. Mobile Expanded (Touch & Reflow Orgânico)
-  count++;
-  await page.evaluate(() => {
-    document.getElementById('mobile-dynamic-island')?.click();
-  });
-  await wait(350); // 220ms transition
-  const shotMobileExp = path.join(ARTIFACTS_DIR, 'mobile_island_expanded.png');
-  await page.screenshot({ path: shotMobileExp });
+  await wait(350); // 220ms expansion transition
+  await saveScreenshot(page, 'mobile_island_expanded.png');
   console.log(`[${count}/17] ✓ Capturado: mobile_island_expanded.png (Mobile Island Expandido)`);
 
   // =========================================================================
-  // MATRIZ 17: ACCESSIBILITY & PREFERS-REDUCED-MOTION (1 SCREENSHOT)
+  // MATRIZ 17: PREFERS-REDUCED-MOTION
   // =========================================================================
   console.log('\n--> Testando Prefers-Reduced-Motion...');
-  count++;
   await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto('http://localhost:3000/dev/motion-lab', { waitUntil: 'networkidle0' });
-  await wait(400);
+  await wait(500);
 
-  const shotReducedMotion = path.join(ARTIFACTS_DIR, 'reduced_motion_proof.png');
-  await page.screenshot({ path: shotReducedMotion });
+  count++;
+  await saveScreenshot(page, 'reduced_motion_proof.png');
   console.log(`[${count}/17] ✓ Capturado: reduced_motion_proof.png (Reduced Motion Ativo)`);
 
   // =========================================================================
-  // MOTION ASSERTIONS PROGRAMÁTICAS
+  // ASSERÇÕES PROGRAMÁTICAS
   // =========================================================================
-  console.log('\n=== EXECUTANDO MOTION ASSERTIONS PROGRAMÁTICAS ===');
+  console.log('\n=== EXECUTANDO MOTION & TOKEN ASSERTIONS PROGRAMÁTICAS ===');
 
+  // Asserção 1: Tokens canônicos presentes
   const motionTokens = await page.evaluate(() => {
     const style = getComputedStyle(document.documentElement);
     return {
@@ -206,17 +260,14 @@ async function runFullQA() {
       easeSmooth: style.getPropertyValue('--ease-smooth').trim(),
     };
   });
-
   console.log('Tokens Computados:', motionTokens);
 
-  // Asserção 1: Tokens canônicos presentes
   const tokensValid =
     motionTokens.durationMicro === '100ms' &&
     motionTokens.durationIsland === '180ms' &&
     motionTokens.durationLayout === '280ms' &&
     motionTokens.durationTheme === '380ms' &&
     motionTokens.durationMobile === '220ms';
-
   console.log('Asserção Tokens de Duração (100/180/280/380/220ms):', tokensValid ? 'PASSED ✓' : 'FAILED ✗');
 
   // Asserção 2: Reduced motion desativa transform e animação
@@ -234,19 +285,72 @@ async function runFullQA() {
   });
   console.log('Asserção Overflow Horizontal (deve ser false):', !hasHorizontalOverflow ? 'PASSED (zero overflow) ✓' : 'FAILED ✗');
 
-  // Asserção 4: Dark Mode tonal check (sem white border/halo)
+  // Asserção 4: Dark Mode Token Check e Border-Border/70
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  await wait(400);
   await setTheme('dark');
-  const darkTonalCheck = await page.evaluate(() => {
-    const bodyBg = getComputedStyle(document.body).backgroundColor;
-    // Verifica se background é #111614 rgb(17, 22, 20)
-    return bodyBg.includes('17, 22, 20') || bodyBg.includes('#111614');
-  });
-  console.log('Asserção Dark Mode Tonal Separation (#111614):', darkTonalCheck ? 'PASSED ✓' : 'FAILED ✗');
+  await wait(450);
 
-  // Asserção 5: Centralização Matemática do Island no Header Amplo
+  const darkTokenCheck = await page.evaluate(() => {
+    const bodyBg = getComputedStyle(document.body).backgroundColor;
+    const island = document.getElementById('island-capsule');
+    const islandBorder = island ? getComputedStyle(island).borderColor : '';
+
+    // Dark border token: #243128 => rgb(36, 49, 40)
+    // Com alpha 0.70 => rgba(36, 49, 40, 0.7)
+    const isDarkBg = bodyBg.includes('17, 22, 20') || bodyBg.includes('#111614');
+    const isDarkBorderCorrect = islandBorder.includes('36, 49, 40') || islandBorder.includes('36 49 40');
+    const isBrokenFallback = islandBorder.includes('229, 231, 235') || islandBorder.includes('229,231,235');
+
+    return {
+      bodyBg,
+      islandBorder,
+      isDarkBg,
+      isDarkBorderCorrect,
+      isBrokenFallback,
+    };
+  });
+  console.log('Asserção Dark Mode Background (#111614):', darkTokenCheck.isDarkBg ? 'PASSED ✓' : 'FAILED ✗', `(${darkTokenCheck.bodyBg})`);
+  console.log('Asserção Dark Mode border-border/70 (deriva de rgb(36, 49, 40)):', darkTokenCheck.isDarkBorderCorrect && !darkTokenCheck.isBrokenFallback ? 'PASSED ✓' : 'FAILED ✗', `(${darkTokenCheck.islandBorder})`);
+
+  // Asserção 5: Mobile Island pertencendo ao Shell e ausente da Home como showcase
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  await wait(400);
+
+  const mobileIntegrationCheck = await page.evaluate(() => {
+    // 1. Mobile Island dentro de ShellLayout
+    const shellWrapper = document.getElementById('mobile-island-wrapper');
+    const mobileIsland = document.getElementById('mobile-dynamic-island');
+    const isInsideShell = shellWrapper && shellWrapper.contains(mobileIsland);
+
+    // 2. Não existe showcase na Home (não deve haver mais de 1 mobile island no DOM)
+    const allMobileIslands = document.querySelectorAll('#mobile-dynamic-island');
+    const hasOnlyOne = allMobileIslands.length === 1;
+
+    // 3. Dynamic Island desktop oculto em mobile
+    const desktopIslandContainer = document.querySelector('.justify-self-center.hidden.md\\:flex');
+    const isDesktopHidden = desktopIslandContainer ? getComputedStyle(desktopIslandContainer).display === 'none' : true;
+
+    return {
+      isInsideShell,
+      hasOnlyOne,
+      isDesktopHidden,
+    };
+  });
+  console.log('Asserção MobileIsland integrado ao ShellLayout:', mobileIntegrationCheck.isInsideShell ? 'PASSED ✓' : 'FAILED ✗');
+  console.log('Asserção Ausência de showcase duplicado na Home:', mobileIntegrationCheck.hasOnlyOne ? 'PASSED ✓' : 'FAILED ✗');
+  console.log('Asserção Desktop DynamicIsland oculto em mobile:', mobileIntegrationCheck.isDesktopHidden ? 'PASSED ✓' : 'FAILED ✗');
+
+  // Asserção 6: Centralização Matemática do Island no Header Amplo
+  await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  await wait(400);
   await setTheme('light');
   await setMode('amplo');
+  await wait(350);
+
   const islandCentering = await page.evaluate(() => {
     const header = document.getElementById('top-header');
     const island = document.getElementById('island-capsule');
@@ -270,7 +374,8 @@ async function runFullQA() {
   console.log('Total Erros de Console:', consoleErrors.length);
   console.log('Total Warnings:', consoleWarnings.length);
   console.log('Overflow horizontal inexistente:', !hasHorizontalOverflow);
-  console.log('Todos os critérios de Motion comprovados:', tokensValid && reducedMotionActive && !hasHorizontalOverflow);
+  console.log('Dark Mode border-border/70 corrigido:', darkTokenCheck.isDarkBorderCorrect);
+  console.log('MobileIsland integrado ao Shell:', mobileIntegrationCheck.isInsideShell && mobileIntegrationCheck.hasOnlyOne);
 }
 
 runFullQA().catch((err) => {
