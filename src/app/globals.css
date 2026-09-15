@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #FAFCFA;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-surface-secondary: #F4F8F5;
+  --color-surface-subtle: #F0F4F2;
+  --color-text-primary: #1C2420;
+  --color-text-secondary: #586961;
+  --color-text-muted: #889B93;
+  --color-border: #E5EDE8;
+  --color-border-subtle: #EDF3EF;
+  --color-border-strong: #D2DFD8;
+  --color-primary: #71DBD2;
+  --color-on-primary: #1C2420;
+  --color-secondary: #EEFFDB;
+  --color-support: #ADE4B5;
+  --color-tertiary: #D0EAA3;
+  --color-accent: #FFF18C;
+  --color-focus-ring: #2C6956;
+  --color-overlay: rgba(28, 36, 32, 0.45);
+
+  /* Canonical Motion System Tokens */
+  --duration-micro: 100ms;
+  --duration-island: 180ms;
+  --duration-layout: 280ms;
+  --duration-theme: 380ms;
+  --duration-mobile: 220ms;
+  --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.sepia {
+  --color-bg: #F8F7F0;
+  --color-surface: #FFFDF7;
+  --color-surface-elevated: #FFFDF7;
+  --color-surface-secondary: #F3F1E8;
+  --color-surface-subtle: #EDEAE0;
+  --color-text-primary: #343A36;
+  --color-text-secondary: #65716A;
+  --color-text-muted: #8C9991;
+  --color-border: #E4E5DA;
+  --color-border-subtle: #ECEEE3;
+  --color-border-strong: #D5D8CB;
+  --color-primary: #71DBD2;
+  --color-on-primary: #1C2420;
+  --color-secondary: #EEFFDB;
+  --color-support: #ADE4B5;
+  --color-tertiary: #D0EAA3;
+  --color-accent: #FFF18C;
+  --color-focus-ring: #2C6956;
+  --color-overlay: rgba(52, 58, 54, 0.35);
+}
+
+html.dark {
+  --color-bg: #111614;
+  --color-surface: #18201D;
+  --color-surface-elevated: #1F2A26;
+  --color-surface-secondary: #141B18;
+  --color-surface-subtle: #1D2622;
+  --color-text-primary: #E5EDE8;
+  --color-text-secondary: #9EB1A7;
+  --color-text-muted: #6C8277;
+  --color-border: #24312B;
+  --color-border-subtle: #1C2621;
+  --color-border-strong: #2F3E37;
+  --color-primary: #71DBD2;
+  --color-on-primary: #111614;
+  --color-secondary: #EEFFDB;
+  --color-support: #ADE4B5;
+  --color-tertiary: #D0EAA3;
+  --color-accent: #FFF18C;
+  --color-focus-ring: #71DBD2;
+  --color-overlay: rgba(8, 12, 10, 0.65);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: 'Epilogue', -apple-system, BlinkMacSystemFont, sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .hairline-b {
+    border-bottom: 0.5px solid var(--color-border);
+  }
+  .hairline-t {
+    border-top: 0.5px solid var(--color-border);
+  }
+  .hairline-r {
+    border-right: 0.5px solid var(--color-border);
+  }
+  .hairline-l {
+    border-left: 0.5px solid var(--color-border);
+  }
+}
+
+/* ==========================================================================
+   LIVING OS & DYNAMIC ISLAND ANIMATIONS
+   ========================================================================== */
+
+/* 1. Breathing Pulse (Idle / Active): 4s lento, sutil (scale 1 -> 1.012 -> 1, opacity 0.92 -> 1) */
+@keyframes livingBreathing {
+  0%, 100% {
+    opacity: 0.92;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.012);
+  }
+}
+
+.living-pulse {
+  animation: livingBreathing 4s ease-in-out infinite;
+}
+
+/* 2. Processing: expansão sutil + micro-onda interna rítmica */
+@keyframes processingWave {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.018);
+  }
+}
+
+.island-processing-active {
+  animation: processingWave 1.4s ease-in-out infinite;
+}
+
+/* 3. Attention: exatamente 2 pulsos discretos e settle (1.2s total) */
+@keyframes attentionTwoPulses {
+  0% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  25% {
+    transform: scale(1.025);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  75% {
+    transform: scale(1.025);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.island-attention-active {
+  animation: attentionTwoPulses 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 4. Error: micro-shake de 1.5px estritamente contido (220ms) */
+@keyframes errorMicroShake {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-1.5px);
+  }
+  40% {
+    transform: translateX(1.5px);
+  }
+  60% {
+    transform: translateX(-0.8px);
+  }
+  80% {
+    transform: translateX(0.8px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.island-error-shake {
+  animation: errorMicroShake 220ms ease-in-out;
+}
+
+/* 5. Success Settle: micro-confirmação suave (200ms) */
+@keyframes successSettle {
+  0% {
+    transform: scale(0.985);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.island-success-settle {
+  animation: successSettle 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   MICROINTERAÇÃO DE BOTÃO & CONTROLES (Rest, Hover, Press scale 0.985)
+   ========================================================================== */
+.btn-interactive {
+  transition: transform var(--duration-micro) var(--ease-snappy),
+              background-color var(--duration-micro) var(--ease-snappy),
+              color var(--duration-micro) var(--ease-snappy),
+              border-color var(--duration-micro) var(--ease-snappy),
+              box-shadow var(--duration-micro) var(--ease-snappy);
+}
+.btn-interactive:hover {
+  transform: translateY(-1px);
+}
+.btn-interactive:active {
+  transform: scale(0.985);
+}
+
+/* ==========================================================================
+   TRANSIÇÕES COORDENADAS: TEMA (380ms) & MODOS (280ms)
+   ========================================================================== */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color var(--duration-theme) var(--ease-smooth),
+              border-color var(--duration-theme) var(--ease-smooth),
+              color 320ms var(--ease-smooth),
+              box-shadow 320ms var(--ease-smooth) !important;
+}
+
+.panel-transition {
+  transition: width var(--duration-layout) var(--ease-smooth),
+              left var(--duration-layout) var(--ease-smooth),
+              right var(--duration-layout) var(--ease-smooth),
+              transform var(--duration-layout) var(--ease-smooth),
+              padding var(--duration-layout) var(--ease-smooth),
+              opacity 200ms ease-out;
+}
+
+/* Quiet State para o Island quando modal/command abre (opacity: 0.38, SEM BLUR) */
+.island-quiet {
+  opacity: 0.38 !important;
+  pointer-events: none !important;
+  transition: opacity var(--duration-island) var(--ease-snappy) !important;
+}
+
+/* ==========================================================================
+   LISTAS DINÂMICAS & STAGGER
+   ========================================================================== */
+@keyframes fadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  animation: fadeRise 220ms var(--ease-snappy) backwards;
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE: REDUCED MOTION MANDATÓRIO (Tonal crossfade ~140ms, zero transform)
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation: none !important;
+    transition: opacity 140ms var(--ease-snappy),
+                background-color 140ms var(--ease-snappy),
+                color 140ms var(--ease-snappy),
+                border-color 140ms var(--ease-snappy) !important;
+    transform: none !important;
+  }
+  .living-pulse,
+  .island-processing-active,
+  .island-attention-active,
+  .island-error-shake,
+  .island-success-settle,
+  .btn-interactive:hover,
+  .btn-interactive:active {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Suporte a Safe Areas do iOS / Android */
+.safe-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
