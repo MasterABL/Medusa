@@ -236,11 +236,11 @@ export default function HomePage() {
               </div>
               <div className="p-2.5 bg-surface-secondary/60 rounded-xl border border-border/50 flex justify-between">
                 <span className="text-text-primary">Island State Switch</span>
-                <span className="text-text-muted tabular-nums">160ms cubic-bezier(0.16, 1, 0.3, 1)</span>
+                <span className="text-text-muted tabular-nums">220ms cubic-bezier(0.22, 1, 0.36, 1)</span>
               </div>
               <div className="p-2.5 bg-surface-secondary/60 rounded-xl border border-border/50 flex justify-between">
                 <span className="text-text-primary">Modo Layout (Sidebar/Header)</span>
-                <span className="text-text-muted tabular-nums">280ms cubic-bezier(0.4, 0, 0.2, 1)</span>
+                <span className="text-text-muted tabular-nums">340ms cubic-bezier(0.25, 1, 0.35, 1)</span>
               </div>
               <div className="p-2.5 bg-surface-secondary/60 rounded-xl border border-border/50 flex justify-between">
                 <span className="text-text-primary">Mobile Expansion</span>

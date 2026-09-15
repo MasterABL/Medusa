@@ -347,7 +347,7 @@ export default function MotionLabPage() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-border/60 pb-2">
             <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted">
-              03B · Transição Coordenada de Modo (280ms)
+              03B · Transição Coordenada de Modo (340ms)
             </span>
             <span className="text-[10px] font-mono text-text-muted uppercase tabular-nums">{mode}</span>
           </div>
@@ -471,12 +471,12 @@ export default function MotionLabPage() {
           </div>
           <div className="p-3 rounded-xl bg-surface-secondary/60 border border-border/50">
             <span className="text-text-muted block text-[9px] uppercase">Island</span>
-            <strong className="text-text-primary text-[13px] tabular-nums">160ms</strong>
+            <strong className="text-text-primary text-[13px] tabular-nums">220ms</strong>
             <span className="text-text-muted block text-[9px] mt-1">Snappy ease</span>
           </div>
           <div className="p-3 rounded-xl bg-surface-secondary/60 border border-border/50">
             <span className="text-text-muted block text-[9px] uppercase">Layout Mode</span>
-            <strong className="text-text-primary text-[13px] tabular-nums">280ms</strong>
+            <strong className="text-text-primary text-[13px] tabular-nums">340ms</strong>
             <span className="text-text-muted block text-[9px] mt-1">Smooth ease</span>
           </div>
           <div className="p-3 rounded-xl bg-surface-secondary/60 border border-border/50">

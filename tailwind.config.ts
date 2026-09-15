@@ -36,13 +36,15 @@ const config: Config = {
         mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
       },
       transitionTimingFunction: {
-        medusa: "cubic-bezier(0.16, 1, 0.3, 1)",
-        layout: "cubic-bezier(0.4, 0, 0.2, 1)",
+        medusa: "cubic-bezier(0.22, 1, 0.36, 1)",
+        layout: "cubic-bezier(0.25, 1, 0.35, 1)",
       },
       transitionDuration: {
         "100": "100ms",
         "160": "160ms",
+        "220": "220ms",
         "280": "280ms",
+        "340": "340ms",
         "380": "380ms",
         "450": "450ms",
       },

@@ -180,35 +180,35 @@ async function runMotionRecorder() {
   await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
   await wait(500);
 
-  // 1.1 Amplo -> Compacto
-  await recordTransition('amplo_para_compacto', async () => selectMode('compacto'), 280, 30);
-  await wait(200);
+  // 1.1 Amplo -> Compacto (340ms)
+  await recordTransition('amplo_para_compacto', async () => selectMode('compacto'), 340, 25);
+  await wait(250);
 
-  // 1.2 Compacto -> Amplo
-  await recordTransition('compacto_para_amplo', async () => selectMode('amplo'), 280, 30);
-  await wait(200);
+  // 1.2 Compacto -> Amplo (340ms)
+  await recordTransition('compacto_para_amplo', async () => selectMode('amplo'), 340, 25);
+  await wait(250);
 
-  // 1.3 Amplo -> Foco
-  await recordTransition('amplo_para_foco', async () => selectMode('foco'), 280, 30);
-  await wait(200);
+  // 1.3 Amplo -> Foco (340ms)
+  await recordTransition('amplo_para_foco', async () => selectMode('foco'), 340, 25);
+  await wait(250);
 
-  // 1.4 Foco -> Amplo
-  await recordTransition('foco_para_amplo', async () => selectMode('amplo'), 280, 30);
-  await wait(200);
+  // 1.4 Foco -> Amplo (340ms)
+  await recordTransition('foco_para_amplo', async () => selectMode('amplo'), 340, 25);
+  await wait(250);
 
-  // 1.5 Compacto -> Foco
+  // 1.5 Compacto -> Foco (340ms)
   await selectMode('compacto');
-  await wait(350);
-  await recordTransition('compacto_para_foco', async () => selectMode('foco'), 280, 30);
-  await wait(200);
+  await wait(420);
+  await recordTransition('compacto_para_foco', async () => selectMode('foco'), 340, 25);
+  await wait(250);
 
-  // 1.6 Foco -> Compacto
-  await recordTransition('foco_para_compacto', async () => selectMode('compacto'), 280, 30);
-  await wait(200);
+  // 1.6 Foco -> Compacto (340ms)
+  await recordTransition('foco_para_compacto', async () => selectMode('compacto'), 340, 25);
+  await wait(250);
 
   // Restaurar Amplo
   await selectMode('amplo');
-  await wait(350);
+  await wait(420);
 
   // 2. TRANSIÇÕES DE ESTADO DO DYNAMIC ISLAND NO MOTION LAB
   console.log('\n[FASE 2] TRANSIÇÕES DO DYNAMIC ISLAND & ESTADOS SEMÂNTICOS');
@@ -222,39 +222,39 @@ async function runMotionRecorder() {
     }, st);
   };
 
-  // 2.1 Idle -> Active
+  // 2.1 Idle -> Active (220ms)
   await selectIslandState('idle');
   await wait(300);
-  await recordTransition('idle_para_active', async () => selectIslandState('active'), 160, 20);
-  await wait(200);
+  await recordTransition('idle_para_active', async () => selectIslandState('active'), 220, 20);
+  await wait(250);
 
-  // 2.2 Active -> Processing
-  await recordTransition('active_para_processing', async () => selectIslandState('processing'), 160, 20);
-  await wait(200);
+  // 2.2 Active -> Processing (220ms)
+  await recordTransition('active_para_processing', async () => selectIslandState('processing'), 220, 20);
+  await wait(250);
 
-  // 2.3 Processing -> Success
-  await recordTransition('processing_para_success', async () => selectIslandState('success'), 200, 25);
-  await wait(200);
+  // 2.3 Processing -> Success (220ms)
+  await recordTransition('processing_para_success', async () => selectIslandState('success'), 220, 20);
+  await wait(250);
 
   // 2.4 Attention (2 pulsos discretos em 1.2s)
   await selectIslandState('idle');
-  await wait(200);
-  await recordTransition('attention_dois_pulsos', async () => selectIslandState('attention'), 1200, 60);
-  await wait(200);
+  await wait(250);
+  await recordTransition('attention_dois_pulsos', async () => selectIslandState('attention'), 1200, 50);
+  await wait(250);
 
   // 2.5 Error Micro-shake (220ms)
   await selectIslandState('active');
-  await wait(200);
-  await recordTransition('error_micro_shake', async () => selectIslandState('error'), 220, 25);
-  await wait(200);
+  await wait(250);
+  await recordTransition('error_micro_shake', async () => selectIslandState('error'), 220, 20);
+  await wait(250);
 
-  // 2.6 Collapsed (Contração para círculo de 34px)
+  // 2.6 Collapsed (Contração para círculo de 34px - 220ms)
   await selectIslandState('active');
-  await wait(200);
-  await recordTransition('active_para_collapsed', async () => selectIslandState('collapsed'), 160, 20);
-  await wait(200);
+  await wait(250);
+  await recordTransition('active_para_collapsed', async () => selectIslandState('collapsed'), 220, 20);
+  await wait(250);
 
-  // 2.7 Collapsed -> Active (Expansão ao clicar na cápsula)
+  // 2.7 Collapsed -> Active (Expansão ao clicar na cápsula - 220ms)
   await recordTransition(
     'collapsed_para_active',
     async () => {
@@ -262,10 +262,10 @@ async function runMotionRecorder() {
         document.getElementById('island-capsule')?.click();
       });
     },
-    160,
+    220,
     20
   );
-  await wait(200);
+  await wait(250);
 
   // 3. REDUCED MOTION (prefers-reduced-motion: reduce)
   console.log('\n[FASE 3] PREFERS-REDUCED-MOTION (Crossfade tonal estrito, zero transform)');
