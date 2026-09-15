@@ -140,7 +140,7 @@ export function DynamicIsland() {
         {/* Title Group with Fluid Crossfade */}
         <div
           className={`island-collapsible flex items-center gap-1.5 sm:gap-2 text-[12px] sm:text-[13px] overflow-hidden ${
-            showTitle ? 'max-w-[320px] opacity-100' : 'max-w-0 opacity-0 pointer-events-none'
+            showTitle ? 'island-item-in max-w-[320px]' : 'island-item-out max-w-0 pointer-events-none'
           }`}
           id="island-title-group"
         >
@@ -154,7 +154,7 @@ export function DynamicIsland() {
           {/* Subtitle / Descrição Marginal */}
           <div
             className={`island-collapsible flex items-center overflow-hidden whitespace-nowrap ${
-              showDesc ? 'max-w-[180px] opacity-100' : 'max-w-0 opacity-0 pointer-events-none'
+              showDesc ? 'island-item-in max-w-[180px]' : 'island-item-out max-w-0 pointer-events-none'
             }`}
           >
             <span className="text-text-muted mr-1.5 hidden 2xl:inline" aria-hidden="true">·</span>
@@ -167,7 +167,7 @@ export function DynamicIsland() {
         {/* Timer / Status Badge */}
         <div
           className={`island-collapsible flex items-center overflow-hidden flex-shrink-0 ${
-            showBadge ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0 pointer-events-none'
+            showBadge ? 'island-item-in max-w-[120px]' : 'island-item-out max-w-0 pointer-events-none'
           }`}
         >
           {fixture.timerBadge && (
@@ -185,7 +185,7 @@ export function DynamicIsland() {
           id="island-divider"
           aria-hidden="true"
           className={`island-collapsible h-3.5 bg-border/60 overflow-hidden flex-shrink-0 ${
-            showDivider ? 'w-px opacity-100 mx-0.5' : 'w-0 opacity-0 mx-0 pointer-events-none'
+            showDivider ? 'island-item-in w-px mx-0.5' : 'island-item-out w-0 mx-0 pointer-events-none'
           }`}
         />
 
@@ -193,7 +193,7 @@ export function DynamicIsland() {
         <div
           id="island-actions-group"
           className={`island-collapsible flex items-center gap-1.5 flex-shrink-0 overflow-hidden ${
-            showActions ? 'max-w-[240px] opacity-100' : 'max-w-0 opacity-0 pointer-events-none'
+            showActions ? 'island-item-in max-w-[240px]' : 'island-item-out max-w-0 pointer-events-none'
           }`}
         >
           {fixture.secondaryAction && (

@@ -24,7 +24,7 @@ export function ContextPanel() {
           aria-hidden={!isOpen}
           style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
           className={`fixed right-0 top-0 h-full bg-surface border-l border-border z-30 flex flex-col pt-16 pb-6 overflow-y-auto panel-transition shadow-sm ${getPanelWidthClass()} ${
-            isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+            isOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
           <div className="px-6 flex flex-col space-y-6">

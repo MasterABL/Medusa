@@ -41,13 +41,13 @@
   --color-overlay: rgba(28, 36, 32, 0.45);
   --color-overlay-rgb: 28 36 32;
 
-  /* Canonical Motion System Tokens (Refined Timing Polish) */
+  /* Canonical Motion System Tokens (Spatial Drawer & Organic Expansion) */
   --duration-micro: 100ms;
-  --duration-island: 220ms;
-  --duration-layout: 340ms;
+  --duration-island: 250ms;
+  --duration-layout: 350ms;
   --duration-theme: 380ms;
   --duration-mobile: 220ms;
-  --ease-snappy: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snappy: cubic-bezier(0.2, 0.95, 0.25, 1);
   --ease-smooth: cubic-bezier(0.25, 1, 0.35, 1);
 }
 
@@ -303,11 +303,10 @@ html.theme-transitioning *::after {
               transform var(--duration-layout) var(--ease-smooth),
               padding var(--duration-layout) var(--ease-smooth),
               margin var(--duration-layout) var(--ease-smooth),
-              border-color var(--duration-layout) var(--ease-smooth),
-              opacity 240ms ease-out;
+              border-color var(--duration-layout) var(--ease-smooth);
 }
 
-/* Dynamic Island: Fluid Dimensional Morphing & Continuity */
+/* Dynamic Island: Fluid Dimensional Morphing & Organic Expansion */
 .island-fluid-capsule {
   transition: min-width var(--duration-island) var(--ease-snappy),
               max-width var(--duration-island) var(--ease-snappy),
@@ -324,11 +323,11 @@ html.theme-transitioning *::after {
 @keyframes islandContentSwap {
   0% {
     opacity: 0;
-    transform: translateY(2px) scale(0.98);
+    transform: translateY(2.5px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -336,18 +335,65 @@ html.theme-transitioning *::after {
   animation: islandContentSwap var(--duration-island) var(--ease-snappy) forwards;
 }
 
-/* Fluid collapsing wrapper for internal items */
+/* Fluid collapsing wrapper for internal items with organic choreography */
 .island-collapsible {
+  will-change: max-width, opacity, transform;
   transition: max-width var(--duration-island) var(--ease-snappy),
-              opacity calc(var(--duration-island) * 0.85) var(--ease-snappy),
-              margin var(--duration-island) var(--ease-snappy),
-              transform var(--duration-island) var(--ease-snappy);
+              transform var(--duration-island) var(--ease-snappy),
+              opacity calc(var(--duration-island) * 0.8) var(--ease-snappy),
+              margin var(--duration-island) var(--ease-snappy);
 }
 
-/* Sidebar label smooth collapse (240px -> 68px) without sudden unmount */
+/* Quando expandindo (conteúdo entrando na cápsula):
+   container abre espaço -> conteúdo sobe com micro translateY(2.5px -> 0) e opacidade sobe com leve delay */
+.island-item-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition: max-width var(--duration-island) var(--ease-snappy),
+              transform var(--duration-island) var(--ease-snappy),
+              opacity calc(var(--duration-island) * 0.75) var(--ease-snappy) calc(var(--duration-island) * 0.18),
+              margin var(--duration-island) var(--ease-snappy);
+}
+
+/* Quando recolhendo (conteúdo saindo da cápsula):
+   conteúdo recolhe primeiro com micro recuo -> opacidade reduz rapidamente -> container fecha */
+.island-item-out {
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  transition: max-width var(--duration-island) var(--ease-snappy),
+              transform calc(var(--duration-island) * 0.7) var(--ease-snappy),
+              opacity calc(var(--duration-island) * 0.45) ease-in,
+              margin var(--duration-island) var(--ease-snappy);
+}
+
+/* Sidebar label smooth collapse (240px -> 68px -> 0px) com comportamento físico de gaveta */
 .sidebar-label-collapse {
+  will-change: max-width, opacity, transform;
   transition: max-width var(--duration-layout) var(--ease-smooth),
-              opacity calc(var(--duration-layout) * 0.75) ease-out,
+              transform var(--duration-layout) var(--ease-smooth),
+              opacity calc(var(--duration-layout) * 0.75) var(--ease-smooth),
+              margin var(--duration-layout) var(--ease-smooth);
+}
+
+/* Quando expandido (gaveta abrindo): espaço reaparece, conteúdo entra deslizando suavemente para fora */
+.sidebar-label-in {
+  opacity: 1;
+  transform: translateX(0);
+  transition: max-width var(--duration-layout) var(--ease-smooth),
+              transform var(--duration-layout) var(--ease-smooth),
+              opacity calc(var(--duration-layout) * 0.75) var(--ease-smooth) calc(var(--duration-layout) * 0.15),
+              margin var(--duration-layout) var(--ease-smooth);
+}
+
+/* Quando recolhido (gaveta fechando): conteúdo recolhe para dentro da gaveta com fade suave */
+.sidebar-label-out {
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+  transition: max-width var(--duration-layout) var(--ease-smooth),
+              transform calc(var(--duration-layout) * 0.75) var(--ease-smooth),
+              opacity calc(var(--duration-layout) * 0.45) ease-in,
               margin var(--duration-layout) var(--ease-smooth);
 }
 
@@ -397,6 +443,13 @@ html.theme-transitioning *::after {
   .btn-interactive:active {
     animation: none !important;
     transform: none !important;
+  }
+  .sidebar-label-in,
+  .sidebar-label-out,
+  .island-item-in,
+  .island-item-out {
+    transform: none !important;
+    transition: opacity 140ms var(--ease-snappy) !important;
   }
 }
 

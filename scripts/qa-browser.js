@@ -248,8 +248,8 @@ async function runFullQA() {
     }, selectors);
   };
 
-  // 1. Transição Idle -> Active (220ms)
-  console.log('\n--> Provando transição Island: idle -> active (220ms)...');
+  // 1. Transição Idle -> Active (250ms)
+  console.log('\n--> Provando transição Island: idle -> active (250ms)...');
   await page.evaluate(() => {
     const btn = document.querySelector('button[data-state="idle"]');
     btn?.click();
@@ -260,24 +260,24 @@ async function runFullQA() {
   await saveScreenshot(page, 'transition_island_idle_to_active_0pct.png');
   console.log('   [0% Idle]:', idleActive0['#island-capsule']);
 
-  // Disparar active e capturar ~50% (105ms de 220ms)
+  // Disparar active e capturar ~50% (120ms de 250ms)
   await page.evaluate(() => {
     const btn = document.querySelector('button[data-state="active"]');
     btn?.click();
   });
-  await wait(105);
+  await wait(120);
   const idleActive50 = await getElementMetrics(['#island-capsule']);
   await saveScreenshot(page, 'transition_island_idle_to_active_50pct.png');
   console.log('   [~50% Morph]:', idleActive50['#island-capsule']);
 
-  // Capturar 100% (estabelecido em ~240ms)
-  await wait(240);
+  // Capturar 100% (estabelecido em ~260ms)
+  await wait(260);
   const idleActive100 = await getElementMetrics(['#island-capsule']);
   await saveScreenshot(page, 'transition_island_idle_to_active_100pct.png');
   console.log('   [100% Active]:', idleActive100['#island-capsule']);
 
-  // 2. Transição Active -> Processing (220ms)
-  console.log('\n--> Provando transição Island: active -> processing (220ms)...');
+  // 2. Transição Active -> Processing (250ms)
+  console.log('\n--> Provando transição Island: active -> processing (250ms)...');
   const activeProc0 = await getElementMetrics(['#island-capsule']);
   await saveScreenshot(page, 'transition_island_active_to_proc_0pct.png');
   console.log('   [0% Active]:', activeProc0['#island-capsule']);
@@ -286,18 +286,18 @@ async function runFullQA() {
     const btn = document.querySelector('button[data-state="processing"]');
     btn?.click();
   });
-  await wait(105);
+  await wait(120);
   const activeProc50 = await getElementMetrics(['#island-capsule']);
   await saveScreenshot(page, 'transition_island_active_to_proc_50pct.png');
   console.log('   [~50% Morph]:', activeProc50['#island-capsule']);
 
-  await wait(240);
+  await wait(260);
   const activeProc100 = await getElementMetrics(['#island-capsule']);
   await saveScreenshot(page, 'transition_island_active_to_proc_100pct.png');
   console.log('   [100% Processing]:', activeProc100['#island-capsule']);
 
-  // 3. Transição Shell Mode: Amplo -> Foco (340ms)
-  console.log('\n--> Provando transição Shell: amplo -> foco (340ms)...');
+  // 3. Transição Shell Mode: Amplo -> Foco (350ms)
+  console.log('\n--> Provando transição Shell: amplo -> foco (350ms)...');
   await setMode('amplo');
   await wait(450);
 
@@ -311,11 +311,11 @@ async function runFullQA() {
     islandCenter: amploFoco0['#island-capsule']?.x + (amploFoco0['#island-capsule']?.width || 0) / 2,
   });
 
-  // Disparar Foco e capturar ~50% (165ms de 340ms)
+  // Disparar Foco e capturar ~50% (175ms de 350ms)
   await page.evaluate(() => {
     document.getElementById('btn-lab-mode-foco')?.click();
   });
-  await wait(165);
+  await wait(175);
   const amploFoco50 = await getElementMetrics(shellSelectors);
   await saveScreenshot(page, 'transition_shell_amplo_to_foco_50pct.png');
   console.log('   [~50% Reorganização]:', {
@@ -324,8 +324,8 @@ async function runFullQA() {
     islandCenter: amploFoco50['#island-capsule']?.x + (amploFoco50['#island-capsule']?.width || 0) / 2,
   });
 
-  // Capturar 100% Foco (estabelecido em ~360ms)
-  await wait(280);
+  // Capturar 100% Foco (estabelecido em ~370ms)
+  await wait(300);
   const amploFoco100 = await getElementMetrics(shellSelectors);
   await saveScreenshot(page, 'transition_shell_amplo_to_foco_100pct.png');
   console.log('   [100% Foco Estabilizado]:', {
@@ -396,11 +396,11 @@ async function runFullQA() {
 
   const tokensValid =
     motionTokens.durationMicro === '100ms' &&
-    motionTokens.durationIsland === '220ms' &&
-    motionTokens.durationLayout === '340ms' &&
+    motionTokens.durationIsland === '250ms' &&
+    motionTokens.durationLayout === '350ms' &&
     motionTokens.durationTheme === '380ms' &&
     motionTokens.durationMobile === '220ms';
-  console.log('Asserção Tokens de Duração (100/220/340/380/220ms):', tokensValid ? 'PASSED ✓' : 'FAILED ✗');
+  console.log('Asserção Tokens de Duração (100/250/350/380/220ms):', tokensValid ? 'PASSED ✓' : 'FAILED ✗');
 
   // Asserção 2: Reduced motion desativa transform e animação
   const reducedMotionActive = await page.evaluate(() => {

@@ -180,30 +180,30 @@ async function runMotionRecorder() {
   await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
   await wait(500);
 
-  // 1.1 Amplo -> Compacto (340ms)
-  await recordTransition('amplo_para_compacto', async () => selectMode('compacto'), 340, 25);
+  // 1.1 Amplo -> Compacto (350ms)
+  await recordTransition('amplo_para_compacto', async () => selectMode('compacto'), 350, 25);
   await wait(250);
 
-  // 1.2 Compacto -> Amplo (340ms)
-  await recordTransition('compacto_para_amplo', async () => selectMode('amplo'), 340, 25);
+  // 1.2 Compacto -> Amplo (350ms)
+  await recordTransition('compacto_para_amplo', async () => selectMode('amplo'), 350, 25);
   await wait(250);
 
-  // 1.3 Amplo -> Foco (340ms)
-  await recordTransition('amplo_para_foco', async () => selectMode('foco'), 340, 25);
+  // 1.3 Amplo -> Foco (350ms)
+  await recordTransition('amplo_para_foco', async () => selectMode('foco'), 350, 25);
   await wait(250);
 
-  // 1.4 Foco -> Amplo (340ms)
-  await recordTransition('foco_para_amplo', async () => selectMode('amplo'), 340, 25);
+  // 1.4 Foco -> Amplo (350ms)
+  await recordTransition('foco_para_amplo', async () => selectMode('amplo'), 350, 25);
   await wait(250);
 
-  // 1.5 Compacto -> Foco (340ms)
+  // 1.5 Compacto -> Foco (350ms)
   await selectMode('compacto');
   await wait(420);
-  await recordTransition('compacto_para_foco', async () => selectMode('foco'), 340, 25);
+  await recordTransition('compacto_para_foco', async () => selectMode('foco'), 350, 25);
   await wait(250);
 
-  // 1.6 Foco -> Compacto (340ms)
-  await recordTransition('foco_para_compacto', async () => selectMode('compacto'), 340, 25);
+  // 1.6 Foco -> Compacto (350ms)
+  await recordTransition('foco_para_compacto', async () => selectMode('compacto'), 350, 25);
   await wait(250);
 
   // Restaurar Amplo
@@ -222,18 +222,18 @@ async function runMotionRecorder() {
     }, st);
   };
 
-  // 2.1 Idle -> Active (220ms)
+  // 2.1 Idle -> Active (250ms)
   await selectIslandState('idle');
   await wait(300);
-  await recordTransition('idle_para_active', async () => selectIslandState('active'), 220, 20);
+  await recordTransition('idle_para_active', async () => selectIslandState('active'), 250, 20);
   await wait(250);
 
-  // 2.2 Active -> Processing (220ms)
-  await recordTransition('active_para_processing', async () => selectIslandState('processing'), 220, 20);
+  // 2.2 Active -> Processing (250ms)
+  await recordTransition('active_para_processing', async () => selectIslandState('processing'), 250, 20);
   await wait(250);
 
-  // 2.3 Processing -> Success (220ms)
-  await recordTransition('processing_para_success', async () => selectIslandState('success'), 220, 20);
+  // 2.3 Processing -> Success (250ms)
+  await recordTransition('processing_para_success', async () => selectIslandState('success'), 250, 20);
   await wait(250);
 
   // 2.4 Attention (2 pulsos discretos em 1.2s)
@@ -248,13 +248,13 @@ async function runMotionRecorder() {
   await recordTransition('error_micro_shake', async () => selectIslandState('error'), 220, 20);
   await wait(250);
 
-  // 2.6 Collapsed (Contração para círculo de 34px - 220ms)
+  // 2.6 Collapsed (Contração para círculo de 34px - 250ms)
   await selectIslandState('active');
   await wait(250);
-  await recordTransition('active_para_collapsed', async () => selectIslandState('collapsed'), 220, 20);
+  await recordTransition('active_para_collapsed', async () => selectIslandState('collapsed'), 250, 20);
   await wait(250);
 
-  // 2.7 Collapsed -> Active (Expansão ao clicar na cápsula - 220ms)
+  // 2.7 Collapsed -> Active (Expansão ao clicar na cápsula - 250ms)
   await recordTransition(
     'collapsed_para_active',
     async () => {
@@ -262,7 +262,7 @@ async function runMotionRecorder() {
         document.getElementById('island-capsule')?.click();
       });
     },
-    220,
+    250,
     20
   );
   await wait(250);
@@ -276,6 +276,149 @@ async function runMotionRecorder() {
   await selectIslandState('idle');
   await wait(200);
   await recordTransition('reduced_motion_idle_para_active', async () => selectIslandState('active'), 140, 20);
+
+  // =========================================================================
+  // FASE 4: GRAVAÇÃO LONGA CONTÍNUA (60–120 SEGUNDOS) — VALIDAÇÃO DE USO REAL
+  // =========================================================================
+  console.log('\n[FASE 4] GRAVAÇÃO LONGA CONTÍNUA (60–120 SEGUNDOS) — VALIDAÇÃO DE USO REAL');
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+  await page.goto('http://localhost:3000/dev/motion-lab', { waitUntil: 'networkidle0' });
+  await wait(500);
+
+  const longSessionStartTime = Date.now();
+  const longSessionFrames = [];
+  let longTransitionCount = 0;
+
+  const recordSessionStep = async (label, actionFn, waitAfterMs = 450) => {
+    longTransitionCount++;
+    if (actionFn) await actionFn();
+    await wait(waitAfterMs);
+
+    const mEnd = await getMetrics();
+    const tEnd = Date.now() - longSessionStartTime;
+
+    const buf = await page.screenshot({ encoding: 'binary' });
+    const imgName = `long_step_${String(longTransitionCount).padStart(3, '0')}.png`;
+    await saveFile(imgName, buf);
+
+    longSessionFrames.push({
+      frame: longTransitionCount,
+      time: tEnd,
+      label,
+      image: imgName,
+      metrics: mEnd,
+    });
+    console.log(`   [${(tEnd / 1000).toFixed(1)}s] Passo ${longTransitionCount}: ${label} (Island: ${mEnd.island?.width}px, Sidebar: ${mEnd.sidebar?.width}px)`);
+  };
+
+  // 4.1 Sequência Obrigatória do Shell:
+  // Amplo → Compacto → Amplo → Foco → Amplo → Compacto → Foco → Compacto → Amplo
+  console.log('\n--> Executando Sequência Obrigatória do Shell...');
+  await recordSessionStep('Shell Inicial: Amplo', async () => selectMode('amplo'), 500);
+  await recordSessionStep('Shell: Amplo → Compacto', async () => selectMode('compacto'), 500);
+  await recordSessionStep('Shell: Compacto → Amplo', async () => selectMode('amplo'), 500);
+  await recordSessionStep('Shell: Amplo → Foco', async () => selectMode('foco'), 500);
+  await recordSessionStep('Shell: Foco → Amplo', async () => selectMode('amplo'), 500);
+  await recordSessionStep('Shell: Amplo → Compacto', async () => selectMode('compacto'), 500);
+  await recordSessionStep('Shell: Compacto → Foco', async () => selectMode('foco'), 500);
+  await recordSessionStep('Shell: Foco → Compacto', async () => selectMode('compacto'), 500);
+  await recordSessionStep('Shell: Compacto → Amplo', async () => selectMode('amplo'), 500);
+
+  // 4.2 Sequência Semântica Intercalada do Dynamic Island:
+  // idle → active → processing → success → idle → attention → idle → error → idle → collapsed → active → processing → collapsed → active
+  console.log('\n--> Executando Sequência Semântica Intercalada do Island...');
+  await recordSessionStep('Island: idle', async () => selectIslandState('idle'), 400);
+  await recordSessionStep('Island: idle → active', async () => selectIslandState('active'), 400);
+  await recordSessionStep('Island: active → processing', async () => selectIslandState('processing'), 400);
+  await recordSessionStep('Island: processing → success', async () => selectIslandState('success'), 400);
+  await recordSessionStep('Island: success → idle', async () => selectIslandState('idle'), 400);
+  await recordSessionStep('Island: idle → attention', async () => selectIslandState('attention'), 1300);
+  await recordSessionStep('Island: attention → idle', async () => selectIslandState('idle'), 400);
+  await recordSessionStep('Island: idle → error', async () => selectIslandState('error'), 400);
+  await recordSessionStep('Island: error → idle', async () => selectIslandState('idle'), 400);
+  await recordSessionStep('Island: idle → collapsed', async () => selectIslandState('collapsed'), 400);
+  await recordSessionStep('Island: collapsed → active', async () => {
+    await page.evaluate(() => document.getElementById('island-capsule')?.click());
+  }, 400);
+  await recordSessionStep('Island: active → processing', async () => selectIslandState('processing'), 400);
+  await recordSessionStep('Island: processing → collapsed', async () => selectIslandState('collapsed'), 400);
+  await recordSessionStep('Island: collapsed → active', async () => {
+    await page.evaluate(() => document.getElementById('island-capsule')?.click());
+  }, 400);
+
+  // 4.3 Combinações Naturais Coordenadas (Shell + Island Simultâneos):
+  // Shell Amplo ↓ Island active ↓ Shell Compacto ↓ Island processing ↓ Shell Foco ↓ Island success ↓ Shell Amplo ↓ Island collapsed ↓ Island active
+  console.log('\n--> Executando Combinações Naturais Coordenadas...');
+  await recordSessionStep('Combo 1: Shell Amplo + Island active', async () => {
+    await selectMode('amplo');
+    await selectIslandState('active');
+  }, 500);
+  await recordSessionStep('Combo 2: Shell Compacto + Island processing', async () => {
+    await selectMode('compacto');
+    await selectIslandState('processing');
+  }, 500);
+  await recordSessionStep('Combo 3: Shell Foco + Island success', async () => {
+    await selectMode('foco');
+    await selectIslandState('success');
+  }, 500);
+  await recordSessionStep('Combo 4: Shell Amplo + Island collapsed', async () => {
+    await selectMode('amplo');
+    await selectIslandState('collapsed');
+  }, 500);
+  await recordSessionStep('Combo 5: Island active no Shell Amplo', async () => {
+    await page.evaluate(() => document.getElementById('island-capsule')?.click());
+  }, 500);
+
+  // 4.4 Teste de Repetição Intensa (10 Ciclos de cada transição):
+  console.log('\n--> Executando 10 Ciclos: Amplo ⇄ Compacto...');
+  for (let c = 1; c <= 10; c++) {
+    await recordSessionStep(`Repetição [${c}/10]: Amplo → Compacto`, async () => selectMode('compacto'), 400);
+    await recordSessionStep(`Repetição [${c}/10]: Compacto → Amplo`, async () => selectMode('amplo'), 400);
+  }
+
+  console.log('\n--> Executando 10 Ciclos: Amplo ⇄ Foco...');
+  for (let c = 1; c <= 10; c++) {
+    await recordSessionStep(`Repetição [${c}/10]: Amplo → Foco`, async () => selectMode('foco'), 450);
+    await recordSessionStep(`Repetição [${c}/10]: Foco → Amplo`, async () => selectMode('amplo'), 450);
+  }
+
+  console.log('\n--> Executando 10 Ciclos: active ⇄ processing...');
+  for (let c = 1; c <= 10; c++) {
+    await recordSessionStep(`Repetição [${c}/10]: active → processing`, async () => selectIslandState('processing'), 350);
+    await recordSessionStep(`Repetição [${c}/10]: processing → active`, async () => selectIslandState('active'), 350);
+  }
+
+  console.log('\n--> Executando 10 Ciclos: collapsed ⇄ active...');
+  for (let c = 1; c <= 10; c++) {
+    await recordSessionStep(`Repetição [${c}/10]: active → collapsed`, async () => selectIslandState('collapsed'), 350);
+    await recordSessionStep(`Repetição [${c}/10]: collapsed → active`, async () => {
+      await page.evaluate(() => document.getElementById('island-capsule')?.click());
+    }, 350);
+  }
+
+  // Finalizar sessão em Amplo e Active
+  await recordSessionStep('Finalização: Shell Amplo + Island Active', async () => {
+    await selectMode('amplo');
+    await selectIslandState('active');
+  }, 600);
+
+  const longSessionDurationMs = Date.now() - longSessionStartTime;
+  const longSessionDurationSec = Math.round(longSessionDurationMs / 1000);
+  console.log(`\n✓ GRAVAÇÃO LONGA CONCLUÍDA: ${longSessionDurationSec}s | ${longTransitionCount} transições gravadas.`);
+
+  // Adicionar ao replayData
+  replayData['gravacao_longa_continua'] = {
+    name: 'gravacao_longa_continua',
+    durationMs: longSessionDurationMs,
+    frames: longSessionFrames.map((f) => ({
+      frame: f.frame,
+      time: f.time,
+      pct: Math.round((f.time / longSessionDurationMs) * 100),
+      image: f.image,
+      metrics: f.metrics,
+      label: f.label,
+    })),
+  };
 
   await browser.close();
 
@@ -417,7 +560,7 @@ async function runMotionRecorder() {
 
       document.getElementById('playerScreen').src = f.image;
       document.getElementById('timeSlider').value = currentFrameIdx;
-      document.getElementById('timeLabel').textContent = f.time + 'ms (' + f.pct + '%)';
+      document.getElementById('timeLabel').textContent = f.time + 'ms (' + f.pct + '%)' + (f.label ? ' · ' + f.label : '');
 
       const isl = f.metrics.island;
       if (isl) {
