@@ -170,6 +170,7 @@ export default function MotionLabPage() {
                 key={st}
                 type="button"
                 id={`btn-state-${st}`}
+                data-state={st}
                 onClick={() => {
                   clearSequenceTimer();
                   setIslandState(st as IslandState);
