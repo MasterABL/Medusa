@@ -34,21 +34,21 @@ export function StudyCompletionView({
             {LESSON_FIXTURE.discipline} · {LESSON_FIXTURE.topic}
           </h1>
           <p className="text-[13px] text-text-secondary max-w-md mx-auto">
-            Aula e prática finalizadas. Os dados desta sessão foram auditados e computados para a progressão da sua trilha.
+            Aula e prática finalizadas. O aproveitamento da sessão foi calculado com base nas suas respostas.
           </p>
         </div>
 
-        {/* Métricas Reais Auditáveis (Regra Anti-Ficção estrita) */}
+        {/* Métricas da Sessão (Regra Anti-Ficção estrita) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full pt-2">
-          {/* Métrica 1: Duração Real */}
+          {/* Métrica 1: Duração Nominal Planejada */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
-              Duração da Sessão
+              Duração Planejada
             </span>
             <span className="text-xl font-bold text-text-primary font-mono tabular-nums">
               {result.durationFormatted}
             </span>
-            <span className="text-[11px] text-text-muted">Aula teórica + prática</span>
+            <span className="text-[11px] text-text-muted">Tempo nominal do módulo</span>
           </div>
 
           {/* Métrica 2: Aproveitamento Real em Questões */}
@@ -59,10 +59,10 @@ export function StudyCompletionView({
             <span className="text-xl font-bold text-text-primary font-mono tabular-nums">
               {result.correctAnswers}/{result.totalQuestions} ({result.scorePercentage}%)
             </span>
-            <span className="text-[11px] text-text-muted">5 questões conceituais</span>
+            <span className="text-[11px] text-text-muted">5 questões respondidas</span>
           </div>
 
-          {/* Métrica 3: Próxima Revisão Programada */}
+          {/* Métrica 3: Próxima Revisão Sugerida */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
               Próxima Revisão
@@ -71,7 +71,7 @@ export function StudyCompletionView({
               {result.nextReviewDate}
             </span>
             <span className="text-[11px] text-[#1B502C] dark:text-medusa-support font-medium">
-              Ciclo de retenção ativa
+              Sugestão de ciclo (Fixture)
             </span>
           </div>
         </div>

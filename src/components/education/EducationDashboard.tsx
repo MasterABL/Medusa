@@ -144,7 +144,7 @@ export function EducationDashboard({
               <div className="text-base font-bold text-text-primary tabular-nums">
                 {isSessionCompleted ? '26h 45m' : '26h 00m'}
               </div>
-              <p className="text-[11px] text-text-muted">Tempo auditado no ciclo</p>
+              <p className="text-[11px] text-text-muted">Horas nominais do ciclo</p>
             </div>
 
             <div className="space-y-0.5">
@@ -164,10 +164,10 @@ export function EducationDashboard({
                 Status do Sistema
               </span>
               <div className="text-base font-bold text-text-primary">
-                {isSessionCompleted ? 'Revisão Agendada' : 'Pronto para Estudo'}
+                {isSessionCompleted ? 'Revisão Recomendada' : 'Pronto para Estudo'}
               </div>
               <p className="text-[11px] text-text-muted">
-                {isSessionCompleted ? 'Amanhã às 09:00' : 'Sessão imediata'}
+                {isSessionCompleted ? 'Sugestão: Amanhã às 09:00 (Fixture)' : 'Sessão imediata'}
               </p>
             </div>
           </div>

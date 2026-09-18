@@ -61,7 +61,9 @@ export function TutorDrawer({
     }
   }, [contextQuestion, isOpen, messages]);
 
-  // Simulação de ciclo de Voz seguro (STT pausado durante TTS para evitar autoescuta)
+  // PROTÓTIPO DE VOZ: Máquina de estados de frontend para validação de UX.
+  // AUDITORIA ANTI-FICÇÃO: Backend Whisper / WebRTC TTS / STT nativo NÃO ESTÁ IMPLEMENTADO.
+  // O ciclo demonstra a contenção de estados e anti-autoescuta (STT pausado durante TTS) via flags de interface.
   const toggleVoiceMode = () => {
     if (isVoiceActive) {
       setIsVoiceActive(false);

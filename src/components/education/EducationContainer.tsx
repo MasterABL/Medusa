@@ -25,7 +25,8 @@ export function EducationContainer() {
   const [isSimulateFailureActive, setIsSimulateFailureActive] = useState(false);
   const [previousShellMode, setPreviousShellMode] = useState(mode);
 
-  // Estados persistidos no escopo da experiência da sessão
+  // Estados mantidos estritamente em memória React (escopo da sessão atual).
+  // AUDITORIA ANTI-FICÇÃO: NÃO sobrevivem a reload de página (F5) nem sincronizam com backend nesta fase.
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
   const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
