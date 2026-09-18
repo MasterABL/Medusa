@@ -423,6 +423,84 @@ html.theme-transitioning *::after {
 }
 
 /* ==========================================================================
+   STUDY MODE MOTION CHOREOGRAPHY & STAGES
+   ========================================================================== */
+@keyframes studyStageSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes studySummarySlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes studyExerciseEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes summaryItemRise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes studyRecedeExit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.985) translateY(-8px);
+  }
+}
+
+.study-stage-enter {
+  animation: studyStageSlideIn 480ms var(--ease-smooth) forwards;
+}
+
+.study-summary-enter {
+  animation: studySummarySlideIn 440ms var(--ease-smooth) 120ms backwards;
+}
+
+.study-exercise-slide {
+  animation: studyExerciseEnter 500ms var(--ease-smooth) forwards;
+}
+
+.summary-item-rise {
+  animation: summaryItemRise 300ms var(--ease-smooth) backwards;
+}
+
+.study-recede {
+  animation: studyRecedeExit 320ms var(--ease-snappy) forwards;
+}
+
+/* ==========================================================================
    ACESSIBILIDADE: REDUCED MOTION MANDATÓRIO (Tonal crossfade ~140ms, zero transform)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -440,14 +518,24 @@ html.theme-transitioning *::after {
   .island-error-shake,
   .island-success-settle,
   .btn-interactive:hover,
-  .btn-interactive:active {
+  .btn-interactive:active,
+  .study-stage-enter,
+  .study-summary-enter,
+  .study-exercise-slide,
+  .summary-item-rise,
+  .study-recede {
     animation: none !important;
     transform: none !important;
   }
   .sidebar-label-in,
   .sidebar-label-out,
   .island-item-in,
-  .island-item-out {
+  .island-item-out,
+  .study-stage-enter,
+  .study-summary-enter,
+  .study-exercise-slide,
+  .summary-item-rise,
+  .study-recede {
     transform: none !important;
     transition: opacity 140ms var(--ease-snappy) !important;
   }

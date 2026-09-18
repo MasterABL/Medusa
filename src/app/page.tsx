@@ -3,9 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { useShell } from '@/context/ShellContext';
+import { EducationContainer } from '@/components/education/EducationContainer';
 
 export default function HomePage() {
-  const { setMode, mode, theme, setIslandState } = useShell();
+  const { setMode, mode, theme, setIslandState, activeRoute } = useShell();
+
+  // Roteamento encapsulado: a experiência da Educação vive inteiramente no EducationContainer
+  if (activeRoute === 'educacao') {
+    return <EducationContainer />;
+  }
 
   return (
     <main className="w-full pb-20 px-4 sm:px-8 max-w-5xl mx-auto flex flex-col gap-10 pt-6 flex-1">

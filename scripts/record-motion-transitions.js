@@ -278,6 +278,140 @@ async function runMotionRecorder() {
   await recordTransition('reduced_motion_idle_para_active', async () => selectIslandState('active'), 140, 20);
 
   // =========================================================================
+  // FASE 3.5: TRANSIÇÕES TEMPORAIS OBRIGATÓRIAS DE EDUCAÇÃO & STUDY MODE
+  // =========================================================================
+  console.log('\n[FASE 3.5] TRANSIÇÕES TEMPORAIS OBRIGATÓRIAS: EDUCAÇÃO & STUDY MODE');
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  await wait(500);
+
+  // Navegar para Educação
+  await page.evaluate(() => {
+    const navButtons = Array.from(document.querySelectorAll('nav[aria-label="Rotas Operacionais"] button'));
+    const eduBtn = navButtons.find((b) => b.textContent && b.textContent.includes('Educação'));
+    if (eduBtn) eduBtn.click();
+  });
+  await wait(500);
+
+  // 3.5.1: Educação → Study Mode (Início da Sessão)
+  await recordTransition(
+    'educacao_para_study_mode',
+    async () => {
+      await page.evaluate(() => {
+        document.getElementById('btn-start-study-session')?.click();
+      });
+    },
+    480,
+    25
+  );
+  await wait(300);
+
+  // 3.5.2: Loading → Aula Pronta
+  // Aguarda 2.8s no loading e grava a transição para Aula Pronta
+  await wait(2400);
+  await recordTransition(
+    'loading_para_aula_pronta',
+    async () => {
+      // O timer natural ou avanço para ready
+      await page.waitForSelector('#study-ready-state', { timeout: 4000 });
+    },
+    480,
+    25
+  );
+  await wait(300);
+
+  // Entrar no Modo Estudo
+  await page.evaluate(() => {
+    document.getElementById('btn-enter-study-mode')?.click();
+  });
+  await wait(600);
+
+  // 3.5.3: Aula → Exercícios (Deslize suave do palco para prática)
+  await recordTransition(
+    'aula_para_exercicios',
+    async () => {
+      await page.evaluate(() => {
+        document.getElementById('btn-complete-lesson-trigger')?.click();
+      });
+    },
+    550,
+    25
+  );
+  await wait(500);
+
+  // 3.5.4: Questão → Feedback → Próxima
+  await recordTransition(
+    'questao_feedback_proxima',
+    async () => {
+      await page.evaluate(() => {
+        document.getElementById('option-b')?.click();
+        document.getElementById('btn-submit-answer')?.click();
+      });
+    },
+    480,
+    25
+  );
+  await wait(400);
+
+  // Avançar para Q2
+  await page.evaluate(() => {
+    document.getElementById('btn-next-question')?.click();
+  });
+  await wait(350);
+
+  // 3.5.5: Erro → Tutor → Questão
+  await recordTransition(
+    'erro_tutor_questao',
+    async () => {
+      await page.evaluate(() => {
+        document.getElementById('option-a')?.click();
+        document.getElementById('btn-submit-answer')?.click();
+        setTimeout(() => {
+          document.getElementById('btn-understand-error')?.click();
+        }, 100);
+      });
+    },
+    550,
+    25
+  );
+  await wait(500);
+
+  // Fechar Tutor e completar questões até conclusão
+  await page.evaluate(() => {
+    document.getElementById('btn-close-tutor')?.click();
+  });
+  await wait(300);
+
+  // Avançar Q2 -> Q3 -> Q4 -> Q5 -> Conclusão
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(250);
+  await page.evaluate(() => { document.getElementById('option-a')?.click(); document.getElementById('btn-submit-answer')?.click(); });
+  await wait(250);
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(250);
+  await page.evaluate(() => { document.getElementById('option-b')?.click(); document.getElementById('btn-submit-answer')?.click(); });
+  await wait(250);
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(250);
+  await page.evaluate(() => { document.getElementById('option-a')?.click(); document.getElementById('btn-submit-answer')?.click(); });
+  await wait(250);
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(500);
+
+  // 3.5.6: Conclusão → Educação
+  await recordTransition(
+    'conclusao_para_educacao',
+    async () => {
+      await page.evaluate(() => {
+        document.getElementById('btn-return-education')?.click();
+      });
+    },
+    500,
+    25
+  );
+  await wait(500);
+
+  // =========================================================================
   // FASE 4: GRAVAÇÃO LONGA CONTÍNUA (60–120 SEGUNDOS) — VALIDAÇÃO DE USO REAL
   // =========================================================================
   console.log('\n[FASE 4] GRAVAÇÃO LONGA CONTÍNUA (60–120 SEGUNDOS) — VALIDAÇÃO DE USO REAL');

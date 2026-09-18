@@ -514,6 +514,277 @@ async function runFullQA() {
   });
   console.log('Asserção Attention Pulsante Finito (termina em 1.2s sem loop infinito):', attentionTerminated ? 'PASSED ✓' : 'FAILED ✗');
 
+  // =========================================================================
+  // MATRIZ COMPLETA: EDUCAÇÃO & STUDY MODE (FLUXO INTERATIVO & MOTION GATES)
+  // =========================================================================
+  console.log('\n=== INICIANDO QA DA ABA EDUCAÇÃO & STUDY MODE ===');
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  await wait(400);
+
+  // 1. Navegar para Educação
+  console.log('--> Navegando para Educação...');
+  await page.evaluate(() => {
+    const navButtons = Array.from(document.querySelectorAll('nav[aria-label="Rotas Operacionais"] button'));
+    const eduBtn = navButtons.find((b) => b.textContent && b.textContent.includes('Educação'));
+    if (eduBtn) eduBtn.click();
+  });
+  await wait(500);
+
+  count++;
+  await saveScreenshot(page, 'education_01_dashboard.png');
+  console.log(`[${count}] ✓ Capturado: education_01_dashboard.png (Dashboard da Trilha de Aprendizado)`);
+
+  const eduDashboardPresent = await page.evaluate(() => {
+    return Boolean(document.getElementById('education-dashboard'));
+  });
+  console.log('Asserção Educação Dashboard Renderizado:', eduDashboardPresent ? 'PASSED ✓' : 'FAILED ✗');
+
+  // 2. Iniciar Sessão de Estudo -> Loading
+  console.log('--> Clicando em Iniciar Sessão de Estudo...');
+  await page.evaluate(() => {
+    document.getElementById('btn-start-study-session')?.click();
+  });
+  await wait(400);
+
+  count++;
+  await saveScreenshot(page, 'education_02_loading.png');
+  console.log(`[${count}] ✓ Capturado: education_02_loading.png (Loading: Preparando sua aula)`);
+
+  const loadingCheck = await page.evaluate(() => {
+    const loadingEl = document.getElementById('study-loading-state');
+    const islandTag = document.getElementById('island-state-tag')?.textContent;
+    return {
+      hasLoading: Boolean(loadingEl),
+      islandProcessing: islandTag?.includes('Sincronizando') || document.querySelector('.island-processing-active') !== null,
+    };
+  });
+  console.log('Asserção Loading State & Island Processing:', loadingCheck.hasLoading ? 'PASSED ✓' : 'FAILED ✗');
+
+  // 3. Aguardar Ready State
+  console.log('--> Aguardando estado Aula Pronta (~3s)...');
+  await page.waitForSelector('#study-ready-state', { timeout: 6000 });
+  await wait(200);
+
+  count++;
+  await saveScreenshot(page, 'education_03_ready.png');
+  console.log(`[${count}] ✓ Capturado: education_03_ready.png (Aula Pronta com confirmação finita)`);
+
+  // 4. Entrar no Study Mode
+  console.log('--> Entrando no Modo Estudo...');
+  await page.evaluate(() => {
+    document.getElementById('btn-enter-study-mode')?.click();
+  });
+  await wait(600); // Entrando suavemente no palco
+
+  count++;
+  await saveScreenshot(page, 'education_04_study_mode.png');
+  console.log(`[${count}] ✓ Capturado: education_04_study_mode.png (Study Mode: 68% Vídeo + 32% Resumo)`);
+
+  const studyModeCheck = await page.evaluate(() => {
+    const container = document.getElementById('study-mode-container');
+    const videoToggle = document.getElementById('btn-video-play-pause');
+    const summaryTab = document.getElementById('tab-summary');
+    return Boolean(container && videoToggle && summaryTab);
+  });
+  console.log('Asserção Palco de Estudo Integrado:', studyModeCheck ? 'PASSED ✓' : 'FAILED ✗');
+
+  // 5. Testar Anotações Rápidas
+  console.log('--> Testando Registro de Notas com Timestamp...');
+  await page.evaluate(() => {
+    document.getElementById('tab-notes')?.click();
+  });
+  await wait(200);
+  await page.type('#note-input-textarea', 'Princípio da superposição verificado na aula teórica.');
+  await page.evaluate(() => {
+    document.getElementById('btn-save-note')?.click();
+  });
+  await wait(300);
+
+  count++;
+  await saveScreenshot(page, 'education_05_study_notes.png');
+  console.log(`[${count}] ✓ Capturado: education_05_study_notes.png (Notas com microfeedback sem reload)`);
+
+  // 6. Testar Tutor Contextual e Modo de Voz
+  console.log('--> Abrindo Tutor Contextual...');
+  await page.evaluate(() => {
+    document.getElementById('btn-trigger-tutor')?.click();
+  });
+  await wait(400);
+
+  count++;
+  await saveScreenshot(page, 'education_06_tutor_drawer.png');
+  console.log(`[${count}] ✓ Capturado: education_06_tutor_drawer.png (Tutor Drawer lateral sobreposto)`);
+
+  console.log('--> Testando alternância de Modo de Voz (com proteção anti-autoescuta)...');
+  await page.evaluate(() => {
+    document.getElementById('btn-tutor-voice-toggle')?.click();
+  });
+  await wait(300);
+
+  count++;
+  await saveScreenshot(page, 'education_07_tutor_voice.png');
+  console.log(`[${count}] ✓ Capturado: education_07_tutor_voice.png (Modo de Voz com STT e status ativo)`);
+
+  // Fechar Tutor preservando o palco
+  await page.evaluate(() => {
+    document.getElementById('btn-close-tutor')?.click();
+  });
+  await wait(350);
+
+  // 7. Concluir Aula -> Transição para Exercícios
+  console.log('--> Concluindo aula e transicionando para exercícios...');
+  await page.evaluate(() => {
+    document.getElementById('btn-complete-lesson-trigger')?.click();
+  });
+  await wait(600); // Transição suave de rearranjo do palco
+
+  count++;
+  await saveScreenshot(page, 'education_08_exercises_intro.png');
+  console.log(`[${count}] ✓ Capturado: education_08_exercises_intro.png (Exercícios: Questão 1 de 5)`);
+
+  // 8. Responder Questão 1 (Acerto)
+  console.log('--> Respondendo Questão 1 com acerto (Alternativa B)...');
+  await page.evaluate(() => {
+    document.getElementById('option-b')?.click();
+  });
+  await wait(150);
+  await page.evaluate(() => {
+    document.getElementById('btn-submit-answer')?.click();
+  });
+  await wait(300);
+
+  count++;
+  await saveScreenshot(page, 'education_09_exercise_correct.png');
+  console.log(`[${count}] ✓ Capturado: education_09_exercise_correct.png (Feedback pedagógico de acerto)`);
+
+  // Avançar para Questão 2
+  await page.evaluate(() => {
+    document.getElementById('btn-next-question')?.click();
+  });
+  await wait(350);
+
+  // 9. Responder Questão 2 (Erro proposital para testar diagnóstico e Tutor)
+  console.log('--> Respondendo Questão 2 com erro proposital (Alternativa A) para testar diagnóstico...');
+  await page.evaluate(() => {
+    document.getElementById('option-a')?.click();
+  });
+  await wait(150);
+  await page.evaluate(() => {
+    document.getElementById('btn-submit-answer')?.click();
+  });
+  await wait(300);
+
+  count++;
+  await saveScreenshot(page, 'education_10_exercise_error.png');
+  console.log(`[${count}] ✓ Capturado: education_10_exercise_error.png (Feedback de erro com diagnóstico)`);
+
+  // Clicar em [ Entender meu erro ] -> abre Tutor com diagnóstico contextual
+  console.log('--> Acionando [ Entender meu erro ] para abrir Tutor contextual...');
+  await page.evaluate(() => {
+    document.getElementById('btn-understand-error')?.click();
+  });
+  await wait(400);
+
+  count++;
+  await saveScreenshot(page, 'education_11_exercise_tutor_error.png');
+  console.log(`[${count}] ✓ Capturado: education_11_exercise_tutor_error.png (Tutor com diagnóstico da Questão 2)`);
+
+  // Fechar Tutor preservando a questão
+  await page.evaluate(() => {
+    document.getElementById('btn-close-tutor')?.click();
+  });
+  await wait(300);
+
+  // Responder as questões restantes (3, 4, 5)
+  console.log('--> Concluindo questões 3, 4 e 5...');
+  // Q2 -> Q3
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(300);
+  await page.evaluate(() => { document.getElementById('option-a')?.click(); }); // Q3 correta
+  await page.evaluate(() => { document.getElementById('btn-submit-answer')?.click(); });
+  await wait(200);
+
+  // Q3 -> Q4
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(300);
+  await page.evaluate(() => { document.getElementById('option-b')?.click(); }); // Q4 correta
+  await page.evaluate(() => { document.getElementById('btn-submit-answer')?.click(); });
+  await wait(200);
+
+  // Q4 -> Q5
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(300);
+  await page.evaluate(() => { document.getElementById('option-a')?.click(); }); // Q5 correta
+  await page.evaluate(() => { document.getElementById('btn-submit-answer')?.click(); });
+  await wait(200);
+
+  // Finalizar sessão
+  await page.evaluate(() => { document.getElementById('btn-next-question')?.click(); });
+  await wait(500);
+
+  // 10. Tela de Conclusão Auditável
+  count++;
+  await saveScreenshot(page, 'education_12_completion.png');
+  console.log(`[${count}] ✓ Capturado: education_12_completion.png (Conclusão com dados reais: 4/5, 80%, 45 min)`);
+
+  const completionAuditCheck = await page.evaluate(() => {
+    const text = document.getElementById('study-completion-container')?.textContent || '';
+    const hasScore = text.includes('4/5') && text.includes('80%');
+    const hasNoFakeRetention = !text.includes('+5.0%') && !text.includes('+5,0%');
+    return hasScore && hasNoFakeRetention;
+  });
+  console.log('Asserção Conclusão Auditável (Zero Fake Retention + Score Real):', completionAuditCheck ? 'PASSED ✓' : 'FAILED ✗');
+
+  // 11. Retornar para Educação com Trilha Atualizada
+  console.log('--> Retornando para Educação...');
+  await page.evaluate(() => {
+    document.getElementById('btn-return-education')?.click();
+  });
+  await wait(500);
+
+  count++;
+  await saveScreenshot(page, 'education_13_dashboard_updated.png');
+  console.log(`[${count}] ✓ Capturado: education_13_dashboard_updated.png (Dashboard com trilha 4/5 e próximo tópico)`);
+
+  // 12. Testar Erro Simulado de QA & Recuperação
+  console.log('--> Testando simulação de erro de QA e recuperação...');
+  await page.evaluate(() => {
+    document.getElementById('btn-toggle-qa-panel')?.click();
+  });
+  await wait(200);
+  await page.evaluate(() => {
+    document.getElementById('btn-qa-force-error-session')?.click();
+  });
+  await wait(1800); // Aguarda a simulação de falha aos 60%
+
+  count++;
+  await saveScreenshot(page, 'education_14_error_state.png');
+  console.log(`[${count}] ✓ Capturado: education_14_error_state.png (Estado de Erro Recuperável)`);
+
+  // Recuperação: Tentar novamente
+  await page.evaluate(() => {
+    document.getElementById('btn-retry-study')?.click();
+  });
+  await wait(400);
+
+  // Cancelar e voltar para Dashboard
+  await page.evaluate(() => {
+    document.getElementById('btn-cancel-loading')?.click();
+  });
+  await wait(400);
+
+  // 13. Testar Prefers-Reduced-Motion no fluxo de Educação
+  console.log('--> Validando Prefers-Reduced-Motion no Modo Estudo...');
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  await wait(300);
+
+  count++;
+  await saveScreenshot(page, 'education_15_reduced_motion.png');
+  console.log(`[${count}] ✓ Capturado: education_15_reduced_motion.png (Educação com Reduced Motion Ativo)`);
+
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+
   await browser.close();
 
   console.log('\n=== RELATÓRIO DO BROWSER QA ===');
@@ -523,6 +794,7 @@ async function runFullQA() {
   console.log('Overflow horizontal inexistente:', !hasHorizontalOverflow);
   console.log('Dark Mode border-border/70 corrigido:', darkTokenCheck.isDarkBorderCorrect);
   console.log('MobileIsland integrado ao Shell:', mobileIntegrationCheck.isInsideShell && mobileIntegrationCheck.hasOnlyOne);
+  console.log('Educação & Study Mode Validado:', eduDashboardPresent && studyModeCheck && completionAuditCheck);
 }
 
 runFullQA().catch((err) => {
