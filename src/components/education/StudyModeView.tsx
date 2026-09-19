@@ -1,33 +1,44 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { LiveSummaryPoint, StudyNote } from './types';
-import { INITIAL_SUMMARY_POINTS, LESSON_FIXTURE } from './educationFixtures';
+import React, { useState, useEffect } from 'react';
+import { StudyTrack, TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
 
 interface StudyModeViewProps {
+  trackDef: TrackDefinition;
   onCompleteLesson: () => void;
   onOpenTutor: (timestamp: number) => void;
   notes: StudyNote[];
   onSaveNote: (note: StudyNote) => void;
+  onSelectTrack?: (track: StudyTrack) => void;
 }
 
 export function StudyModeView({
+  trackDef,
   onCompleteLesson,
   onOpenTutor,
   notes,
   onSaveNote,
+  onSelectTrack,
 }: StudyModeViewProps) {
+  const { lesson, summaryPoints: initialSummaryPoints, voiceEmphasis } = trackDef;
+
   // Player state
   const [isPlaying, setIsPlaying] = useState(true);
-  const [currentTime, setCurrentTime] = useState(320); // 05:20
-  const [duration] = useState(2700); // 45 min
+  const [currentTime, setCurrentTime] = useState(240); // 04:00
+  const duration = lesson.actualDurationSeconds;
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5>(1);
   const [activeTab, setActiveTab] = useState<'summary' | 'notes'>('summary');
   const [newNoteText, setNewNoteText] = useState('');
   const [noteSavedFeedback, setNoteSavedFeedback] = useState<string | null>(null);
   const [summaryPoints, setSummaryPoints] = useState<LiveSummaryPoint[]>(
-    INITIAL_SUMMARY_POINTS.slice(0, 3)
+    initialSummaryPoints.slice(0, 3)
   );
+
+  // Sincronizar summary points quando a trilha mudar
+  useEffect(() => {
+    setSummaryPoints(initialSummaryPoints);
+    setCurrentTime(240);
+  }, [trackDef.id, initialSummaryPoints]);
 
   // Player timer loop
   useEffect(() => {
@@ -48,10 +59,10 @@ export function StudyModeView({
 
   // Simulação de entrada orgânica de novo tópico no resumo vivo às 06:00
   useEffect(() => {
-    if (currentTime > 360 && summaryPoints.length < INITIAL_SUMMARY_POINTS.length) {
-      setSummaryPoints(INITIAL_SUMMARY_POINTS);
+    if (currentTime > 360 && summaryPoints.length < initialSummaryPoints.length) {
+      setSummaryPoints(initialSummaryPoints);
     }
-  }, [currentTime, summaryPoints.length]);
+  }, [currentTime, summaryPoints.length, initialSummaryPoints]);
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -78,7 +89,7 @@ export function StudyModeView({
       id: `note-${Date.now()}`,
       timestamp: currentTime,
       formattedTime: formatTime(currentTime),
-      text: `Ponto de atenção marcado em ${formatTime(currentTime)}: revisão de conceitos de superposição.`,
+      text: `Marcador em ${formatTime(currentTime)} · ${lesson.topic}: revisão do conceito ativo.`,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     onSaveNote(note);
@@ -104,29 +115,57 @@ export function StudyModeView({
     setTimeout(() => setNoteSavedFeedback(null), 2500);
   };
 
+  const tracks: { id: StudyTrack; label: string }[] = [
+    { id: 'faculdade', label: 'Faculdade' },
+    { id: 'ingles', label: 'Inglês' },
+    { id: 'vestibular', label: 'Vestibular' },
+  ];
+
   return (
     <div
       id="study-mode-container"
-      className="study-stage-enter w-full flex flex-col gap-5 max-w-7xl mx-auto pb-14"
+      className="study-stage-enter w-full flex flex-col gap-4 max-w-7xl mx-auto pb-14"
     >
-      {/* Topo da Sessão de Estudo */}
+      {/* Topo da Sessão de Estudo & Contexto da Trilha */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30">
-              Modo Estudo Ativo
+              Modo Estudo Ativo · Foco Zen
             </span>
             <span className="text-text-muted/40">•</span>
             <span className="text-[11px] font-mono text-text-muted">
-              {LESSON_FIXTURE.module}
+              {lesson.module}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
-            {LESSON_FIXTURE.discipline} · {LESSON_FIXTURE.topic}
+            {lesson.discipline} · {lesson.topic}
           </h1>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Seletor Discreto de Trilha no Study Mode (Alternância Sem Reload) */}
+          {onSelectTrack && (
+            <div className="flex items-center gap-1 p-0.5 bg-surface-secondary/70 border border-border/60 rounded-xl text-[11px] font-mono">
+              {tracks.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  id={`study-track-${t.id}`}
+                  onClick={() => onSelectTrack(t.id)}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    trackDef.id === t.id
+                      ? 'bg-surface font-semibold text-text-primary shadow-subtle'
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                  title={`Alternar para trilha ${t.label}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <button
             type="button"
             id="btn-trigger-tutor"
@@ -134,9 +173,9 @@ export function StudyModeView({
             className="btn-interactive bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
           >
             <span className="material-symbols-outlined text-[16px] text-medusa-primary">
-              neurology
+              {trackDef.id === 'ingles' ? 'record_voice_over' : 'neurology'}
             </span>
-            <span>Tutor &amp; Voz</span>
+            <span>{trackDef.id === 'ingles' ? 'Tutor & Prática Oral' : 'Tutor & Dúvidas'}</span>
           </button>
 
           <button
@@ -151,43 +190,101 @@ export function StudyModeView({
         </div>
       </div>
 
-      {/* Palco Central: ~68% Vídeo Player Interativo + ~32% Resumo Vivo / Notas */}
+      {/* Faixa Contextual: Objetivo da Sessão */}
+      <div
+        id="session-objective-banner"
+        className="bg-surface rounded-xl p-3 sm:p-4 border border-border/70 shadow-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[12px]"
+      >
+        <div className="flex items-start sm:items-center gap-2.5">
+          <div className="w-6 h-6 rounded-lg bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+            <span className="material-symbols-outlined text-[15px]">flag</span>
+          </div>
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-mono uppercase text-text-muted tracking-wider block">
+              Objetivo da Sessão ({trackDef.name})
+            </span>
+            <p className="text-text-secondary font-medium leading-relaxed">
+              {lesson.sessionObjective}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+          <span className="text-[10px] font-mono text-text-muted bg-surface-secondary px-2.5 py-1 rounded border border-border/60">
+            {lesson.estimatedDuration} · Aula Teórica + Prática
+          </span>
+        </div>
+      </div>
+
+      {/* Palco Central: ~70% Conteúdo da Aula + ~30% Resumo Vivo / Notas */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* ================= COLUNA PRINCIPAL: VÍDEO PLAYER INTERATIVO (68%) ================= */}
+        {/* ================= COLUNA PRINCIPAL: PLAYER DE CONTEÚDO (70%) ================= */}
         <section
-          aria-label="Vídeo da Aula"
+          aria-label="Conteúdo da Aula"
           className="lg:col-span-8 flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden"
         >
-          {/* Canvas / Visualizador da Aula (Fixture interativo calibrado) */}
+          {/* Canvas / Visualizador Adaptado à Trilha */}
           <div className="relative aspect-video w-full bg-[#0E1311] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none">
-            {/* Visualizador de Onda Harmônica Senoidal */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-              <svg className="w-full h-32 stroke-[#71DBD2]" fill="none" viewBox="0 0 800 120">
-                <path
-                  d="M0,60 Q100,10 200,60 T400,60 T600,60 T800,60"
-                  strokeWidth="3"
-                  className={isPlaying ? 'living-pulse' : ''}
-                />
-                <path
-                  d="M0,60 Q100,110 200,60 T400,60 T600,60 T800,60"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 4"
-                />
-              </svg>
+            {/* Visualização de Fundo Dinâmica por Trilha */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-35 pointer-events-none">
+              {trackDef.id === 'ingles' ? (
+                // Visualizador de Espectro de Voz e Diálogo para Inglês
+                <div className="w-full max-w-lg flex items-center justify-center gap-1.5 h-24">
+                  {[24, 48, 72, 36, 84, 96, 60, 40, 80, 52, 90, 68, 44, 30, 65, 85, 40, 60].map((h, i) => (
+                    <div
+                      key={i}
+                      style={{ height: isPlaying ? `${h}%` : '20%' }}
+                      className="w-1.5 bg-[#71DBD2] rounded-full transition-all duration-300 ease-out"
+                    />
+                  ))}
+                </div>
+              ) : trackDef.id === 'faculdade' ? (
+                // Oscilação Harmônica (MHS) para Faculdade / Física II
+                <svg className="w-full h-32 stroke-[#71DBD2]" fill="none" viewBox="0 0 800 120">
+                  <path
+                    d="M0,60 Q100,10 200,60 T400,60 T600,60 T800,60"
+                    strokeWidth="3"
+                    className={isPlaying ? 'living-pulse' : ''}
+                  />
+                  <path
+                    d="M0,60 Q100,110 200,60 T400,60 T600,60 T800,60"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
+                </svg>
+              ) : (
+                // Propagação de Ondas & Aplicações do ENEM para Vestibular
+                <svg className="w-full h-32 stroke-[#71DBD2]" fill="none" viewBox="0 0 800 120">
+                  <path
+                    d="M0,60 C150,0 250,120 400,60 C550,0 650,120 800,60"
+                    strokeWidth="2.5"
+                    className={isPlaying ? 'living-pulse' : ''}
+                  />
+                  <line x1="0" y1="60" x2="800" y2="60" stroke="#71DBD2" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+                </svg>
+              )}
             </div>
 
             {/* Badge Superior do Vídeo */}
-            <div className="relative z-10 flex items-center justify-between">
+            <div className="relative z-10 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-white text-[11px] font-mono">
                 <span className="w-2 h-2 rounded-full bg-medusa-primary living-pulse" />
-                <span>Mecânica Ondulatória · Aula 03</span>
+                <span>{lesson.discipline} · {trackDef.name}</span>
               </div>
-              <span className="text-[11px] font-mono text-white/80 bg-black/50 px-2.5 py-0.5 rounded border border-white/10">
-                HD 1080p
-              </span>
+              <div className="flex items-center gap-2">
+                {voiceEmphasis && (
+                  <span className="text-[10px] font-mono text-[#D0EAA3] bg-black/60 px-2.5 py-0.5 rounded border border-[#D0EAA3]/30 flex items-center gap-1" title="Protótipo de interface de voz (Whisper/TTS não implementados no backend)">
+                    <span className="material-symbols-outlined text-[13px]">mic</span>
+                    <span>Prática Oral</span>
+                  </span>
+                )}
+                <span className="text-[11px] font-mono text-white/80 bg-black/50 px-2.5 py-0.5 rounded border border-white/10">
+                  HD 1080p
+                </span>
+              </div>
             </div>
 
-            {/* Centro do Palco: Título conceitual + Botão Play/Pause gigante */}
+            {/* Centro do Palco: Título conceitual + Botão Play/Pause */}
             <div className="relative z-10 my-auto flex flex-col items-center justify-center text-center gap-3">
               <button
                 type="button"
@@ -200,10 +297,18 @@ export function StudyModeView({
                   {isPlaying ? 'pause' : 'play_arrow'}
                 </span>
               </button>
-              <span className="text-white text-[13px] font-medium tracking-wide drop-shadow">
-                {currentTime < 480
-                  ? 'Conceito: Perturbação Mecânica e Transporte de Energia'
-                  : 'Dedução da Equação v = λ · f em Meios Homogêneos'}
+              <span className="text-white text-[13px] font-medium tracking-wide drop-shadow max-w-md">
+                {trackDef.id === 'ingles'
+                  ? (currentTime < 480
+                    ? 'Conversational Turn: Natural Inquiries & Follow-up Questions'
+                    : 'Fluency Focus: Phrasal Verbs, Reductions & Polite Softening')
+                  : trackDef.id === 'faculdade'
+                  ? (currentTime < 480
+                    ? 'Dedução: Equação Diferencial e Força Restauradora F = -kx'
+                    : 'Espaço de Fase: Trajetória Elíptica e Conservação de Energia')
+                  : (currentTime < 480
+                    ? 'Matriz ENEM: Relação v = λ · f e Invariância da Frequência da Fonte'
+                    : 'Distratores Recorrentes: Refração e Fenômenos Ondulatórios no Cotidiano')}
               </span>
             </div>
 
@@ -298,24 +403,24 @@ export function StudyModeView({
           <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface border-t border-border/60">
             <div className="space-y-0.5">
               <h3 className="text-[14px] font-semibold text-text-primary">
-                Aula Teórica: Dinâmica de Ondas em Cordas e Fluidos
+                {lesson.discipline} · {lesson.topic}
               </h3>
               <p className="text-[12px] text-text-secondary leading-relaxed">
-                Fundamentação analítica da propagação mecânica, equação fundamental e interferência.
+                {lesson.sessionObjective}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-[11px] font-mono text-text-muted bg-surface-secondary px-2.5 py-1 rounded border border-border/60">
-                Fixture Interativo Verificado
+                Fixture Curada · {trackDef.name}
               </span>
             </div>
           </div>
         </section>
 
-        {/* ================= COLUNA LATERAL: RESUMO VIVO & NOTAS (32%) ================= */}
+        {/* ================= COLUNA INTERNA: RESUMO VIVO & NOTAS (30%) ================= */}
         <aside
-          aria-label="Resumo Vivo e Anotações"
-          className="study-summary-enter lg:col-span-4 flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden min-h-[460px]"
+          aria-label="Resumo Vivo e Anotações da Sessão"
+          className="study-summary-enter lg:col-span-4 flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden min-h-[480px]"
         >
           {/* Alternador de Abas (Resumo Vivo vs Notas) */}
           <div className="flex items-center border-b border-border/70 bg-surface-secondary/40 p-1.5">
@@ -352,7 +457,7 @@ export function StudyModeView({
           {activeTab === 'summary' && (
             <div className="p-4 flex-1 flex flex-col gap-3 overflow-y-auto max-h-[500px]">
               <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-text-muted pb-1 border-b border-border/50">
-                <span>Conceitos Chave Gerados</span>
+                <span>Pontos Chave · {trackDef.name}</span>
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
                   <span>Sincronizado</span>

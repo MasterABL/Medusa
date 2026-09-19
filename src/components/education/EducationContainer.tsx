@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useShell } from '@/context/ShellContext';
 import {
   StudySessionState,
+  StudyTrack,
   ExerciseQuestion,
   StudyNote,
   SessionResult,
 } from './types';
+import { TRACK_DEFINITIONS } from './educationFixtures';
 import { EducationDashboard } from './EducationDashboard';
 import { StudyLoadingState } from './StudyLoadingState';
 import { StudyReadyState } from './StudyReadyState';
@@ -20,13 +22,16 @@ import { TutorDrawer } from './TutorDrawer';
 export function EducationContainer() {
   const { setIslandState, setMode, mode } = useShell();
 
+  // Trilha ativa no Learning OS (Faculdade, Inglês, Vestibular)
+  const [currentTrack, setCurrentTrack] = useState<StudyTrack>('faculdade');
+
   // Máquina de estados canônica do fluxo de Educação / Study Mode
   const [sessionState, setSessionState] = useState<StudySessionState>('dashboard');
   const [isSimulateFailureActive, setIsSimulateFailureActive] = useState(false);
   const [previousShellMode, setPreviousShellMode] = useState(mode);
 
-  // Estados mantidos estritamente em memória React (escopo da sessão atual).
-  // AUDITORIA ANTI-FICÇÃO: NÃO sobrevivem a reload de página (F5) nem sincronizam com backend nesta fase.
+  // Estados mantidos estritamente em memória React (escopo da sessão atual / Local State).
+  // AUDITORIA: NÃO sobrevivem a reload de página (F5) nem sincronizam com backend nesta fase.
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
   const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
@@ -41,11 +46,19 @@ export function EducationContainer() {
   } | null>(null);
   const [currentVideoTimestamp, setCurrentVideoTimestamp] = useState(0);
 
+  // Definição da trilha ativa (Derivado de currentTrack + FIXTURE)
+  const trackDef = TRACK_DEFINITIONS[currentTrack];
+
+  // Alternância de Trilha sem reload de página
+  const handleSelectTrack = useCallback((track: StudyTrack) => {
+    setCurrentTrack(track);
+  }, []);
+
   // 1. Iniciar fluxo de estudo: dashboard -> loading
   const handleStartStudy = useCallback(
     (simulateError = false) => {
       setIsSimulateFailureActive(simulateError);
-      setPreviousShellMode(mode);
+      setPreviousShellMode(mode === 'foco' ? 'amplo' : mode);
       setSessionState('loading');
       setIslandState('processing');
     },
@@ -65,38 +78,38 @@ export function EducationContainer() {
   }, [setIslandState]);
 
   // 4. Entrar no Study Mode: ready -> study
+  // FOCUS MODE REAL: Shell entra em 'foco' (Painel Regional Global desaparece 100% da tela)
   const handleEnterStudyMode = useCallback(() => {
+    setPreviousShellMode(mode === 'foco' ? 'amplo' : mode);
     setSessionState('study');
     setIslandState('active');
-    // Recolhe a Sidebar para compacto para ceder 80-90% de palco ao Main
-    if (mode === 'amplo') {
-      setMode('compacto');
-    }
+    setMode('foco');
   }, [mode, setIslandState, setMode]);
 
   // 5. Concluir aula e transicionar para exercícios: study -> transitioning_to_exercises -> exercises
   const handleCompleteLesson = useCallback(() => {
     setSessionState('transitioning_to_exercises');
-    // Transição coordenada com acomodação do palco (~480ms)
     setTimeout(() => {
       setSessionState('exercises');
     }, 480);
   }, []);
 
   // 6. Finalizar bateria de exercícios: exercises -> completion
+  // Métricas DERIVADAS (Local State + Fixture)
   const handleFinishExercises = useCallback(
     (correctCount: number, totalCount: number, errorTopics: string[]) => {
       const scorePercentage = Math.round((correctCount / totalCount) * 100);
       const pointToReinforce =
         errorTopics.length > 0
-          ? `Reforço recomendado em: ${errorTopics.join(', ')}. Revisão dos nós de interferência e compressão do Efeito Doppler.`
-          : 'Excelente domínio em todos os conceitos avaliados: ondulatória mecânica, superposição e difração.';
+          ? `Reforço recomendado em: ${errorTopics.join(', ')}. Revisão dos pontos diagnosticados nas questões.`
+          : `Excelente domínio em todos os conceitos avaliados em ${trackDef.lesson.topic}.`;
 
       const result: SessionResult = {
+        track: currentTrack,
         totalQuestions: totalCount,
         correctAnswers: correctCount,
         scorePercentage,
-        durationFormatted: '45 min',
+        durationFormatted: trackDef.lesson.estimatedDuration,
         pointToReinforce,
         nextReviewDate: 'Amanhã · 09:00',
         completedAt: new Date().toLocaleDateString('pt-BR'),
@@ -106,18 +119,16 @@ export function EducationContainer() {
       setSessionState('completion');
       setIslandState('success');
     },
-    [setIslandState]
+    [currentTrack, trackDef.lesson.estimatedDuration, trackDef.lesson.topic, setIslandState]
   );
 
-  // 7. Retornar para Educação: completion -> dashboard (com trilha e próxima ação atualizadas)
+  // 7. Retornar para Educação: completion -> dashboard
+  // Restaura o modo normal do shell (Painel Regional Global volta à tela)
   const handleReturnToEducation = useCallback(() => {
     setIsSessionCompleted(true);
     setSessionState('dashboard');
     setIslandState('idle');
-    // Restaura o modo do shell se foi alterado
-    if (previousShellMode) {
-      setMode(previousShellMode);
-    }
+    setMode(previousShellMode || 'amplo');
   }, [previousShellMode, setIslandState, setMode]);
 
   // Recuperação de Erro: Tentar novamente (error -> loading)
@@ -131,12 +142,10 @@ export function EducationContainer() {
   const handleReturnToDashboard = useCallback(() => {
     setSessionState('dashboard');
     setIslandState('idle');
-    if (previousShellMode) {
-      setMode(previousShellMode);
-    }
+    setMode(previousShellMode || 'amplo');
   }, [previousShellMode, setIslandState, setMode]);
 
-  // Abrir Tutor a partir do vídeo
+  // Abrir Tutor a partir do conteúdo
   const handleOpenTutorFromVideo = useCallback((timestamp: number) => {
     setCurrentVideoTimestamp(timestamp);
     setTutorContextQuestion(null);
@@ -162,21 +171,31 @@ export function EducationContainer() {
     setNotes((prev) => [note, ...prev]);
   }, []);
 
+  // Garantia de Focus Mode nos estados de estudo ativos
+  useEffect(() => {
+    const isStudyActive = ['study', 'transitioning_to_exercises', 'exercises', 'completion'].includes(sessionState);
+    if (isStudyActive && mode !== 'foco') {
+      setMode('foco');
+    }
+  }, [sessionState, mode, setMode]);
+
   return (
     <main
       id="education-experience-root"
       className="w-full flex-1 flex flex-col px-4 sm:px-8 max-w-7xl mx-auto pt-4 relative"
     >
-      {/* 1. Visão Geral / Dashboard da Trilha */}
+      {/* 1. Visão Geral / Dashboard da Trilha com Seletor Multi-Trilha */}
       {sessionState === 'dashboard' && (
         <EducationDashboard
+          currentTrack={currentTrack}
+          onSelectTrack={handleSelectTrack}
           onStartStudy={handleStartStudy}
           isSessionCompleted={isSessionCompleted}
           completedScore={sessionResult?.scorePercentage ?? 80}
         />
       )}
 
-      {/* 2. Loading State: "PREPARANDO SUA AULA" */}
+      {/* 2. Loading State: Preparando aula da trilha */}
       {sessionState === 'loading' && (
         <StudyLoadingState
           onCancel={handleReturnToDashboard}
@@ -186,9 +205,12 @@ export function EducationContainer() {
         />
       )}
 
-      {/* 3. Ready State: "AULA PRONTA" */}
+      {/* 3. Ready State: Aula pronta com metadados da trilha ativa */}
       {sessionState === 'ready' && (
-        <StudyReadyState onEnterStudy={handleEnterStudyMode} />
+        <StudyReadyState
+          onEnterStudy={handleEnterStudyMode}
+          trackDef={trackDef}
+        />
       )}
 
       {/* 4. Error State: Recuperável */}
@@ -199,7 +221,7 @@ export function EducationContainer() {
         />
       )}
 
-      {/* 5. Study Mode: Vídeo + Resumo Vivo + Notas */}
+      {/* 5. Study Mode: Palco de Estudo + Coluna Interna (Resumo Vivo + Notas) */}
       {(sessionState === 'study' || sessionState === 'transitioning_to_exercises') && (
         <div
           className={
@@ -207,34 +229,39 @@ export function EducationContainer() {
           }
         >
           <StudyModeView
+            trackDef={trackDef}
             onCompleteLesson={handleCompleteLesson}
             onOpenTutor={handleOpenTutorFromVideo}
             notes={notes}
             onSaveNote={handleSaveNote}
+            onSelectTrack={handleSelectTrack}
           />
         </div>
       )}
 
-      {/* 6. Exercícios: Prática Deliberada (5 questões) */}
+      {/* 6. Exercícios: Prática Deliberada da Trilha Ativa */}
       {sessionState === 'exercises' && (
         <StudyExercisesView
+          trackDef={trackDef}
           onFinishExercises={handleFinishExercises}
           onOpenTutorForError={handleOpenTutorForError}
         />
       )}
 
-      {/* 7. Conclusão da Sessão: Métricas Reais Auditáveis */}
+      {/* 7. Conclusão da Sessão: Métricas Derivadas Auditáveis */}
       {sessionState === 'completion' && sessionResult && (
         <StudyCompletionView
           result={sessionResult}
+          trackDef={trackDef}
           onReturnToEducation={handleReturnToEducation}
         />
       )}
 
-      {/* Drawer Contextual do Tutor (Com suporte a Modo de Voz e Anti-Autoescuta) */}
+      {/* Drawer Contextual do Tutor */}
       <TutorDrawer
         isOpen={isTutorOpen}
         onClose={handleCloseTutor}
+        trackDef={trackDef}
         contextQuestion={tutorContextQuestion}
         videoTimestamp={currentVideoTimestamp}
       />
