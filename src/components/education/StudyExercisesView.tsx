@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ExerciseQuestion } from './types';
-import { EXERCISE_QUESTIONS } from './educationFixtures';
+import { ExerciseQuestion, TrackDefinition } from './types';
 
 interface StudyExercisesViewProps {
+  trackDef: TrackDefinition;
   onFinishExercises: (correctCount: number, totalCount: number, errorTopics: string[]) => void;
   onOpenTutorForError: (question: ExerciseQuestion) => void;
 }
 
 export function StudyExercisesView({
+  trackDef,
   onFinishExercises,
   onOpenTutorForError,
 }: StudyExercisesViewProps) {
@@ -20,11 +21,11 @@ export function StudyExercisesView({
     { questionId: number; selectedOptionId: string; isCorrect: boolean }[]
   >([]);
 
-  const currentQuestion = EXERCISE_QUESTIONS[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === EXERCISE_QUESTIONS.length - 1;
+  const questions = trackDef.exerciseQuestions;
+  const currentQuestion = questions[currentQuestionIndex] || questions[0];
+  const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   const currentAnswer = userAnswers.find((a) => a.questionId === currentQuestion.id);
-  const isAnswered = Boolean(currentAnswer);
   const isCorrect = currentAnswer?.isCorrect ?? false;
 
   const handleSelectOption = (optId: string) => {
@@ -48,14 +49,14 @@ export function StudyExercisesView({
 
   const handleNextQuestion = () => {
     if (isLastQuestion) {
-      // Calcular métricas reais da sessão
+      // Calcular métricas derivadas da sessão
       const finalAnswers = [...userAnswers];
       const correctCount = finalAnswers.filter((a) => a.isCorrect).length;
-      const errorQuestions = EXERCISE_QUESTIONS.filter(
+      const errorQuestions = questions.filter(
         (q) => !finalAnswers.find((a) => a.questionId === q.id)?.isCorrect
       );
       const errorTopics = errorQuestions.map((q) => q.topic);
-      onFinishExercises(correctCount, EXERCISE_QUESTIONS.length, errorTopics);
+      onFinishExercises(correctCount, questions.length, errorTopics);
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
       setSelectedOptionId(null);
@@ -73,11 +74,11 @@ export function StudyExercisesView({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30">
-              Prática Deliberada · Ondulatória
+              Prática Deliberada · {trackDef.name}
             </span>
             <span className="text-text-muted/40">•</span>
             <span className="text-[11px] font-mono text-text-muted">
-              Questão {currentQuestionIndex + 1} de {EXERCISE_QUESTIONS.length}
+              Questão {currentQuestionIndex + 1} de {questions.length}
             </span>
           </div>
           <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-primary">
@@ -87,7 +88,7 @@ export function StudyExercisesView({
 
         {/* Indicador de Progresso com bolinhas de estado */}
         <div className="flex items-center gap-1.5 bg-surface p-1.5 rounded-full border border-border/70 shadow-subtle">
-          {EXERCISE_QUESTIONS.map((q, idx) => {
+          {questions.map((q, idx) => {
             const answered = userAnswers.find((a) => a.questionId === q.id);
             let dotClass = 'bg-surface-secondary border border-border text-text-muted';
             if (answered) {
@@ -184,7 +185,7 @@ export function StudyExercisesView({
                 </span>
               </div>
               <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                {isCorrect ? 'Fixação Confirmada' : 'Ponto Crítico'}
+                {isCorrect ? 'Fixação Confirmada' : 'Diagnóstico'}
               </span>
             </div>
 
@@ -192,7 +193,7 @@ export function StudyExercisesView({
               {currentQuestion.explanation}
             </p>
 
-            {/* Se o usuário errou, consequência real: o que foi confundido e convite ao Tutor contextual */}
+            {/* Se o usuário errou, consequência pedagógica real: o que foi confundido e convite ao Tutor contextual */}
             {!isCorrect && (
               <div className="mt-1 pt-3 border-t border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">

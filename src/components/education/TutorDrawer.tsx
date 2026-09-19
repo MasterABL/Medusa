@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TutorMessage } from './types';
+import { TutorMessage, TrackDefinition } from './types';
 
 interface TutorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  trackDef?: TrackDefinition;
   contextQuestion?: {
     id: number;
     topic: string;
@@ -18,14 +19,19 @@ interface TutorDrawerProps {
 export function TutorDrawer({
   isOpen,
   onClose,
+  trackDef,
   contextQuestion,
   videoTimestamp = 0,
 }: TutorDrawerProps) {
+  const initialGreeting =
+    trackDef?.tutorGreeting ||
+    'Olá! Estou acompanhando sua sessão de estudo. Posso esclarecer dúvidas sobre a teoria, equações fundamentais ou passos dos exercícios.';
+
   const [messages, setMessages] = useState<TutorMessage[]>([
     {
       id: 'msg-init',
       sender: 'tutor',
-      text: 'Olá! Estou acompanhando sua sessão de Mecânica Ondulatória. Posso esclarecer dúvidas sobre a teoria, equações fundamentais ou passos dos exercícios.',
+      text: initialGreeting,
       timestamp: 'Agora',
     },
   ]);
@@ -34,6 +40,20 @@ export function TutorDrawer({
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'speaking'>('idle');
   const [transcription, setTranscription] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Reiniciar mensagem inicial quando a trilha mudar
+  useEffect(() => {
+    if (trackDef) {
+      setMessages([
+        {
+          id: `msg-init-${trackDef.id}`,
+          sender: 'tutor',
+          text: trackDef.tutorGreeting,
+          timestamp: 'Agora',
+        },
+      ]);
+    }
+  }, [trackDef?.id, trackDef?.tutorGreeting]);
 
   // Auto-scroll ao receber nova mensagem
   useEffect(() => {
@@ -74,46 +94,41 @@ export function TutorDrawer({
 
     setIsVoiceActive(true);
     setVoiceStatus('listening');
-    setTranscription('Ouvindo sua dúvida...');
+    setTranscription(
+      trackDef?.id === 'ingles'
+        ? 'Listening to your spoken practice...'
+        : 'Ouvindo sua dúvida...'
+    );
 
     // Simulação de fala do usuário
     const listenTimeout = setTimeout(() => {
-      setTranscription('"Por que a frequência não muda na refração?"');
-      
-      const sendTimeout = setTimeout(() => {
-        const userVoiceMsg: TutorMessage = {
-          id: `msg-${Date.now()}`,
-          sender: 'user',
-          text: 'Por que a frequência da onda permanece constante quando ela passa de um meio para outro na refração?',
+      setTranscription(
+        trackDef?.id === 'ingles'
+          ? '"Could you explain the difference between come up with and run out of?"'
+          : '"Poderia detalhar a dedução analítica das equações?"'
+      );
+      setVoiceStatus('speaking');
+
+      // Simulação de resposta sintetizada
+      const speakTimeout = setTimeout(() => {
+        const simulatedVoiceResponse: TutorMessage = {
+          id: `voice-msg-${Date.now()}`,
+          sender: 'tutor',
+          text:
+            trackDef?.id === 'ingles'
+              ? 'Great question! "Come up with" refers to producing or suggesting an idea/solution, while "run out of" means depleting a physical or abstract supply (e.g., running out of coffee or time).'
+              : 'Com certeza! Analisando a conservação de energia e as condições de contorno, a frequência permanece invariante enquanto a velocidade varia com o meio.',
           timestamp: 'Agora',
           isVoice: true,
         };
-        setMessages((prev) => [...prev, userVoiceMsg]);
+        setMessages((prev) => [...prev, simulatedVoiceResponse]);
+        setVoiceStatus('idle');
         setTranscription('');
-        
-        // Fase TTS: STT estritamente pausado
-        setVoiceStatus('speaking');
+        setIsVoiceActive(false);
+      }, 2600);
 
-        const tutorResponseTimeout = setTimeout(() => {
-          const tutorVoiceMsg: TutorMessage = {
-            id: `msg-${Date.now() + 1}`,
-            sender: 'tutor',
-            text: 'Excelente pergunta! A frequência depende exclusivamente de quantas oscilações a fonte geradora produz por segundo. A fronteira entre os dois meios não armazena oscilações: cada crista que chega no meio 1 força imediatamente a criação de uma crista no meio 2. Por isso f é constante, e o que varia são a velocidade v e o comprimento λ.',
-            timestamp: 'Agora',
-            isVoice: true,
-          };
-          setMessages((prev) => [...prev, tutorVoiceMsg]);
-          
-          // Fim do TTS: retoma STT para escuta
-          setVoiceStatus('listening');
-          setTranscription('Ouvindo sua resposta...');
-        }, 1800);
-
-        return () => clearTimeout(tutorResponseTimeout);
-      }, 1400);
-
-      return () => clearTimeout(sendTimeout);
-    }, 1800);
+      return () => clearTimeout(speakTimeout);
+    }, 2200);
 
     return () => clearTimeout(listenTimeout);
   };
@@ -130,61 +145,47 @@ export function TutorDrawer({
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    const userQuery = inputText.trim();
     setInputText('');
 
-    // Resposta pedagógica contextual
+    // Resposta contextual simulada
     setTimeout(() => {
-      let reply = 'Compreendido. Essa propriedade é direta: na ondulatória, o meio dita a velocidade através da elasticidade e densidade linear, enquanto a fonte determina a frequência temporal.';
-      if (userQuery.toLowerCase().includes('doppler')) {
-        reply = 'No Efeito Doppler, note que a velocidade do som no ar permanece inalterada! A aproximação da fonte encurta a distância entre frentes de onda sucessivas, fazendo mais cristas atingirem o observador por unidade de tempo.';
-      } else if (userQuery.toLowerCase().includes('nó') || userQuery.toLowerCase().includes('ventre')) {
-        reply = 'Lembre-se da regra mnemônica: Nós = Nada (amplitude zero, interferência destrutiva). Ventres = Volume máximo (amplitude 2A, interferência construtiva).';
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `msg-${Date.now() + 1}`,
-          sender: 'tutor',
-          text: reply,
-          timestamp: 'Agora',
-        },
-      ]);
+      const tutorReply: TutorMessage = {
+        id: `msg-reply-${Date.now()}`,
+        sender: 'tutor',
+        text:
+          trackDef?.id === 'ingles'
+            ? `That's a very natural conversational query. In spoken interaction, focusing on clear turn-taking and linking words will help your delivery sound much more native.`
+            : `Excelente colocação sobre ${trackDef?.lesson.topic || 'o tema'}. A compreensão analítica desse ponto é fundamental para garantir o domínio conceitual completo.`,
+        timestamp: 'Agora',
+      };
+      setMessages((prev) => [...prev, tutorReply]);
     }, 900);
   };
 
   if (!isOpen) return null;
 
-  const formatVideoTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div
-      id="tutor-drawer-panel"
-      role="region"
-      aria-label="Tutor Pedagógico de Ondulatória"
-      className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] bg-surface/98 backdrop-blur-xl border-l border-border/80 shadow-2xl flex flex-col transition-transform duration-300 ease-out"
+      id="tutor-drawer"
+      aria-label="Tutor Contextual da Sessão"
+      className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-surface border-l border-border/80 shadow-2xl z-50 flex flex-col drawer-slide-in animate-slideLeft"
     >
       {/* Header do Tutor */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/70 bg-surface-secondary/50">
+      <div className="p-4 border-b border-border/70 flex items-center justify-between bg-surface-secondary/40">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-medusa-primary flex items-center justify-center text-[#1C2420] shadow-subtle">
-            <span className="material-symbols-outlined text-[18px]">neurology</span>
+          <div className="w-8 h-8 rounded-full bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] flex items-center justify-center shadow-subtle">
+            <span className="material-symbols-outlined text-[18px]">
+              {trackDef?.id === 'ingles' ? 'record_voice_over' : 'neurology'}
+            </span>
           </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[14px] font-semibold text-text-primary">
-                Tutor Socrático Medusa
-              </h3>
+          <div>
+            <h3 className="text-[13px] font-semibold text-text-primary flex items-center gap-1.5">
+              <span>{trackDef?.id === 'ingles' ? 'Tutor & Conversação B1' : `Tutor · ${trackDef?.name || 'Estudo'}`}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
-            </div>
-            <p className="text-[11px] font-mono text-text-muted">
-              Momento da aula: {formatVideoTime(videoTimestamp)}
-            </p>
+            </h3>
+            <span className="text-[10px] font-mono text-text-muted">
+              {trackDef?.lesson.topic || 'Sessão Ativa'} · Posição {Math.floor(videoTimestamp / 60)}:{(videoTimestamp % 60).toString().padStart(2, '0')}
+            </span>
           </div>
         </div>
 
@@ -193,45 +194,44 @@ export function TutorDrawer({
           id="btn-close-tutor"
           onClick={onClose}
           aria-label="Fechar Tutor"
-          className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+          className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
         >
-          <span className="material-symbols-outlined text-[20px]">close</span>
+          <span className="material-symbols-outlined text-[18px]">close</span>
         </button>
       </div>
 
-      {/* Indicador Ativo de Modo de Voz com Proteção Anti-Autoescuta */}
-      {isVoiceActive && (
-        <div
-          id="voice-mode-banner"
-          className={`px-4 py-3 border-b border-border/60 transition-colors flex items-center justify-between ${
-            voiceStatus === 'listening'
-              ? 'bg-medusa-primary/15 text-[#18534B] dark:text-[#71DBD2]'
-              : 'bg-medusa-accent/20 text-[#614E00] dark:text-[#FFF18C]'
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-current living-pulse" />
-            <div className="space-y-0.5">
-              <span className="text-[11px] font-mono uppercase tracking-wider font-semibold">
-                {voiceStatus === 'listening' ? 'Ouvindo...' : 'Tutor falando (STT Pausado)'}
-              </span>
-              {transcription && (
-                <p className="text-[12px] italic max-w-[260px] truncate">{transcription}</p>
-              )}
-            </div>
+      {/* Destaque para Inglês / Prática Oral */}
+      {trackDef?.voiceEmphasis && (
+        <div className="px-4 py-2 bg-medusa-primary/10 border-b border-medusa-primary/20 flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-1.5 text-text-primary">
+            <span className="material-symbols-outlined text-[15px] text-medusa-primary">mic</span>
+            <span className="font-semibold">Prática Oral &amp; Escuta Ativa</span>
           </div>
-          <button
-            type="button"
-            onClick={toggleVoiceMode}
-            className="text-[11px] font-mono uppercase tracking-wider underline hover:opacity-80 focus-visible:ring-2 focus:outline-none"
-          >
-            Desligar Voz
-          </button>
+          <span className="text-[9px] font-mono text-text-muted">Protótipo UX (Voz Local)</span>
+        </div>
+      )}
+
+      {/* Banner de Estado de Voz */}
+      {isVoiceActive && (
+        <div className="p-3 bg-medusa-primary/15 border-b border-medusa-primary/30 flex items-center justify-between text-[12px] font-mono">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-medusa-primary living-pulse" />
+            <span className="text-text-primary">
+              {voiceStatus === 'listening' ? 'Ouvindo...' : 'Sintetizando fala...'}
+            </span>
+          </div>
+          <span className="text-[10px] text-text-muted">Anti-Autoescuta Ativo</span>
+        </div>
+      )}
+
+      {transcription && (
+        <div className="p-2.5 bg-surface-secondary text-[11px] font-mono text-text-secondary border-b border-border/50 italic px-4">
+          {transcription}
         </div>
       )}
 
       {/* Lista de Mensagens */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-[13px] leading-relaxed">
+      <div className="flex-1 p-4 overflow-y-auto space-y-4 text-[13px]">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -283,7 +283,7 @@ export function TutorDrawer({
           id="tutor-input-field"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder="Tire uma dúvida sobre Ondulatória..."
+          placeholder={`Tire uma dúvida sobre ${trackDef?.lesson.topic || 'o estudo'}...`}
           className="flex-1 bg-surface border border-border/70 rounded-full px-4 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-medusa-primary/80 focus:ring-1 focus:ring-medusa-primary/60 transition-all"
         />
 

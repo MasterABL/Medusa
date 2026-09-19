@@ -1,6 +1,6 @@
 /**
  * MEDUSA — EDUCAÇÃO / STUDY MODE TYPES
- * Tipos e interfaces canônicas para a máquina de estados, exercícios, notas e tutor.
+ * Tipos e interfaces canônicas para a máquina de estados, trilhas, exercícios, notas e tutor.
  */
 
 export type StudySessionState =
@@ -12,6 +12,8 @@ export type StudySessionState =
   | 'transitioning_to_exercises'
   | 'exercises'
   | 'completion';
+
+export type StudyTrack = 'faculdade' | 'ingles' | 'vestibular';
 
 export interface ExerciseOption {
   id: string;
@@ -26,12 +28,12 @@ export interface ExerciseQuestion {
   options: ExerciseOption[];
   correctOptionId: string;
   explanation: string;
-  confusionDiagnosis: string; // Explicação pedagógica do que costuma ser confundido
+  confusionDiagnosis: string; // Explicação pedagógica do distrator ou confusão comum
 }
 
 export interface StudyNote {
   id: string;
-  timestamp: number; // Segundos no vídeo
+  timestamp: number; // Segundos no vídeo / aula
   formattedTime: string; // "12:40"
   text: string;
   createdAt: string;
@@ -56,15 +58,44 @@ export interface TutorMessage {
 }
 
 export interface LessonMetadata {
+  track: StudyTrack;
+  trackLabel: string;
   discipline: string;
   topic: string;
+  sessionObjective: string;
   estimatedDuration: string;
   actualDurationSeconds: number;
   module: string;
   nextTopic: string;
+  nextTopicDescription: string;
+}
+
+export interface TrackModuleItem {
+  id: string;
+  code: string;
+  title: string;
+  status: 'completed' | 'in_progress' | 'locked';
+  score: string;
+  date: string;
+  duration: string;
+}
+
+export interface TrackDefinition {
+  id: StudyTrack;
+  name: string;
+  tagline: string;
+  domainLabel: string;
+  accentColor: string;
+  lesson: LessonMetadata;
+  summaryPoints: LiveSummaryPoint[];
+  exerciseQuestions: ExerciseQuestion[];
+  modules: TrackModuleItem[];
+  tutorGreeting: string;
+  voiceEmphasis?: boolean;
 }
 
 export interface SessionResult {
+  track: StudyTrack;
   totalQuestions: number;
   correctAnswers: number;
   scorePercentage: number;
