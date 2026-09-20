@@ -517,7 +517,7 @@ async function runFullQA() {
   // =========================================================================
   // MATRIZ COMPLETA: EDUCAÇÃO & STUDY MODE (FLUXO INTERATIVO & MOTION GATES)
   // =========================================================================
-  console.log('\n=== INICIANDO QA DA ABA EDUCAÇÃO & STUDY MODE ===');
+  console.log('\n=== INICIANDO QA DA ABA EDUCAÇÃO & STUDY MODE (MULTI-TRILHA + FOCUS MODE) ===');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
   await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
   await wait(400);
@@ -539,6 +539,31 @@ async function runFullQA() {
     return Boolean(document.getElementById('education-dashboard'));
   });
   console.log('Asserção Educação Dashboard Renderizado:', eduDashboardPresent ? 'PASSED ✓' : 'FAILED ✗');
+
+  // 1.1 Testar Alternância de Trilhas no Dashboard (sem reload)
+  console.log('--> Testando alternância de trilhas no Dashboard (Inglês -> Vestibular -> Faculdade)...');
+  await page.evaluate(() => {
+    document.getElementById('track-selector-ingles')?.click();
+  });
+  await wait(300);
+  const isInglesDashboard = await page.evaluate(() => {
+    return document.getElementById('education-next-action-card')?.textContent?.includes('Inglês B1');
+  });
+  console.log('Asserção Alternância para Inglês no Dashboard:', isInglesDashboard ? 'PASSED ✓' : 'FAILED ✗');
+
+  await page.evaluate(() => {
+    document.getElementById('track-selector-vestibular')?.click();
+  });
+  await wait(300);
+  const isVestibularDashboard = await page.evaluate(() => {
+    return document.getElementById('education-next-action-card')?.textContent?.includes('ENEM');
+  });
+  console.log('Asserção Alternância para Vestibular no Dashboard:', isVestibularDashboard ? 'PASSED ✓' : 'FAILED ✗');
+
+  await page.evaluate(() => {
+    document.getElementById('track-selector-faculdade')?.click();
+  });
+  await wait(300);
 
   // 2. Iniciar Sessão de Estudo -> Loading
   console.log('--> Clicando em Iniciar Sessão de Estudo...');
@@ -571,15 +596,84 @@ async function runFullQA() {
   console.log(`[${count}] ✓ Capturado: education_03_ready.png (Aula Pronta com confirmação finita)`);
 
   // 4. Entrar no Study Mode
-  console.log('--> Entrando no Modo Estudo...');
+  console.log('--> Entrando no Modo Estudo (Focus Mode Ativo)...');
   await page.evaluate(() => {
     document.getElementById('btn-enter-study-mode')?.click();
   });
   await wait(600); // Entrando suavemente no palco
 
+  // Asserção CRÍTICA: Focus Mode Real (Painel Regional Global desaparece 100% da composição)
+  const focusModeCheck = await page.evaluate(() => {
+    const layout = document.getElementById('content-layout');
+    const paddingRight = layout ? getComputedStyle(layout).paddingRight : null;
+    const contextPanel = document.getElementById('context-panel');
+    const isPanelHidden = contextPanel ? (contextPanel.getAttribute('aria-hidden') === 'true' || getComputedStyle(contextPanel).transform.includes('matrix')) : true;
+    const reopenBtn = document.getElementById('btn-reopen-context');
+    const internalColumn = document.querySelector('aside[aria-label="Resumo Vivo e Anotações da Sessão"]');
+    return {
+      paddingRightZero: paddingRight === '0px',
+      contextPanelHidden: isPanelHidden,
+      noReopenButton: reopenBtn === null,
+      internalColumnPresent: Boolean(internalColumn),
+    };
+  });
+  console.log('Asserção FOCUS MODE - Painel Regional Global Suprimido (paddingRight = 0px):', focusModeCheck.paddingRightZero ? 'PASSED ✓' : 'FAILED ✗', focusModeCheck);
+  console.log('Asserção FOCUS MODE - Sem botão flutuante #btn-reopen-context:', focusModeCheck.noReopenButton ? 'PASSED ✓' : 'FAILED ✗');
+  console.log('Asserção FOCUS MODE - Coluna Interna da Sessão Preservada:', focusModeCheck.internalColumnPresent ? 'PASSED ✓' : 'FAILED ✗');
+
+  // Capturar Prova Visual: Faculdade (Study Mode Completo)
+  count++;
+  await saveScreenshot(page, 'education_track_faculdade.png');
+  console.log(`[${count}] ✓ Capturado: education_track_faculdade.png (Faculdade: Estudo Completo de MHS)`);
+
+  // Alternar para Inglês dentro do Study Mode
+  console.log('--> Alternando para Trilha Inglês dentro do Study Mode...');
+  await page.evaluate(() => {
+    document.getElementById('study-track-ingles')?.click();
+  });
+  await wait(400);
+
+  const inglesStudyCheck = await page.evaluate(() => {
+    const text = document.getElementById('study-mode-container')?.textContent || '';
+    const hasIngles = text.includes('Inglês B1') && text.includes('Everyday Conversations');
+    const hasVoice = text.includes('Prática Oral') || text.includes('Tutor & Prática Oral');
+    return hasIngles && hasVoice;
+  });
+  console.log('Asserção Trilha Inglês Ativa no Study Mode:', inglesStudyCheck ? 'PASSED ✓' : 'FAILED ✗');
+
+  // Capturar Prova Visual: Inglês (Study Mode Completo com Diálogo e Prática Oral)
+  count++;
+  await saveScreenshot(page, 'education_track_ingles.png');
+  console.log(`[${count}] ✓ Capturado: education_track_ingles.png (Inglês: Estudo Completo com Áudio/Voz)`);
+
+  // Alternar para Vestibular dentro do Study Mode
+  console.log('--> Alternando para Trilha Vestibular dentro do Study Mode...');
+  await page.evaluate(() => {
+    document.getElementById('study-track-vestibular')?.click();
+  });
+  await wait(400);
+
+  const vestibularStudyCheck = await page.evaluate(() => {
+    const text = document.getElementById('study-mode-container')?.textContent || '';
+    return text.includes('ENEM') && text.includes('Ondulatória');
+  });
+  console.log('Asserção Trilha Vestibular Ativa no Study Mode:', vestibularStudyCheck ? 'PASSED ✓' : 'FAILED ✗');
+
+  // Capturar Prova Visual: Vestibular (Study Mode Completo com Ondulatória ENEM)
+  count++;
+  await saveScreenshot(page, 'education_track_vestibular.png');
+  console.log(`[${count}] ✓ Capturado: education_track_vestibular.png (Vestibular: Estudo Completo ENEM)`);
+
+  // Retornar para Faculdade para concluir o ciclo
+  console.log('--> Retornando para Trilha Faculdade...');
+  await page.evaluate(() => {
+    document.getElementById('study-track-faculdade')?.click();
+  });
+  await wait(350);
+
   count++;
   await saveScreenshot(page, 'education_04_study_mode.png');
-  console.log(`[${count}] ✓ Capturado: education_04_study_mode.png (Study Mode: 68% Vídeo + 32% Resumo)`);
+  console.log(`[${count}] ✓ Capturado: education_04_study_mode.png (Study Mode Faculdade Ativo)`);
 
   const studyModeCheck = await page.evaluate(() => {
     const container = document.getElementById('study-mode-container');
@@ -595,7 +689,7 @@ async function runFullQA() {
     document.getElementById('tab-notes')?.click();
   });
   await wait(200);
-  await page.type('#note-input-textarea', 'Princípio da superposição verificado na aula teórica.');
+  await page.type('#note-input-textarea', 'Princípio da conservação de energia verificado no oscilador.');
   await page.evaluate(() => {
     document.getElementById('btn-save-note')?.click();
   });
@@ -644,9 +738,9 @@ async function runFullQA() {
   console.log(`[${count}] ✓ Capturado: education_08_exercises_intro.png (Exercícios: Questão 1 de 5)`);
 
   // 8. Responder Questão 1 (Acerto)
-  console.log('--> Respondendo Questão 1 com acerto (Alternativa B)...');
+  console.log('--> Respondendo Questão 1 com acerto (Alternativa A)...');
   await page.evaluate(() => {
-    document.getElementById('option-b')?.click();
+    document.getElementById('option-a')?.click();
   });
   await wait(150);
   await page.evaluate(() => {
@@ -726,7 +820,7 @@ async function runFullQA() {
   // 10. Tela de Conclusão Auditável
   count++;
   await saveScreenshot(page, 'education_12_completion.png');
-  console.log(`[${count}] ✓ Capturado: education_12_completion.png (Conclusão com dados reais: 4/5, 80%, 45 min)`);
+  console.log(`[${count}] ✓ Capturado: education_12_completion.png (Conclusão com dados derivados: 4/5, 80%, 45 min)`);
 
   const completionAuditCheck = await page.evaluate(() => {
     const text = document.getElementById('study-completion-container')?.textContent || '';
@@ -746,6 +840,14 @@ async function runFullQA() {
   count++;
   await saveScreenshot(page, 'education_13_dashboard_updated.png');
   console.log(`[${count}] ✓ Capturado: education_13_dashboard_updated.png (Dashboard com trilha 4/5 e próximo tópico)`);
+
+  // Asserção: Focus Mode desativado e Painel Regional restaurado
+  const postFocusCheck = await page.evaluate(() => {
+    const layout = document.getElementById('content-layout');
+    const paddingRight = layout ? getComputedStyle(layout).paddingRight : null;
+    return paddingRight !== '0px';
+  });
+  console.log('Asserção Painel Regional Global Restaurado após Sessão:', postFocusCheck ? 'PASSED ✓' : 'FAILED ✗');
 
   // 12. Testar Erro Simulado de QA & Recuperação
   console.log('--> Testando simulação de erro de QA e recuperação...');
@@ -774,7 +876,39 @@ async function runFullQA() {
   });
   await wait(400);
 
-  // 13. Testar Prefers-Reduced-Motion no fluxo de Educação
+  // 13. Testar Responsividade Mobile (390x844 iPhone 14)
+  console.log('--> Validando Responsividade Mobile no Study Mode (390x844)...');
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  await wait(400);
+
+  await page.evaluate(() => {
+    const navButtons = Array.from(document.querySelectorAll('nav[aria-label="Rotas Operacionais"] button'));
+    const eduBtn = navButtons.find((b) => b.textContent && b.textContent.includes('Educação'));
+    if (eduBtn) eduBtn.click();
+  });
+  await wait(400);
+
+  await page.evaluate(() => {
+    document.getElementById('btn-start-study-session')?.click();
+  });
+  await wait(400);
+  await page.waitForSelector('#study-ready-state', { timeout: 6000 });
+  await page.evaluate(() => {
+    document.getElementById('btn-enter-study-mode')?.click();
+  });
+  await wait(600);
+
+  const mobileOverflowCheck = await page.evaluate(() => {
+    return document.documentElement.scrollWidth <= window.innerWidth;
+  });
+  console.log('Asserção Mobile Study Mode Zero Horizontal Overflow:', mobileOverflowCheck ? 'PASSED ✓' : 'FAILED ✗');
+
+  count++;
+  await saveScreenshot(page, 'education_mobile_vertical_stack.png');
+  console.log(`[${count}] ✓ Capturado: education_mobile_vertical_stack.png (Mobile: Empilhamento Vertical Limpo)`);
+
+  // 14. Testar Prefers-Reduced-Motion no fluxo de Educação
   console.log('--> Validando Prefers-Reduced-Motion no Modo Estudo...');
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await wait(300);
@@ -791,10 +925,10 @@ async function runFullQA() {
   console.log('Total Screenshots Geradas:', count);
   console.log('Total Erros de Console:', consoleErrors.length);
   console.log('Total Warnings:', consoleWarnings.length);
-  console.log('Overflow horizontal inexistente:', !hasHorizontalOverflow);
+  console.log('Overflow horizontal inexistente:', !hasHorizontalOverflow && mobileOverflowCheck);
   console.log('Dark Mode border-border/70 corrigido:', darkTokenCheck.isDarkBorderCorrect);
   console.log('MobileIsland integrado ao Shell:', mobileIntegrationCheck.isInsideShell && mobileIntegrationCheck.hasOnlyOne);
-  console.log('Educação & Study Mode Validado:', eduDashboardPresent && studyModeCheck && completionAuditCheck);
+  console.log('Educação & Study Mode Validado:', eduDashboardPresent && studyModeCheck && completionAuditCheck && focusModeCheck.paddingRightZero && inglesStudyCheck && vestibularStudyCheck);
 }
 
 runFullQA().catch((err) => {

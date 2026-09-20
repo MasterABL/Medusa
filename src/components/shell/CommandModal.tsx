@@ -30,10 +30,10 @@ export function CommandModal() {
     >
       <div
         id="command-card"
-        className="bg-surface border border-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col transform transition-all duration-200 scale-100 opacity-100"
+        className="bg-surface-elevated border border-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col transform transition-all duration-200 scale-100 opacity-100"
       >
         {/* Input Header */}
-        <div className="p-4 border-b border-border flex items-center gap-3 bg-surface">
+        <div className="p-4 border-b border-border flex items-center gap-3 bg-surface-elevated">
           <span className="material-symbols-outlined text-text-muted text-[22px]">search</span>
           <input
             ref={inputRef}
