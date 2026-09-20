@@ -82,6 +82,10 @@ IMPLEMENTATION = próxima etapa — NÃO INICIADA
 ## Infraestrutura de CI/Deploy
 
 - GitHub Actions: **NÃO CONFIGURADO** (0 workflows).
-- Vercel: **NÃO VERIFICÁVEL A PARTIR DO REPOSITÓRIO** (nenhum `vercel.json`; pode existir só no
-  dashboard).
+- Vercel: **CONFIGURADO E FUNCIONAL** (corrigido após verificação real — ver `EVIDENCE.md` →
+  E-009). O projeto Vercel `medusa` está conectado ao repositório via integração GitHub (não por
+  `vercel.json` no repo, mas por configuração no dashboard/App do Vercel) e builda deploys de
+  preview automaticamente a cada push, incluindo esta branch de bootstrap. Isso não significa que
+  produção esteja configurada com Supabase ou qualquer persistência real — apenas que o pipeline
+  de build/preview do Vercel está ativo.
 - Supabase: **NÃO IMPLEMENTADO** (nenhuma dependência ou arquivo de configuração no repo).

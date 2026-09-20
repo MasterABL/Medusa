@@ -172,6 +172,38 @@ BLOCK-001 continua bloqueando a execução real de qualquer tarefa).
 
 ---
 
+## E-009 — Vercel está de fato conectado e funcional (correção de suposição inicial)
+
+**Origem:** comentários automáticos de `vercel[bot]` na PR #3 (`chore/agent-os-bootstrap`),
+recebidos via webhook do GitHub após o push da branch de bootstrap.
+
+**Sequência real observada:**
+```
+issue_comment.created (2026-09-20T22:56:47Z):
+  status: "Building" — preview: medusa-git-chore-agent-o-d88df9-...vercel.app
+
+issue_comment.edited (2026-09-20T22:56:55Z):
+  status: "Ready" — mesmo preview URL, build concluído com sucesso
+```
+Projeto Vercel: `medusa` (`prj_Gi26xW28FowLK8PResQOkSgAMSEJ`), time
+`abimaelbalbino12-6079s-projects`.
+
+**Correção registrada:** os documentos `CURRENT_STATE.md`, `ARCHITECTURE.md` e `BLOCKERS.md`
+inicialmente classificaram Vercel como "NÃO VERIFICÁVEL A PARTIR DO REPOSITÓRIO" — essa era uma
+inferência razoável a partir da ausência de `vercel.json`, mas ficou provada **incompleta** assim
+que evidência real surgiu (a integração vive na configuração do dashboard/GitHub App do Vercel,
+não em um arquivo do repo). Os três documentos foram corrigidos nesta mesma sessão assim que o
+fato ficou disponível — nenhuma alegação incorreta foi mantida após a evidência aparecer.
+
+**O que isso NÃO prova:** não há evidência de que Supabase, variáveis de ambiente de produção, ou
+qualquer persistência real estejam configuradas — apenas o pipeline de build/preview do Next.js
+está confirmado.
+
+**Status:** PROVADO (o pipeline de build/preview do Vercel existe e funciona) — Supabase/produção
+continuam **NÃO IMPLEMENTADO** / **NÃO VERIFICÁVEL**, sem mudança nesse ponto.
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |

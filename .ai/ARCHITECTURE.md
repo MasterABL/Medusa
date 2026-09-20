@@ -12,8 +12,10 @@ aqui exigem atualização deste arquivo no mesmo PR.
 - Sem framework de testes formal instalado (nenhum Jest/Vitest/Playwright em `devDependencies`).
 - QA de browser via scripts próprios em `scripts/*.js` usando `puppeteer-core`.
 - Nenhum workflow de GitHub Actions configurado (`0` workflows encontrados via API).
-- Nenhum `vercel.json` no repositório — configuração de deploy, se existir, vive fora do repo
-  (dashboard da Vercel). **NÃO VERIFICÁVEL a partir do código-fonte.**
+- Nenhum `vercel.json` no repositório, mas a integração GitHub↔Vercel está de fato ativa: um push
+  a qualquer branch (confirmado com `chore/agent-os-bootstrap`) dispara build de preview real que
+  chega a `Ready` (ver `EVIDENCE.md` → E-009). **CONFIGURADO E FUNCIONAL** (corrigido nesta
+  sessão — a suposição inicial de "não verificável" estava desatualizada).
 - Nenhuma dependência de Supabase encontrada em `package.json`. **NÃO IMPLEMENTADO.**
 
 ## Shell
@@ -107,8 +109,10 @@ aqui exigem atualização deste arquivo no mesmo PR.
 
 - Supabase: nenhuma dependência, nenhum arquivo de configuração (`supabase/`, client SDK) presente
   no repositório. Status: **NÃO IMPLEMENTADO**.
-- Vercel: nenhum `vercel.json` no repositório. Pode existir configuração via dashboard, mas isso
-  não é verificável a partir do código-fonte. Status: **NÃO VERIFICÁVEL A PARTIR DO REPOSITÓRIO**.
+- Vercel: integração GitHub ativa e funcional — cada push builda um preview real (confirmado nesta
+  sessão, ver `EVIDENCE.md` → E-009). Não há `vercel.json` no repo (config vive no dashboard), mas
+  isso não impede o pipeline de build/preview. Status: **CONFIGURADO E FUNCIONAL** (apenas o
+  pipeline de build/preview — nenhuma evidência de Supabase ou persistência real em produção).
 
 ## Áreas Congeladas
 

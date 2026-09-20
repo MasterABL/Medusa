@@ -60,23 +60,33 @@ Além disso, `TASK-AGENDA-001` depende de HDR-001: decidir se este PR entra ante
 
 ---
 
-## BLOCK-003 — Nenhuma infraestrutura de CI configurada
+## BLOCK-003 — Nenhum GitHub Actions configurado (Vercel corrigido — ver nota)
 
 **Comando executado:**
 ```
 mcp__github__actions_list → {"total_count":0}
 ```
-Não há workflow do GitHub Actions no repositório. Não há `vercel.json` na raiz (verificado por
-listagem de diretório). Não há evidência verificável de projeto Vercel ou Supabase conectado
-nesta sessão (nenhuma credencial/config encontrada no repo).
+Não há workflow do GitHub Actions no repositório.
 
-**Impacto:** Nenhum gate deste protocolo (`QA_GATE.md`) pode ser automatizado por CI ainda; todo
-gate depende de execução manual por Claude ou por um humano.
+**Correção registrada nesta sessão:** a suposição inicial de que Vercel também estava "não
+verificável" estava **errada** e foi corrigida assim que uma evidência real apareceu (comentário
+do bot `vercel[bot]` na PR #3 de bootstrap, mostrando build de preview real chegando a `Ready`
+para a branch `chore/agent-os-bootstrap`). Vercel está de fato conectado ao repositório via
+integração GitHub e builda preview a cada push. Ver `EVIDENCE.md` → E-009 e a correção em
+`CURRENT_STATE.md`/`ARCHITECTURE.md`. Isso não é uma lacuna, é infraestrutura já ativa — só não
+tínhamos evidência dela até este comentário automático.
 
-**Resolução necessária:** decisão humana sobre adotar CI (e qual: GitHub Actions é o candidato
-óbvio dado que o repo já está no GitHub) — registrada como HDR-007 em `DECISIONS.md`.
+**Impacto (apenas do lado GitHub Actions):** Nenhum gate deste protocolo (`QA_GATE.md`) pode ser
+automatizado por *CI de testes* ainda (typecheck/build/QA automatizados); todo gate de teste
+depende de execução manual por Claude ou por um humano. O pipeline de *deploy/preview* (Vercel)
+já existe e funciona independentemente disso.
 
-**Status:** NÃO IMPLEMENTADO (não é um bug, é uma lacuna de infraestrutura ainda não decidida).
+**Resolução necessária:** decisão humana sobre adotar GitHub Actions para automatizar os gates de
+Test/Build (Vercel já cobre o build/preview, mas não os gates de typecheck/QA deste protocolo) —
+registrada como HDR-007 em `DECISIONS.md`.
+
+**Status:** GitHub Actions — NÃO IMPLEMENTADO (lacuna real, ainda não decidida). Vercel —
+CONFIGURADO E FUNCIONAL (corrigido, não é mais um bloqueio).
 
 ---
 
