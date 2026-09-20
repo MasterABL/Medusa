@@ -78,30 +78,54 @@ o roadmap do Medusa, que segue via o executor de fallback (Claude direto), confo
 
 ---
 
-## BLOCK-002 — PR #1 (`fix/foundation-hardening`) não mesclado e evidências não reproduzidas
+## BLOCK-002 — PR #1/#2 não mesclados (RESOLVIDO PARCIALMENTE NESTA SESSÃO — evidência agora real)
 
-**Fatos verificados:**
+**Fatos verificados (baseline git):**
 ```
 $ git rev-parse origin/main
 5d4c5c0be19adfc82a8c94e9cc4f3aac420d74f0
 
-$ git merge-base origin/main origin/fix/foundation-hardening
-5d4c5c0be19adfc82a8c94e9cc4f3aac420d74f0
-
-$ git rev-list --left-right --count origin/main...origin/fix/foundation-hardening
-0	2
+$ git merge-base --is-ancestor origin/fix/foundation-hardening origin/feature/agenda
+YES
 ```
-PR #1 está `open`, `merged: false`, `draft: false` (via `mcp__github__list_pull_requests`). O
-corpo do PR alega "42 testes aprovados" e "hardening test 100%", mas isso não foi reexecutado
-nesta sessão.
+PR #1 e PR #2 estão ambos `open`, `merged: false`. **Novo achado**: `feature/agenda` (PR #2) foi
+criada sobre `fix/foundation-hardening` (PR #1), não sobre `main` — contém os commits de PR #1.
+Ver `DECISIONS.md` → D-008, HDR-001 atualizado.
 
-**Impacto:** `MASTER_PLAN.md`/`ROADMAP.md` não podem marcar a Fase 1 (Foundation) como `PROVADO`.
-Além disso, `TASK-AGENDA-001` depende de HDR-001: decidir se este PR entra antes da Agenda.
+**Reexecução real feita nesta sessão** (worktree isolado em `/tmp/medusa-audit-agenda`, checkout de
+`origin/feature/agenda`, `npm install`, servidor dev real em `localhost:3000`):
+```
+$ npx tsc --noEmit
+(0 erros, exit 0)
 
-**Resolução necessária:** decisão humana (HDR-001) + reexecução real de
-`scripts/qa-browser.js` e `scripts/test-foundation-hardening.js` na branch do PR.
+$ npm run build
+✓ Compiled successfully / ✓ Generating static pages (6/6)
+(exit 0)
 
-**Status:** BLOQUEADO (decisão humana) / PARCIAL (evidência alegada, não reproduzida).
+$ node scripts/test-foundation-hardening.js
+13/13 asserções PASSED — "RESULTADO GERAL DO HARDENING VALIDATION: PROVADO 100%"
+(bate com a alegação do PR)
+
+$ node scripts/qa-browser.js
+23 asserções reais, todas aprovadas, 0 falhas explícitas.
+"42" no relatório = screenshots capturados, não testes — a descrição do PR confunde as duas
+métricas ("42 testes aprovados" deveria ser "23 asserções aprovadas, 42 screenshots").
+30 erros de console reportados = 100% `net::ERR_CERT_AUTHORITY_INVALID` de fontes do Google Fonts
+carregadas de `fonts.googleapis.com`/`fonts.gstatic.com` (ver `src/app/layout.tsx`), causados pela
+limitação de TLS externo deste sandbox (BLOCK-004), não defeitos reais do app.
+```
+Ver `EVIDENCE.md` → E-013 a E-017 para os comandos e saídas completas.
+
+**O que passou a ser PROVADO:** Test Gate e Build Gate de PR #1+#2 combinados (código compila,
+buildaqui, os scripts de QA já existentes rodam e não encontram defeito funcional real). Isso é
+evidência de **Implementation Gate**, não de **Merge Gate** (ver `DECISIONS.md` → D-007) — o código
+ainda não está em `main`.
+
+**O que continua pendente:** correção do texto da descrição de PR #1 (números de teste imprecisos),
+ratificação humana da expansão de Educação bundled nessas branches (`DECISIONS.md` → HDR-010), e a
+decisão de merge sequencial em si (HDR-001).
+
+**Status:** Test/Build Gate — PROVADO. Merge Gate — BLOQUEADO (decisão humana pendente, HDR-001).
 
 ---
 
@@ -154,11 +178,56 @@ ambiente).
 
 ---
 
+## BLOCK-005 — Resultado real do `qa-agenda.js`: 29/30, não 30/30 como alegado no corpo da PR #2
+
+**Comando executado** (mesmo worktree/servidor do BLOCK-002):
+```
+$ node scripts/qa-agenda.js
+=== QA AGENDA COMPLETO: 29 PASSOU | 1 FALHOU ===
+[FAIL] Zero erros graves no console do navegador (Erros: 2)
+```
+Os 2 "erros graves" são exatamente 2 `net::ERR_CERT_AUTHORITY_INVALID` do carregamento de Google
+Fonts (`fonts.googleapis.com`), a mesma causa ambiental do BLOCK-004 — **não é um defeito real do
+app**. As outras 29 asserções (roteamento, Day/Week/Month/List View, navegação temporal, CRUD de
+evento com exclusão em 2 passos, 24 cores, filtro por domínio, Context Panel, 820px/390px,
+temas, não-regressão de Educação) passaram de verdade.
+
+**Impacto:** a alegação "scripts/qa-agenda.js (30/30 aprovados)" no corpo da PR #2 não bate
+exatamente com o resultado real desta sessão — mas a causa da diferença é ambiental (a mesma
+limitação de TLS externo já documentada), não funcional. Isso é análogo ao BLOCK-002: uma alegação
+imprecisa que, investigada a fundo, não indica um defeito real do produto.
+
+**Status:** PARCIAL — 29/29 verificações funcionais reais passaram; a 30ª depende de uma condição
+de ambiente (acesso TLS externo) que não existe neste sandbox e provavelmente existiria num
+ambiente de desenvolvimento normal com internet completa.
+
+---
+
+## BLOCK-006 — Vulnerabilidade de segurança conhecida em `next@14.2.24`
+
+**Comando executado:**
+```
+$ npm install --no-audit --no-fund
+npm warn deprecated next@14.2.24: This version has a security vulnerability. Please upgrade to a
+patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
+```
+**Impacto:** achado real, não investigado a fundo nesta sessão (fora do escopo desta consolidação
+de plano — não é um blocker de Agenda/Foundation, é uma dívida técnica transversal). Deve virar uma
+entrada de `TASK_QUEUE.md` de manutenção, não bloqueia nenhuma fase do roadmap de produto.
+
+**Status:** NÃO IMPLEMENTADO (correção ainda não avaliada nem agendada) — registrado para não ser
+esquecido, não para bloquear o roadmap atual.
+
+---
+
 ## Bloqueios que NÃO existem (registrado para evitar suposição futura)
 
 - Não há bloqueio para ler/escrever no repositório local — acesso de leitura e escrita confirmado.
 - Não há bloqueio para criar branches e (quando autorizado) abrir PRs via GitHub MCP — testado
   em sessões anteriores deste projeto.
-- Não há bloqueio de `npx tsc --noEmit` ou `npm run build` em si — ainda não foram reexecutados
-  neste bootstrap porque nenhuma mudança de produto foi feita (nada para testar); ver
-  `EVIDENCE.md`.
+- Não há bloqueio de `npx tsc --noEmit` ou `npm run build` — reexecutados de verdade nesta sessão
+  (ver BLOCK-002), ambos passam sem erro.
+- `shell/v2-fixes` **não é um blocker nem uma branch com conteúdo pendente** — verificado que
+  aponta para o mesmo commit de `main` (`5d4c5c0`, `git diff` vazio entre as duas). É uma branch
+  vazia, provavelmente criada como placeholder para trabalho futuro, sem PR aberta. Registrado
+  aqui só para não ser confundido com trabalho perdido/não investigado.

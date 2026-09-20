@@ -1,133 +1,149 @@
 # CURRENT_STATE.md — Estado Real do Repositório
 
-**Última verificação**: sessão de continuação do bootstrap do Agent Operating System (resolução
-Claude↔Antigravity, fallback de executor, checkpoints). **Não afirme nada aqui sem ter
+**Última verificação**: sessão de consolidação do Master Plan definitivo (2ª rodada, incorporando
+7 correções estruturais + auditoria real de PR #1 e PR #2). **Não afirme nada aqui sem ter
 verificado.** Este arquivo deve ser atualizado a cada gate concluído.
 
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
-Este checkpoint descreve o próprio trabalho de bootstrap do Agent Operating System — que é, em si,
-uma tarefa longa e retomável entre sessões, tratada aqui com o mesmo rigor de qualquer tarefa de
-`TASK_QUEUE.md`.
-
 ```
-STATUS:        PARCIAL (protocolo funcional; Antigravity real ainda não acionável)
-FASE ATUAL:    Bootstrap do sistema de agentes concluído; PR #3 aberto (draft) contra main,
-               aguardando decisão humana para prosseguir ao primeiro piloto (TASK-AGENDA-001).
+STATUS:        PARCIAL (Master Plan consolidado; implementação real de Foundation+Agenda existe
+               em branches não mescladas; Merge Gate pendente de decisão humana)
+FASE ATUAL:    Consolidação do protocolo concluída. Trabalho de implementação já avançou (fora do
+               processo formal do Agent OS) até incluir Foundation Hardening + expansão de
+               Educação + Agenda completa, todos em PRs abertas não mescladas.
 CONCLUÍDO:
-  - Os 12 arquivos obrigatórios de .ai/ existem e estão sincronizados com o estado real do repo.
-  - scripts/agent-orchestrator.cjs implementa a cadeia de fallback completa (Antigravity → Claude
-    direto → BLOQUEADO), com contrato de exit code estável (0/1/2/3) — ver AGENT_RULES.md §7.
-  - Caminho legítimo de instalação do Antigravity CLI identificado, lido e verificado como seguro
-    (checksum SHA512, instalação local, sem sudo) — ver BLOCKERS.md → BLOCK-001, EVIDENCE.md → E-010.
-  - PR #3 (branch chore/agent-os-bootstrap) aberto como draft, sem tocar src/**, com QA do próprio
-    protocolo (sintaxe, fallback, restauração de estado) documentado em EVIDENCE.md.
-  - Vercel confirmado como pipeline de build/preview real e funcional (EVIDENCE.md → E-009).
+  - MASTER_PLAN.md/ROADMAP.md/TASK_QUEUE.md consolidados com estrutura de 15 fases (0-14),
+    Auth como fase explícita, Hoje dividido em Foundation/Integration, Guardian independente.
+  - Auditoria real (não alegada) de PR #1 e PR #2: tsc, build, e os 3 scripts de QA existentes
+    rodaram de verdade em worktree isolado (ver EVIDENCE.md → E-013 a E-019).
+  - Git topology real mapeada: PR #2 (Agenda) está construída sobre PR #1 (Foundation Hardening) —
+    dependência técnica, não preferência (DECISIONS.md → D-008).
 RESTANTE:
-  - Decisão humana sobre HDR-009 (investir em acesso persistente/autenticado ao Antigravity real).
-  - Decisão humana sobre HDR-001 e HDR-003 para promover TASK-AGENDA-001 a READY.
-  - GitHub Actions para automatizar os gates de Test/Build (HDR-007) — ainda não decidido.
+  - Decisão humana sobre merge sequencial PR #1 → PR #2 (HDR-001).
+  - Ratificação humana da expansão multi-trilha de Educação, feita sem decisão prévia registrada
+    (HDR-010).
+  - Decisão de provedor de Auth antes de qualquer Persistence Slice (HDR-011).
 ÚLTIMO TESTE:
-  node scripts/agent-orchestrator.cjs (sem tarefa ativa) → exit 1 (esperado);
-  node scripts/agent-orchestrator.cjs (tarefa sintética, agy ausente) → exit 2, status
-  "FALLBACK: CLAUDE_DIRECT", registro salvo em .ai/runs/2026-09-20T23-06-47-875Z-TASK-TEST-001.json;
-  git diff --stat -- src/ → vazio (nenhum código de produto tocado).
+  npx tsc --noEmit (feature/agenda) → 0 erros; npm run build → sucesso; test-foundation-
+  hardening.js → 13/13; qa-browser.js → 23/23 asserções (30 "erros" = 100% TLS externo, não app);
+  qa-agenda.js → 29/30 (1 falha = mesma causa ambiental).
 FALHAS:
-  Tentativa de instalar o Antigravity CLI real foi recusada pelo classificador de segurança do
-  próprio ambiente (código externo sem permissão explícita) — não é uma falha do protocolo, é uma
-  barreira de ambiente documentada e respeitada (ver BLOCKERS.md → BLOCK-001). Sem workaround.
+  Nenhuma falha funcional real encontrada na auditoria. Duas descrições de PR (não o código) têm
+  números imprecisos — ver BLOCKERS.md → BLOCK-002, BLOCK-005.
 PRÓXIMO PASSO:
-  Aguardar decisão humana sobre HDR-001/HDR-003 (para TASK-AGENDA-001) e HDR-009 (para Antigravity
-  persistente). Até lá, o sistema já está pronto para que uma única instrução inicie a execução de
-  TASK-AGENDA-001 via fallback Claude direto, seguindo o fluxo de AGENT_RULES.md → seção 9.
+  Ver TASK_QUEUE.md → primeira tarefa desbloqueada (correção das descrições de PR + preparação
+  para merge). Human decisions HDR-001/HDR-010/HDR-011 seguem pendentes.
 BLOCKERS:
-  Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-002 (PR #1 não mesclado), BLOCK-003 (GitHub
-  Actions ausente — Vercel já não é mais um bloqueio, ver correção em BLOCKERS.md).
+  Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-002/005 (descrições de PR imprecisas, não
+  bloqueiam merge tecnicamente), BLOCK-003 (GitHub Actions ausente), BLOCK-006 (next@14.2.24 CVE).
 ```
 
 ## Baseline Git
 
 ```
-origin                  = https://github.com/MasterABL/Medusa
-main (origin/main)      = 5d4c5c0be19adfc82a8c94e9cc4f3aac420d74f0
-branch de trabalho atual = chore/agent-os-bootstrap (criada a partir de origin/main)
+origin                   = https://github.com/MasterABL/Medusa
+main (origin/main)       = 5d4c5c0be19adfc82a8c94e9cc4f3aac420d74f0
+branch de trabalho atual = chore/agent-os-bootstrap (PR #3, draft, aberta contra main)
 ```
 
-- `origin/fix/foundation-hardening` está **2 commits à frente** de `main`
-  (`e616635`, `a7f988c`) e é a `head` do **PR #1 aberto, não mesclado**:
-  "feat(shell): Foundation Hardening — Context Panel + Tema Claro".
-- Nenhum outro PR aberto encontrado.
-- Nenhum workflow de GitHub Actions configurado no repositório (`0` workflows).
+- `origin/fix/foundation-hardening` (**PR #1**, aberta, não mesclada) = `main` + 2 commits
+  (`e616635` "expand study mode to multi-track learning", `a7f988c` "harden context panel...").
+- `origin/feature/agenda` (**PR #2**, aberta, não mesclada) = `fix/foundation-hardening` + 1 commit
+  próprio (`758cd8d` "implement complete Medusa Temporal OS..."). **PR #2 contém todos os commits
+  de PR #1** — não pode ser mesclada isoladamente (ver `DECISIONS.md` → D-008).
+- `origin/shell/v2-fixes` — branch vazia, aponta para o mesmo commit de `main`, sem PR, sem
+  conteúdo próprio. Não é trabalho pendente, apenas um placeholder não utilizado.
+- `origin/chore/agent-os-bootstrap` (**PR #3**, draft, aberta) — este trabalho de protocolo.
+- Nenhum workflow de GitHub Actions configurado (`0` workflows).
+- Vercel builda preview automaticamente para as 3 PRs (confirmado real — `EVIDENCE.md` → E-009,
+  E-013).
 
-## Foundation Hardening
+## Foundation Hardening (PR #1)
 
-- **Status**: PARCIAL — implementado e com PR aberto (#1), **ainda não mesclado a `main`**.
-- O PR alega (na própria descrição, não reverificado nesta sessão): unificação de geometria via
-  `ShellGeometry`/`SHELL_DIMENSIONS`, correção da escala de elevação do tema Claro, persistência
-  local de `isContextOpen`, e "suíte automatizada canônica com 42 testes aprovados" +
-  "teste de hardening com 100% de sucesso".
-- **Importante (regra de honestidade)**: os números "42 testes" e "100% de sucesso" são uma
-  alegação do autor do PR na descrição, não uma evidência reproduzida nesta sessão. Antes de
-  tratar o PR #1 como `PROVADO`, um agente precisa rodar `scripts/qa-browser.js` e
-  `scripts/test-foundation-hardening.js` de fato e registrar o resultado em `EVIDENCE.md`.
-- **Decisão pendente**: mesclar PR #1 antes de iniciar a implementação real da Agenda, já que a
-  Agenda vai depender de `ShellGeometry`/Context Panel corrigidos. Ver `DECISIONS.md`.
+- **Implementation/Test/Build/Browser QA Gate: PROVADO** (verificado de verdade nesta sessão —
+  `EVIDENCE.md` → E-014, E-015, E-016). `npx tsc --noEmit` limpo, `npm run build` verde,
+  `test-foundation-hardening.js` 13/13, `qa-browser.js` 23/23 asserções reais aprovadas.
+- **Precisão da descrição da PR**: "42 testes aprovados" mistura o número de screenshots (42, real)
+  com o número de asserções de teste (23, real, todas aprovadas) — impreciso, mas não falso na
+  essência (nenhuma asserção real falhou).
+- **Merge Gate: BLOQUEADO** — não mesclado a `main`. Ver `DECISIONS.md` → HDR-001.
+- **Achado novo**: o commit `e616635` desta branch modifica 7 arquivos de
+  `src/components/education/**` (área congelada) sem decisão prévia registrada em `DECISIONS.md`
+  — ver HDR-010.
 
 ## Educação / Study Mode
 
-- **Status**: PROVADO (baseline) — presente em `main`, commit `5d4c5c0` já inclui
-  "fix(education): align data classification and audit transparency" e o commit anterior
-  "feat(education): implement study mode flow and choreography".
-- **Congelado**: nenhuma alteração funcional deve ser feita em `src/components/education/**`
-  sem decisão humana explícita (ver `ARCHITECTURE.md` → Áreas Congeladas).
+- **Baseline em `main` (`5d4c5c0`)**: PROVADO, congelado, single-track ("Física · Mecânica
+  Ondulatória" fixo).
+- **Expansão multi-trilha (dentro de PR #1/#2, não mesclada)**: implementa alternância real entre
+  Faculdade/Inglês/Vestibular (`TRACK_DEFINITIONS`, `StudyTrack`), testada de verdade via
+  `qa-browser.js` (alternância de trilha no Dashboard e dentro do Study Mode, Focus Mode
+  preservado, exercícios/tutor/notas por trilha — todas as asserções relacionadas passaram).
+  **Status: Implementation/QA PROVADO — Governança BLOQUEADA** (tocou área congelada sem decisão
+  prévia; ver `DECISIONS.md` → HDR-010, aguardando ratificação humana antes do merge).
 
-## Shell V2
+## Shell V2 / ContextPanel
 
-- **Status**: PROVADO (baseline) — Sidebar, Header 3-zonas, Dynamic Island, Mobile Island unificado,
-  Context Panel, Command Modal, 3 temas, 3 modos, motion tokens, reduced motion — todos presentes
-  em `main` e auditados em rodadas anteriores deste projeto (fora deste bootstrap).
-- Pendências conhecidas do Shell (não bloqueiam este bootstrap, mas devem entrar na fila): o PR #1
-  ainda não mesclado é a correção mais recente pendente.
+- **Baseline**: PROVADO — Sidebar, Header, Dynamic Island, Mobile Island, Command Modal, 3 temas,
+  3 modos, motion tokens, reduced motion, todos em `main`.
+- `src/components/shell/ContextPanel.tsx` é modificado tanto por PR #1 (hardening de geometria)
+  quanto por PR #2 (síntese temporal específica da Agenda, 189 linhas) — mudança esperada e dentro
+  do escopo já previsto por `TASK-AGENDA-001` (Context Panel por domínio), não uma violação de área
+  congelada (o "congelado" é a forma dos dados de `ShellGeometry`/`SHELL_DIMENSIONS`, não o arquivo
+  inteiro).
 
-## Agenda
+## Agenda / Temporal OS (PR #2)
 
 ```
-DESIGN         = auditado (protótipo Figma Make revisado linha a linha e testado interativamente
-                 em sessão anterior; ver relatório de auditoria correspondente)
-FIGMA          = encerrado (protótipo em https://www.figma.com/make/eDnnwmu3ArYjNjWx5qcDQG
-                 servido como referência de contrato de produto e UX — não é código do Medusa)
-IMPLEMENTATION = próxima etapa — NÃO INICIADA
+DESIGN         = auditado (protótipo Figma Make, sessão anterior)
+FIGMA          = encerrado, usado só como referência de contrato — nunca portado literalmente
+IMPLEMENTATION = FEITA — existe em PR #2 (feature/agenda), NÃO MESCLADA
 ```
 
-- **Não existe nenhum arquivo em `src/components/agenda/` no repositório `MasterABL/Medusa`.**
-  Confirmado por listagem completa de `src/` na branch `main`: apenas `app`, `components/education`,
-  `components/shell`, `context`, `fixtures`, `types`.
-- O protótipo Figma Make usa uma stack diferente (Vite + React 19 + Tailwind 4) e existiu apenas
-  como reconstrução local de auditoria em uma sessão anterior — nunca foi commitado neste
-  repositório. Nenhum código daquele protótipo deve ser copiado literalmente; ele serve como
-  **referência de contrato**, não como fonte a ser portada 1:1 (a stack é incompatível: Next.js 14/
-  React 18/Tailwind 3 aqui vs. Vite/React 19/Tailwind 4 lá).
-- A tarefa `TASK-AGENDA-001` (ver `TASK_QUEUE.md`) formaliza o que já se sabe do contrato e das
-  divergências encontradas na auditoria do protótipo.
+- **Implementation/Test/Build Gate: PROVADO** (`EVIDENCE.md` → E-014). **Browser QA Gate: PROVADO**
+  — `qa-agenda.js` real deu 29/30 (a 1 falha é a mesma limitação ambiental de TLS externo, não um
+  defeito do app; ver `BLOCKERS.md` → BLOCK-005).
+- 24 arquivos novos em `src/components/agenda/**`, `src/context/AgendaContext.tsx`,
+  `src/types/agenda.ts`, `scripts/qa-agenda.js`. Sem novas dependências em `package.json`
+  (`EVIDENCE.md` → E-019) — consistente com Local State.
+- Spot-check de código confirma pelo menos 4 dos 9 critérios de aceitação de `TASK-AGENDA-001`
+  genuinamente implementados: breakpoint 820px correto, categoria com domínio associado e editável,
+  List View agrupada em Agora/Próximo/Depois/Mais tarde (resolve `HDR-003` na prática), conflito
+  com duração real no rótulo (`EVIDENCE.md` → E-018).
+- **Merge Gate: BLOQUEADO** (depende de PR #1 primeiro — dependência técnica, `DECISIONS.md` →
+  D-008). **Ratificação: BLOQUEADA** para o agrupamento da List View (`HDR-003`, tecnicamente
+  resolvido pelo código, falta confirmação humana formal).
 
 ## Corpo, Finanças, Progresso, Guardian, Buscar
 
 - **Status**: NÃO IMPLEMENTADO. Nenhum arquivo, nenhuma especificação de UI encontrada no
   repositório. Ver `MASTER_PLAN.md` para os pontos marcados `HUMAN DECISION REQUIRED`.
 
+## Auth / Identity
+
+- **Status**: NÃO IMPLEMENTADO. Nenhuma dependência de autenticação em `package.json` (nem em
+  `main`, nem em PR #1, nem em PR #2). Pré-requisito de qualquer Persistence Slice — ver
+  `MASTER_PLAN.md` → Fase 2, `DECISIONS.md` → HDR-011.
+
 ## Antigravity CLI (`agy`)
 
-- **Status**: NÃO DISPONÍVEL neste ambiente. `which agy` e `agy --version` retornam
-  "command not found" (exit code 127). Ver `BLOCKERS.md` e seção "Automação Claude → Antigravity"
-  do relatório de bootstrap.
+- **Status**: NÃO DISPONÍVEL neste ambiente. Caminho de instalação legítimo identificado mas não
+  executável nesta sessão (bloqueio de segurança do próprio ambiente + exigência de login
+  interativo). Ver `BLOCKERS.md` → BLOCK-001, `DECISIONS.md` → HDR-009.
 
 ## Infraestrutura de CI/Deploy
 
 - GitHub Actions: **NÃO CONFIGURADO** (0 workflows).
-- Vercel: **CONFIGURADO E FUNCIONAL** (corrigido após verificação real — ver `EVIDENCE.md` →
-  E-009). O projeto Vercel `medusa` está conectado ao repositório via integração GitHub (não por
-  `vercel.json` no repo, mas por configuração no dashboard/App do Vercel) e builda deploys de
-  preview automaticamente a cada push, incluindo esta branch de bootstrap. Isso não significa que
-  produção esteja configurada com Supabase ou qualquer persistência real — apenas que o pipeline
-  de build/preview do Vercel está ativo.
-- Supabase: **NÃO IMPLEMENTADO** (nenhuma dependência ou arquivo de configuração no repo).
+- Vercel: **CONFIGURADO E FUNCIONAL** — builda preview automaticamente para `main` e as 3 branches
+  abertas (`fix/foundation-hardening`, `feature/agenda`, `chore/agent-os-bootstrap`), todas com
+  deploy `Ready`/`success`. Confirma, de forma independente, que o build de produção passa nas
+  três (`EVIDENCE.md` → E-009, E-013).
+- Supabase: **NÃO IMPLEMENTADO** no código (nenhuma dependência), mas o MCP do Supabase está
+  disponível neste ambiente de execução — candidato natural para Auth+Persistência quando essa
+  fase for decidida (não assumido como decisão — ver `DECISIONS.md` → HDR-011).
+
+## Dívida técnica registrada (não bloqueia roadmap de produto)
+
+- `next@14.2.24` tem vulnerabilidade de segurança conhecida (aviso do npm ao instalar) — ver
+  `BLOCKERS.md` → BLOCK-006. Não investigada a fundo nesta sessão; deve virar tarefa de manutenção.

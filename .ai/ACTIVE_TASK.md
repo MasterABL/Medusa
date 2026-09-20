@@ -24,12 +24,17 @@ EXPECTED EVIDENCE
 
 **Nenhuma tarefa está ativa neste momento.**
 
-`TASK-AGENDA-001` existe em `TASK_QUEUE.md` com status `PENDING`, aguardando resolução de
-`HDR-001` e `HDR-003` (ver `DECISIONS.md`) antes de poder ser promovida a `READY` e depois a
-`IN_PROGRESS` aqui.
+**Atualização importante desta sessão**: `TASK-AGENDA-001` deixou de ser `PENDING`/"a implementar"
+— uma implementação real já existe em PR #2 (`feature/agenda`), criada fora deste protocolo, e foi
+auditada de verdade (ver `EVIDENCE.md` → E-013 a E-019, `TASK_QUEUE.md` → status `PARTIAL`). O
+rascunho abaixo (originalmente escrito para "implementar do zero") **não deve mais ser ativado como
+está** — ficaria pedindo para reimplementar algo que já existe. Ele é preservado como referência
+histórica do contrato original. A tarefa realmente ativável agora é `TASK-MERGE-PREP-001` (ver
+`TASK_QUEUE.md`), que não precisa deste formato de `ACTIVE_TASK` completo por ser uma correção de
+texto, não uma implementação de produto.
 
-Quando `TASK-AGENDA-001` for promovida a `IN_PROGRESS`, este arquivo deve ser preenchido assim
-(rascunho pronto para uso, ainda não ativado):
+Rascunho original de `TASK-AGENDA-001` (histórico — não ativar sem revisar primeiro se ainda faz
+sentido, dado que o código já existe):
 
 ```
 TASK ID: TASK-AGENDA-001

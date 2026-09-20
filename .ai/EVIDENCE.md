@@ -311,9 +311,146 @@ fallback de executor, checkpoints obrigatórios) ficaram inteiramente dentro de 
 
 ---
 
+## E-013 a E-019 — Auditoria real de PR #1 (Foundation Hardening) e PR #2 (Agenda)
+
+**Contexto:** sessão de consolidação do Master Plan definitivo. Antes de escrever qualquer fase
+como "concluída", a regra 4 do pedido do usuário exige verificar o estado real do repositório.
+Descoberto que PR #2 (`feature/agenda`) já existe com uma implementação completa da Agenda — não
+criada por Claude nesta conversa. Toda a auditoria abaixo foi feita em um **worktree isolado**
+(`/tmp/medusa-audit-agenda`, checkout de `origin/feature/agenda`, removido ao final), sem tocar a
+branch de trabalho `chore/agent-os-bootstrap`.
+
+### E-013 — Git topology real
+
+```
+$ git fetch origin
+(nova branch descoberta: origin/feature/agenda; também origin/shell/v2-fixes)
+
+$ git log --oneline origin/main..origin/feature/agenda
+758cd8d feat(agenda): implement complete Medusa Temporal OS...
+a7f988c feat(shell): harden context panel layout reflow...
+e616635 feat(education): expand study mode to multi-track learning
+
+$ git merge-base --is-ancestor origin/fix/foundation-hardening origin/feature/agenda
+YES
+
+$ git show --stat 758cd8d   # o commit que É realmente a Agenda
+24 files changed — todos em src/components/agenda/**, src/context/AgendaContext.tsx,
+src/types/agenda.ts, scripts/qa-agenda.js, src/app/{layout,page}.tsx, e
+src/components/shell/ContextPanel.tsx (189 linhas — integração do resumo temporal, dentro do
+escopo já previsto pela própria TASK-AGENDA-001).
+```
+**Conclusão:** `feature/agenda` = `fix/foundation-hardening` + 1 commit próprio de Agenda. O
+commit de Agenda em si **não toca Educação** — as mudanças de Educação vêm inteiramente do commit
+herdado `e616635` (que pertence à linhagem de PR #1, não de PR #2). `shell/v2-fixes` confirmado
+como branch vazia (`git diff` contra `main` vazio, mesmo SHA).
+**Status:** PROVADO.
+
+### E-014 — Typecheck e Build reais (não alegados)
+
+```
+$ npm install --no-audit --no-fund
+added 416 packages in 19s
+(aviso: next@14.2.24 tem vulnerabilidade de segurança conhecida — ver BLOCKERS.md → BLOCK-006)
+
+$ npx tsc --noEmit
+(saída vazia, exit 0 — zero erros)
+
+$ npm run build
+✓ Compiled successfully
+✓ Generating static pages (6/6)
+(exit 0)
+```
+**Status:** PROVADO — Test Gate e Build Gate de `QA_GATE.md` genuinamente satisfeitos para o
+conteúdo combinado de PR #1 + PR #2.
+
+### E-015 — `scripts/test-foundation-hardening.js` real
+
+```
+$ MEDUSA_BROWSER_PATH=/opt/pw-browsers/chromium node scripts/test-foundation-hardening.js
+13 asserções, 13 "PASSED ✓", 0 falhas
+RESULTADO GERAL DO HARDENING VALIDATION: PROVADO 100% ✓
+```
+**Conclusão:** a alegação do corpo da PR #1 ("teste de hardening aprovado com 100% de sucesso")
+**é reproduzida fielmente**. Cobre: geometria unificada do Context Panel, refluxo de layout,
+persistência via localStorage após reload (aberto e fechado), reabertura via botão discreto, modo
+compacto (260px), modo foco, tablet 820px e mobile 390px sem overflow.
+**Status:** PROVADO.
+
+### E-016 — `scripts/qa-browser.js` real
+
+```
+$ MEDUSA_BROWSER_PATH=/opt/pw-browsers/chromium node scripts/qa-browser.js
+23 linhas "Asserção ..." / 23 com "PASSED" / 0 com "FAILED"
+Total Screenshots Geradas: 42
+Total Erros de Console: 30 (100% net::ERR_CERT_AUTHORITY_INVALID de fonts.googleapis.com/
+fonts.gstatic.com — ver src/app/layout.tsx linhas 27-34; causado pela limitação de TLS externo
+deste sandbox, já documentada em BLOCKERS.md → BLOCK-004; zero erros de outra natureza)
+```
+**Conclusão:** a alegação "42 testes aprovados" do corpo da PR #1 **mistura duas métricas
+diferentes do próprio script** — 42 é o número de screenshots capturados, não o número de
+asserções de teste (que são 23, todas aprovadas). Não é uma evidência falsa, é uma descrição
+imprecisa. Cobre também a expansão multi-trilha de Educação (Faculdade/Inglês/Vestibular),
+Focus Mode, exercícios, tutor, notas, responsividade mobile e `prefers-reduced-motion` — tudo
+com "PASSED ✓" real.
+**Status:** PROVADO (funcionalmente) — PARCIAL (precisão da descrição da PR).
+
+### E-017 — `scripts/qa-agenda.js` real
+
+```
+$ MEDUSA_BROWSER_PATH=/opt/pw-browsers/chromium node scripts/qa-agenda.js
+=== QA AGENDA COMPLETO: 29 PASSOU | 1 FALHOU ===
+[FAIL] Zero erros graves no console do navegador (Erros: 2)
+```
+Os 2 erros são `net::ERR_CERT_AUTHORITY_INVALID` (mesma causa de E-016). As 29 aprovações reais
+cobrem: roteamento para Agenda, Day View (timeline, conflito com duração real, tempo livre), troca
+de Semana/Mês/Lista, navegação temporal e "Ir para Hoje", CRUD completo de evento (criar, editar,
+excluir com confirmação em 2 passos), gerenciador de categorias com 24 cores, filtro por domínio,
+Context Panel com síntese temporal, breakpoint 820px (sem comprimir 7 colunas), mobile 390px, e
+temas Sépia/Escuro.
+**Status:** PROVADO (29/29 verificações funcionais reais) — ver `BLOCKERS.md` → BLOCK-005 para a
+divergência com a alegação "30/30" do corpo da PR #2.
+
+### E-018 — Spot-check de código-fonte contra os critérios de aceitação de `TASK-AGENDA-001`
+
+```
+$ git show origin/feature/agenda:src/components/agenda/WeekView.tsx | grep 820
+  Corrige o bug do protótipo que comprimia 7 colunas ilegíveis em 820px. [confirma AC #2]
+
+$ git show origin/feature/agenda:src/components/agenda/CategoryModal.tsx | grep -i domain
+  domain: AgendaDomain; "Domínio Associado"; setDomain(cat.domain) ao editar [confirma AC #4]
+
+$ git show origin/feature/agenda:src/components/agenda/ListView.tsx | grep -i "agora|próximo"
+  Agora / Próximo / Depois / Mais tarde [confirma AC #1, resolve HDR-003 na prática]
+
+$ git show origin/feature/agenda:src/components/agenda/agendaHelpers.ts | grep -i conflito
+  durationLabel: `Conflito · ${formatDuration(overlapMinutes)}` [confirma AC #3]
+```
+**Status:** PROVADO — 4 dos 9 critérios de aceitação de `TASK-AGENDA-001` confirmados por leitura
+de código real + confirmados de novo interativamente em E-017. Os demais 5 critérios (filtro
+remove itens de fato, `tsc`/`build` passam, Educação intacta, sem literais novos fora dos tokens,
+nenhuma capacidade fora de escopo implementada) também têm evidência real via E-014/E-016/E-017,
+exceto a checagem manual explícita de "nenhum literal novo fora dos tokens" (não auditada
+linha-a-linha nesta sessão — ver `TASK_QUEUE.md` para o registro).
+
+### E-019 — `package.json` sem novas dependências
+
+```
+$ git diff origin/main origin/feature/agenda -- package.json
+(saída vazia)
+```
+**Conclusão:** nenhuma dependência de backend/persistência foi adicionada — consistente com a
+alegação de Local State da PR #2.
+**Status:** PROVADO.
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |
 |---|---|---|---|
-| Bootstrap do Agent OS (esta tarefa) | Contract, Plan, Implementation (apenas `.ai/` e script) | Test/Build (N/A — sem código de produto), Browser QA (N/A), Regression (ver E-007) | PARCIAL até E-007 ser confirmado |
-| TASK-AGENDA-001 | Contract (E-006), Plan | Implementation, Test, Build, Browser QA, Regression, Evidence | NÃO IMPLEMENTADO |
+| Bootstrap do Agent OS | Contract, Plan, Implementation (`.ai/` e script) | Regression (ver E-007/E-012) | PROVADO (protocolo) |
+| PR #1 — Foundation Hardening | Contract, Plan, Implementation, Test (E-014), Build (E-014), Browser QA (E-015, E-016) | Merge Gate (HDR-001), correção de descrição (HDR-002) | Implementation/Test/Build/Browser QA: PROVADO — Merge: BLOQUEADO |
+| PR #2 — Agenda / Temporal OS | Contract (E-006), Plan, Implementation, Test (E-014), Build (E-014), Browser QA (E-017), Spot-check de critérios (E-018) | Merge Gate (HDR-001, depende de PR #1), ratificação de HDR-003, checagem manual de "sem literais fora dos tokens" | Implementation/Test/Build: PROVADO — Browser QA: PROVADO (29/29 reais) — Merge: BLOQUEADO |
+| Educação — expansão multi-trilha (dentro de PR #1/#2) | Implementation, Test, Build, Browser QA (E-016) | Ratificação humana da mudança em área congelada (HDR-010) | Implementation/QA: PROVADO — Governança do processo: BLOQUEADO |
+| TASK-AGENDA-001 (a entrada original da fila) | Ver acima — hoje coberta pela implementação real de PR #2 | Merge, ratificação de HDR-003 | PARTIAL (implementado, não mesclado, não totalmente ratificado) |

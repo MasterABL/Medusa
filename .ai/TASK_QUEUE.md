@@ -1,109 +1,159 @@
 # TASK_QUEUE.md — Fila Operacional
 
-Formato de cada tarefa: `ID`, `DOMAIN`, `PRIORITY`, `DEPENDENCIES`, `DESCRIPTION`,
-`ACCEPTANCE CRITERIA`, `QA REQUIREMENTS`, `STATUS`.
+Formato de cada tarefa (preserva o schema original + campos novos exigidos pela consolidação do
+Master Plan — nenhum campo antigo foi removido):
+
+```
+ID
+DOMAIN
+PHASE            (novo — número da fase em MASTER_PLAN.md/ROADMAP.md)
+PRIORITY
+STATUS
+DEPENDENCIES
+OBJECTIVE / DESCRIPTION
+SCOPE
+DO NOT TOUCH     (novo — arquivos/áreas que esta tarefa não deve precisar mudar)
+ACCEPTANCE CRITERIA
+QA REQUIREMENTS / BROWSER QA / REGRESSION
+EXPECTED EVIDENCE (novo — o que precisa estar em EVIDENCE.md antes de PROVADO)
+```
 
 Status operacional (ciclo de vida da tarefa): `PENDING`, `READY`, `IN_PROGRESS`, `BLOCKED`,
-`PROVADO`, `PARTIAL`. Ao reportar evidência de resultado, usar o vocabulário de
-`AGENT_RULES.md` (`PROVADO`/`PARCIAL`/`BLOQUEADO`/`NÃO IMPLEMENTADO`).
+`PROVADO`, `PARTIAL`. Ao reportar evidência de resultado, usar o vocabulário de `AGENT_RULES.md`
+(`PROVADO`/`PARCIAL`/`BLOQUEADO`/`NÃO IMPLEMENTADO`). `scripts/agent-orchestrator.cjs` continua
+lendo apenas `TASK ID:` de `ACTIVE_TASK.md` — nenhuma mudança de schema quebra o orquestrador.
+
+**Regra de desbloqueio**: a fila não avança pela primeira fase numericamente — avança pela
+**primeira tarefa cujas DEPENDENCIES estão todas resolvidas**. Ver seção final "Primeira tarefa
+desbloqueada".
 
 ---
 
-## TASK-AGENDA-001
+## TASK-MERGE-PREP-001 (NOVA — primeira tarefa realmente desbloqueada)
+
+```
+ID: TASK-MERGE-PREP-001
+DOMAIN: Foundation + Agenda (transversal às PRs #1 e #2)
+PHASE: 1 e 3
+PRIORITY: P0
+STATUS: READY (nenhuma DEPENDENCY pendente — não precisa de decisão humana para começar)
+DEPENDENCIES: nenhuma (é uma tarefa de correção de evidência/documentação, não de produto)
+
+OBJECTIVE:
+  Corrigir as descrições das PRs #1 e #2 no GitHub para refletir os números reais verificados
+  nesta sessão (ver EVIDENCE.md → E-013 a E-019), e deixar um resumo consolidado pronto para que o
+  humano tome as decisões HDR-001 (ordem de merge), HDR-003 (ratificação do agrupamento da List
+  View) e HDR-010 (ratificação da expansão de Educação) com informação precisa, não alegada.
+
+SCOPE:
+  - Editar a descrição de PR #1: trocar "42 testes aprovados" por "23 asserções de teste aprovadas
+    (0 falhas), 42 screenshots capturados como evidência visual".
+  - Editar a descrição de PR #2: trocar "scripts/qa-agenda.js (30/30 aprovados)" por "29/30
+    aprovados — a única falha é causada por bloqueio de TLS a fontes externas (Google Fonts) no
+    ambiente onde foi originalmente medido, não um defeito funcional".
+  - Adicionar um comentário em cada PR referenciando esta auditoria (EVIDENCE.md → E-013 a E-019)
+    para rastreabilidade.
+  - Não alterar nenhum código dentro das PRs nesta tarefa.
+
+DO NOT TOUCH:
+  - Nenhum arquivo em src/** — esta tarefa é exclusivamente de correção de texto/comunicação sobre
+    as PRs já existentes, não de código.
+
+ACCEPTANCE CRITERIA:
+  1. Descrição de PR #1 não afirma mais "42 testes" sem qualificar a diferença entre asserções e
+     screenshots.
+  2. Descrição de PR #2 não afirma mais "30/30" sem qualificar a causa ambiental da 1 falha.
+  3. Nenhum código-fonte foi alterado por esta tarefa.
+
+QA REQUIREMENTS: nenhuma (não há código novo para testar).
+
+EXPECTED EVIDENCE:
+  Link/diff da edição de cada descrição de PR, registrado em EVIDENCE.md.
+
+STATUS: READY — pode ser executada imediatamente, sem esperar nenhuma decisão humana.
+```
+
+---
+
+## TASK-AGENDA-001 (contrato original — implementação já existe, ver nota de estado)
+
+**Nota de estado (atualizada nesta sessão):** esta tarefa foi escrita como o primeiro piloto do
+protocolo antes de se descobrir que uma implementação real já existia em PR #2 (`feature/agenda`),
+criada fora do fluxo formal deste Agent OS. O contrato abaixo é preservado porque **serve como o
+checklist de auditoria contra o qual a implementação real foi verificada** — não porque a tarefa
+ainda precisa ser "implementada do zero".
 
 ```
 ID: TASK-AGENDA-001
 DOMAIN: Agenda
-PRIORITY: P0 (primeiro piloto do sistema de agentes)
+PHASE: 3
+PRIORITY: P0
+STATUS: PARTIAL (implementado em PR #2, não mesclado, ratificação de HDR-003 pendente)
 DEPENDENCIES:
-  - HDR-001 (decidir se PR #1 / Foundation Hardening é mesclado antes)
-  - HDR-003 (decidir agrupamento da List View: por dia vs. Agora/Próximo/Depois/Mais tarde)
-  - Leitura obrigatória de PRODUCT_CONTRACT.md, ARCHITECTURE.md e AGENT_RULES.md antes de iniciar
+  - HDR-001 (merge sequencial PR #1 → PR #2 — agora dependência técnica confirmada, D-008)
+  - HDR-003 (ratificar o agrupamento Agora/Próximo/Depois/Mais tarde já implementado)
 
 EXECUTOR: Antigravity preferencial; fallback Claude Code direto se Antigravity indisponível
-  (ver AGENT_RULES.md → seção 7 "Executor e Fallback" e BLOCKERS.md → BLOCK-001). A
-  indisponibilidade do Antigravity NÃO bloqueia esta tarefa — apenas HDR-001/HDR-003 bloqueiam.
+  (AGENT_RULES.md → seção 7). Neste caso específico, a implementação já foi feita por um executor
+  fora do protocolo formal (commit de autoria do próprio usuário/repositório) — a auditoria desta
+  sessão foi feita por Claude a posteriori.
 
-DESCRIPTION:
-  Implementar a primeira versão real da Agenda dentro do Shell existente do Medusa (Next.js 14 /
-  React 18 / Tailwind 3), seguindo o padrão de integração já usado por Educação (troca condicional
-  por `activeRoute` em src/app/page.tsx, Container próprio em src/components/agenda/).
+DO NOT TOUCH: src/components/education/** (violado pela branch que contém esta tarefa — ver
+  HDR-010; a violação não veio do commit de Agenda em si, ver EVIDENCE.md → E-013).
 
-  Esta tarefa NÃO deve portar literalmente o protótipo Figma Make (stack incompatível: Vite/
-  React 19/Tailwind 4). O protótipo é referência de contrato de produto e UX, não fonte de código.
+DESCRIPTION / ESCOPO ORIGINAL: (preservado integralmente como checklist de auditoria)
+  Views: Dia/Semana/Mês/Lista; 4 tipos (EVENT/TIME BLOCK/DEADLINE/ROUTINE); conflitos com duração
+  real; tempo livre textual; Now Indicator; 24 cores pastel; categorias com domínio+edição;
+  filtros por domínio; drawer de criação/edição com exclusão em 2 passos; painel de detalhe
+  lateral; Context Panel específico; temas/motion/reduced-motion herdados; Local State explícito;
+  acessibilidade com aria-label.
 
-  Escopo funcional obrigatório (baseado no contrato já auditado):
-  - Views: Dia (timeline 06:00–23:00, proporcional), Semana (desktop: 7 colunas; mobile: seletor
-    horizontal de dias + timeline de um dia), Mês (grid 7×N, indicadores compactos), Lista.
-  - Modelo de dados com 4 tipos distintos: EVENT, TIME BLOCK, DEADLINE (nunca ocupa horário
-    artificial na timeline — fica em faixa própria), ROUTINE (recorrente, visualmente diferenciado
-    sem parecer eventos independentes).
-  - Conflitos: manter ambos os itens visíveis, destacar a sobreposição, e mostrar a duração real
-    do conflito no rótulo (formato "Conflito · Nmin" — a versão auditada do protótipo só mostrava
-    a palavra "conflito", sem duração; corrigir aqui).
-  - Tempo livre: rótulo textual discreto ("Xh Ymin livres"), nunca um card.
-  - Now Indicator: linha fina + horário, recalculado com o relógio real, visualmente distinto do
-    indicador de conflito.
-  - Sistema de 24 cores pastel (reutilizar os mesmos 24 tons já validados na auditoria do
-    protótipo — ver EVIDENCE.md).
-  - Categorias: criar, escolher uma das 24 cores, **associar a um domínio** e **permitir
-    renomear/editar depois** (o protótipo auditado só permitia criar+cor, sem domínio nem edição —
-    corrigir aqui).
-  - Domínios/filtros: Todos / Educação / Corpo / Trabalho / Pessoal / Finanças, com filtragem real
-    dos itens exibidos, não apenas visual.
-  - Criação/edição via drawer (não modal bloqueante), com dois passos de confirmação para exclusão.
-  - Detalhe de item: painel lateral (não modal de tela cheia) preservando contexto — título,
-    horário, duração, tipo, domínio, categoria, origem, descrição, localização, recorrência,
-    conflito, ações Editar/Excluir.
-  - Context Panel específico da Agenda: resumo apenas (contagem, próximo, ocupação, tempo livre,
-    atalho "Ir para Hoje") — decidir explicitamente (registrar em DECISIONS.md) se as seções extras
-    encontradas no protótipo auditado (lista completa de "Hoje" e "Prazos") entram ou não; não
-    replicar por inércia.
-  - Temas Claro/Sépia/Escuro herdados dos tokens já existentes em globals.css — não recriar
-    valores de cor.
-  - Motion herdado dos tokens já existentes (--duration-*, --ease-*) — não inventar novo sistema.
-  - Reduced motion: herdar o bloco @media (prefers-reduced-motion: reduce) já existente no Shell.
-  - Local State explícito: nenhuma alegação de persistência real; seguir o padrão visual já usado
-    por Educação ("Local State · sessão").
-  - Acessibilidade: todo botão só-ícone (navegação de período, fechar painéis) precisa de
-    aria-label; foco visível herdado do CSS global; cor nunca é a única fonte de informação de
-    conflito/categoria.
+ACCEPTANCE CRITERIA — status real verificado nesta sessão:
+  1. As 4 views trocam de fato, mantendo filtro/seleção coerente — PROVADO (qa-agenda.js real).
+  2. Exatamente 820px usa layout mobile — PROVADO (código + qa-agenda.js real).
+  3. Conflito mostra duração real ("Conflito · Nmin") — PROVADO (código + qa-agenda.js real).
+  4. Categoria com domínio associado e editável — PROVADO (código + qa-agenda.js real).
+  5. Filtro por domínio remove itens de fato — PROVADO (qa-agenda.js real: "Filtro Educação ativo
+     mostra itens de estudo").
+  6. `npx tsc --noEmit` e `npm run build` sem erro — PROVADO (reexecutado nesta sessão).
+  7. Nenhum arquivo de education/** alterado — **PARCIAL**: o commit de Agenda em si não altera
+     Educação, mas a branch que o contém (via PR #1 herdado) altera. Ver HDR-010.
+  8. Nenhum literal fora dos tokens existentes — **NÃO AUDITADO** nesta sessão (precisa de revisão
+     manual linha-a-linha antes de fechar como PROVADO).
+  9. Nenhuma capacidade fora de escopo implementada — PROVADO (E-019: sem novas dependências).
 
-ACCEPTANCE CRITERIA:
-  1. As 4 views trocam de fato (não são apenas 4 componentes desconectados) e mantêm o item
-     selecionado/filtro ativo coerente ao trocar.
-  2. Em exatamente 820px de largura, a Week View usa o layout mobile (seletor horizontal de dias),
-     não o grid desktop de 7 colunas — este é um bug já confirmado no protótipo de referência
-     (breakpoint `< 820` exclui o próprio valor 820); a implementação real deve testar
-     especificamente esse valor.
-  3. O conflito entre dois itens mostra a duração da sobreposição, não apenas a palavra "conflito".
-  4. Categoria criada tem domínio associado; existe uma forma de editar/renomear uma categoria já
-     criada.
-  5. Filtro por domínio de fato remove itens de outros domínios da renderização (verificável
-     clicando, não só lendo o código).
-  6. `npx tsc --noEmit` e `npm run build` passam sem erro.
-  7. Nenhum arquivo em `src/components/education/**` é alterado.
-  8. Nenhum literal de largura/cor/duração novo fora dos tokens já existentes.
-  9. Nenhuma das capacidades da seção "Escopo" de AGENT_RULES.md (sync externo, IA de
-     agendamento, multiusuário, persistência real) é implementada nesta tarefa.
+QA REQUIREMENTS — status real: todos os itens interativos (criar/editar/excluir evento,
+  filtro, temas, 4 views, conflito) foram testados de fato via `qa-agenda.js` real nesta sessão
+  (EVIDENCE.md → E-017). `prefers-reduced-motion` **não foi testado especificamente para a Agenda**
+  nesta sessão (o script de Agenda não cobre esse caso; `qa-browser.js` testa reduced-motion só
+  para Educação) — item em aberto.
 
-QA REQUIREMENTS:
-  - Browser QA real (não leitura de código) nos 4 breakpoints: 390px, 820px (com atenção
-    específica ao ponto 2 acima), 1024px, 1440px.
-  - Testar interativamente: criar evento, editar evento, excluir evento (dois passos), aplicar e
-    remover filtro, trocar entre os 3 temas, trocar entre as 4 views, selecionar um item em
-    conflito e confirmar que ambos os itens continuam visíveis.
-  - Testar `prefers-reduced-motion: reduce` e confirmar que a Agenda continua 100% utilizável.
-  - Regressão: abrir Educação/Study Mode depois da mudança e confirmar visualmente que nada mudou.
-  - Regressão: confirmar que Sidebar, Header, Context Panel genérico e Dynamic Island continuam
-    funcionando nos outros "módulos" (ex.: tela inicial) depois da mudança.
-  - Toda evidência acima registrada em EVIDENCE.md com comando/screenshot real.
+EXPECTED EVIDENCE: ver EVIDENCE.md → E-013 a E-019 (já preenchido).
 
-STATUS: PENDING
-  (torna-se READY após HDR-001 e HDR-003 serem resolvidos por decisão humana — ver DECISIONS.md)
+STATUS: PARTIAL — implementação real e testada, merge e ratificação de HDR-003 pendentes; item 8
+  (literais fora dos tokens) e reduced-motion específico da Agenda não auditados.
 ```
 
 ---
 
-Nenhuma outra tarefa foi criada nesta sessão de bootstrap, por instrução explícita: não implementar
-Corpo, Finanças, Progresso, Guardian ou novas integrações nesta execução.
+## Tarefas de fases futuras — mantidas em nível de Contract, não decompostas ainda
+
+Por instrução explícita ("Master Plan não é backlog infinito"), as fases 2, 4 (parte de
+ratificação), 5-13 **não são decompostas em tarefas finas nesta sessão** — cada uma só ganha
+tarefas concretas quando seu HDR correspondente for resolvido e seu Contract puder ser escrito sem
+suposição. O que existe hoje para cada uma:
+
+- **FASE 2 (Auth)**: nenhuma tarefa ainda — bloqueada por HDR-011.
+- **FASE 4 (Education — ratificação)**: nenhuma tarefa de código nova — bloqueada por HDR-010 (é
+  uma decisão de governança, não uma tarefa de implementação).
+- **FASE 5 (Hoje)**: nenhuma tarefa ainda — 5a poderia começar (depende só de Fase 1), mas não foi
+  decomposta nesta sessão por não ser o foco desta consolidação; 5b bloqueada por HDR-006.
+- **FASES 6-13**: nenhuma tarefa ainda — cada uma bloqueada por pelo menos um HDR de definição de
+  contrato (ver `DECISIONS.md` → HDR-005 e correlatos).
+
+---
+
+## Primeira tarefa desbloqueada
+
+**`TASK-MERGE-PREP-001`** — não exige nenhuma decisão humana prévia, não toca código de produto, e
+prepara terreno preciso para as decisões HDR-001/HDR-003/HDR-010 que desbloqueiam tudo o mais.

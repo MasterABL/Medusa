@@ -16,6 +16,12 @@ este documento prevalece — a exceção precisa ser justificada explicitamente 
   escopo, não duplicar — continuar aquele trabalho ou escalar para decisão humana.
 - **Não fazer merge silencioso.** Merges para `main` acontecem via PR, nunca via `git merge` local
   seguido de push direto.
+- **Verificar topologia real antes de assumir a base de uma PR.** O campo "base" que o GitHub
+  mostra numa PR nem sempre reflete de onde a branch realmente parte — confirmar com
+  `git merge-base --is-ancestor <branch-A> <branch-B>` antes de tratar duas PRs como independentes.
+  Uma PR construída em cima de outra PR não mesclada **não pode ser mesclada isoladamente** (achado
+  real: PR #2 deste repositório continha os commits de PR #1 apesar de ambas declararem `base:
+  main` — ver `DECISIONS.md` → D-008).
 
 ## 2. Produto
 

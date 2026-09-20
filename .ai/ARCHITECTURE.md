@@ -6,7 +6,9 @@ aqui exigem atualização deste arquivo no mesmo PR.
 
 ## Stack
 
-- Next.js 14.2.24 (App Router), React 18.3.
+- Next.js 14.2.24 (App Router), React 18.3. **Nota de segurança** (achado real via `npm install`
+  nesta sessão): esta versão do Next.js tem uma vulnerabilidade de segurança conhecida — ver
+  `BLOCKERS.md` → BLOCK-006. Não é um bloqueio de roadmap, é dívida técnica registrada.
 - Tailwind CSS 3.4 + `tailwind.config.ts`.
 - TypeScript 5.6, `tsc --noEmit` como typecheck.
 - Sem framework de testes formal instalado (nenhum Jest/Vitest/Playwright em `devDependencies`).
@@ -124,3 +126,20 @@ Nenhuma alteração nos arquivos abaixo sem decisão humana explícita registrad
   dados quebra Header, Sidebar, ContextPanel e ShellLayout simultaneamente.
 - O catálogo fechado de 10 estados do Island em `src/fixtures/islandFixtures.ts` — é um contrato,
   não uma lista aberta.
+
+**Esclarecimento (adicionado após a auditoria real de PR #1/#2 — ver `EVIDENCE.md` → E-013)**:
+"congelado" se refere à **forma dos dados**/comportamento estabelecido de `src/components/
+education/**` e ao **shape** de `ShellGeometry`/`SHELL_DIMENSIONS` — não significa que nenhum
+arquivo de `src/components/shell/**` pode receber uma nova seção específica de domínio (ex.:
+`ContextPanel.tsx` ganhando uma síntese temporal quando `activeRoute === 'agenda'` é esperado e
+correto, não uma violação). O que exige decisão prévia é: (a) qualquer mudança funcional dentro de
+`education/**`, e (b) qualquer mudança na forma/contrato de dados de `ShellGeometry`/
+`SHELL_DIMENSIONS`/`islandFixtures.ts`. Uma violação real encontrada nesta sessão: o commit
+`e616635` mudou o comportamento de `education/**` sem essa decisão prévia — ver `DECISIONS.md` →
+HDR-010.
+
+**Nova peça de arquitetura observada (Agenda, PR #2)**: `src/context/AgendaContext.tsx` +
+`src/types/agenda.ts` — um padrão de Context Provider dedicado por domínio, diferente do padrão
+puramente local (`useState` dentro do Container) usado por Educação. Ambos os padrões são válidos;
+domínios futuros podem escolher o que fizer mais sentido para seu próprio estado, não precisam
+copiar Educação literalmente.

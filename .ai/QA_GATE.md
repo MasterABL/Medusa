@@ -52,13 +52,30 @@ visualmente que nada mudou.
 Tudo dos gates 4–7 vive em `EVIDENCE.md` com: comando exato executado, data/sessão, saída real
 (ou caminho do arquivo de saída/screenshot), e quem/o que executou (Claude, Antigravity, humano).
 
-## 9. Final Gate — Classificação
+## 9. Review/Audit Gate
+Depois dos gates 4-8, Claude (ou um humano) audita o diff contra `ACCEPTANCE CRITERIA` e
+`AGENT_RULES.md` — mesmo quando Claude foi quem implementou (executar e auditar são papéis
+distintos, ver `AGENT_RULES.md` → seção 7). Este gate também verifica se algum arquivo de área
+congelada foi tocado sem decisão registrada em `DECISIONS.md` — se sim, o gate para aqui até a
+ratificação, mesmo que os gates 4-8 tenham passado.
+
+## 10. Merge Gate (distinto de Implementation Gate — ver `DECISIONS.md` → D-007)
+Merge para `main` nunca é automático. Mesmo com os gates 1-9 todos `PROVADO`, o PR só fecha depois
+de: (a) decisão humana explícita de mesclar (`AGENT_RULES.md` → Git), (b) se a branch depende de
+outra branch não mesclada (ver `git merge-base --is-ancestor`), a base mescla primeiro. Uma
+tarefa pode legitimamente estar com Implementation/Test/Build/Browser QA todos `PROVADO` e o Merge
+Gate ainda `BLOQUEADO` — isso não é uma contradição, é a distinção Merge Gate ≠ Implementation Gate.
+
+## 11. Closed Gate — Classificação final
 
 | Situação | Status correto |
 |---|---|
-| Todos os gates 1–8 passaram com evidência real | `PROVADO` |
+| Gates 1–10 passaram com evidência real, incluindo merge em `main` | `PROVADO` (fechado) |
+| Gates 1–9 passaram com evidência real, mas Merge Gate (10) ainda pendente | `PROVADO` (implementação) / `PARCIAL` (fechamento de fase) — nunca descrito como "concluído" sem dizer que não está em `main` |
 | Gates 1–5 passaram, mas Browser QA/Regression não foram feitos ou falharam parcialmente | `PARCIAL` |
 | Qualquer gate anterior bloqueia o andamento (ex.: decisão humana pendente, ambiente sem browser) | `BLOQUEADO` |
 | A tarefa nem chegou a ser implementada | `NÃO IMPLEMENTADO` |
 
 **Regra de ouro**: build verde e typecheck limpo não é QA. Eles são pré-requisito para QA começar.
+**Segunda regra de ouro**: implementado não é mesclado. Nenhum documento `.ai/` descreve uma
+funcionalidade como "concluída" sem dizer explicitamente se ela já está em `main` ou não.
