@@ -1,0 +1,10 @@
+{
+  "taskId": "TASK-TEST-000",
+  "startedAt": "2026-09-20T22:55:25.532Z",
+  "finishedAt": "2026-09-20T22:55:25.546Z",
+  "executor": "agy",
+  "executorAvailable": false,
+  "executorCheckDetail": "spawnSync agy ENOENT",
+  "status": "BLOQUEADO",
+  "note": "Executor \"agy\" não está disponível neste ambiente (ver .ai/BLOCKERS.md → BLOCK-001). Nenhum processo foi executado. Handoff permanece pronto em .ai/HANDOFF.md."
+}
