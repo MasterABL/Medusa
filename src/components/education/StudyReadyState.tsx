@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { TrackDefinition } from './types';
 
 interface StudyReadyStateProps {
   onEnterStudy: () => void;
+  trackDef?: TrackDefinition;
 }
 
-export function StudyReadyState({ onEnterStudy }: StudyReadyStateProps) {
+export function StudyReadyState({ onEnterStudy, trackDef }: StudyReadyStateProps) {
   useEffect(() => {
     // Transição orgânica suave e finita após confirmação
     const timer = setTimeout(() => {
@@ -15,6 +17,10 @@ export function StudyReadyState({ onEnterStudy }: StudyReadyStateProps) {
 
     return () => clearTimeout(timer);
   }, [onEnterStudy]);
+
+  const discipline = trackDef?.lesson.discipline || 'Física';
+  const topic = trackDef?.lesson.topic || 'Mecânica Ondulatória';
+  const duration = trackDef?.lesson.estimatedDuration || '45 min';
 
   return (
     <div
@@ -29,20 +35,20 @@ export function StudyReadyState({ onEnterStudy }: StudyReadyStateProps) {
 
       <div className="space-y-2">
         <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-[#1B502C] dark:text-medusa-support bg-medusa-support/15 px-3 py-1 rounded-full border border-medusa-support/30">
-          Aula pronta
+          Aula pronta · {trackDef?.name || 'Sessão'}
         </span>
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
-          Física · Mecânica Ondulatória
+          {discipline} · {topic}
         </h2>
         <p className="text-[13px] text-text-secondary max-w-md">
-          O palco de estudo está pronto com aula em vídeo, resumo estruturado e anotações ativas.
+          O palco de estudo está calibrado com conteúdo contextualizado, resumo estruturado e prática deliberada.
         </p>
       </div>
 
       <div className="flex items-center gap-4 text-[12px] font-mono text-text-muted bg-surface-secondary/70 px-4 py-2 rounded-xl border border-border/60">
         <div className="flex items-center gap-1.5">
           <span className="material-symbols-outlined text-[16px]">schedule</span>
-          <span>45 min</span>
+          <span>{duration}</span>
         </div>
         <span>•</span>
         <div className="flex items-center gap-1.5">

@@ -4,29 +4,32 @@ import React from 'react';
 import { useShell } from '@/context/ShellContext';
 
 export function ContextPanel() {
-  const { mode, isContextOpen, toggleContext, setContextOpen, breakpoint } = useShell();
+  const { geometry, setContextOpen, breakpoint } = useShell();
 
-  // No Modo Foco, o Context Panel desliza continuamente para fora (translate-x-full) sem remount
-  const isDesktop = breakpoint === 'desktop';
-  const isOpen = isDesktop && mode !== 'foco' && isContextOpen;
+  // No mobile e tablet, o Context Panel permanece 100% fora da árvore de renderização
+  if (breakpoint !== 'desktop') {
+    return null;
+  }
 
-  const getPanelWidthClass = () => {
-    return mode === 'compacto' ? 'w-[260px]' : 'w-[320px]';
-  };
+  const isOpen = geometry.isContextVisible;
 
   return (
     <>
-      {/* Painel Estrutural */}
-      {isDesktop && (
-        <aside
-          id="context-panel"
-          aria-label="Painel de Contexto Regional"
-          aria-hidden={!isOpen}
-          style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
-          className={`fixed right-0 top-0 h-full bg-surface border-l border-border z-30 flex flex-col pt-16 pb-6 overflow-y-auto panel-transition shadow-sm ${getPanelWidthClass()} ${
-            isOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-        >
+      {/* Painel Estrutural Regional */}
+      <aside
+        id="context-panel"
+        aria-label="Painel de Contexto Regional"
+        aria-hidden={!isOpen}
+        style={{
+          width: `${geometry.effectiveContextWidth}px`,
+          pointerEvents: isOpen ? 'auto' : 'none',
+        }}
+        className={`fixed right-0 top-0 h-full bg-surface z-30 flex flex-col pt-16 pb-6 overflow-y-auto panel-transition shadow-sm ${
+          isOpen
+            ? 'translate-x-0 border-l border-border opacity-100'
+            : 'translate-x-full border-l-0 border-transparent opacity-0 pointer-events-none'
+        }`}
+      >
           <div className="px-6 flex flex-col space-y-6">
             {/* Topo do Painel */}
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
@@ -124,17 +127,16 @@ export function ContextPanel() {
             </div>
           </div>
         </aside>
-      )}
 
       {/* Botão Flutuante de Reabertura (quando recolhido no Desktop, exceto no Foco) */}
-      {isDesktop && mode !== 'foco' && !isOpen && (
+      {geometry.isContextAvailable && !isOpen && (
         <button
           type="button"
           id="btn-reopen-context"
           onClick={() => setContextOpen(true)}
           title="Reabrir Painel de Contexto"
           aria-label="Reabrir Painel de Contexto"
-          className="btn-interactive fixed right-4 bottom-6 z-30 bg-surface border border-border p-2.5 rounded-full shadow-lg text-text-secondary hover:text-text-primary flex items-center justify-center focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+          className="btn-interactive fixed right-4 bottom-6 z-30 bg-surface-elevated border border-border/80 p-2.5 rounded-full shadow-calm hover:shadow-lg text-text-secondary hover:text-text-primary flex items-center justify-center focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none transition-all"
         >
           <span className="material-symbols-outlined text-[20px]">dock_to_left</span>
         </button>

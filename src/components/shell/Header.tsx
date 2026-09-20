@@ -11,12 +11,12 @@ export function Header() {
     setMode,
     theme,
     setTheme,
-    isContextOpen,
     toggleContext,
     openDrawer,
     openCommand,
     breakpoint,
     activeRoute,
+    geometry,
   } = useShell();
 
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
@@ -38,32 +38,6 @@ export function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Cálculo geométrico dinâmico do Header baseado no modo
-  const getHeaderPositionStyle = () => {
-    if (breakpoint === 'mobile') {
-      return { left: '0px', right: '0px' };
-    }
-    if (breakpoint === 'tablet') {
-      // No tablet, sidebar recolhe para compacto ou drawer
-      const left = mode === 'foco' ? '0px' : '68px';
-      return { left, right: '0px' };
-    }
-
-    // Desktop
-    let left = '240px';
-    let right = isContextOpen ? '320px' : '0px';
-
-    if (mode === 'compacto') {
-      left = '68px';
-      right = isContextOpen ? '260px' : '0px';
-    } else if (mode === 'foco') {
-      left = '0px';
-      right = '0px';
-    }
-
-    return { left, right };
-  };
 
   const getThemeLabel = (t: Theme) => {
     switch (t) {
@@ -104,13 +78,11 @@ export function Header() {
     }
   };
 
-  const pos = getHeaderPositionStyle();
-
   return (
     <header
       id="top-header"
       role="banner"
-      style={{ left: pos.left, right: pos.right }}
+      style={geometry.headerStyle}
       className="fixed top-0 h-14 bg-background/90 backdrop-blur-md border-b border-border/70 dark:border-border/50 z-30 panel-transition"
     >
       <div className="w-full h-full px-4 sm:px-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center">
@@ -172,7 +144,7 @@ export function Header() {
             </button>
 
             {modeDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-48 bg-surface/95 backdrop-blur-md border border-border/70 rounded-2xl shadow-calm p-1.5 flex flex-col gap-0.5 z-50 text-[12px]">
+              <div className="absolute right-0 top-full mt-1.5 w-48 bg-surface-elevated/95 backdrop-blur-md border border-border/70 rounded-2xl shadow-calm p-1.5 flex flex-col gap-0.5 z-50 text-[12px]">
                 <button
                   type="button"
                   id="view-desktop-wide"
@@ -254,7 +226,7 @@ export function Header() {
             </button>
 
             {themeDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-52 bg-surface/95 backdrop-blur-md border border-border/70 rounded-2xl shadow-calm p-1.5 flex flex-col gap-0.5 z-50 text-[12px]">
+              <div className="absolute right-0 top-full mt-1.5 w-52 bg-surface-elevated/95 backdrop-blur-md border border-border/70 rounded-2xl shadow-calm p-1.5 flex flex-col gap-0.5 z-50 text-[12px]">
                 <button
                   type="button"
                   data-theme="light"
@@ -267,7 +239,7 @@ export function Header() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#FAFCFA] border border-[#CBD5E1] inline-block" />
+                    <span className="w-3 h-3 rounded-full bg-[#ECF1ED] border border-[#CFDCD2] inline-block" />
                     <span>Claro (Aurora)</span>
                   </div>
                   {theme === 'light' && (
@@ -318,8 +290,8 @@ export function Header() {
             )}
           </div>
 
-          {/* Toggle Context Panel (Apenas quando modo não é Foco e viewport desktop) */}
-          {mode !== 'foco' && breakpoint === 'desktop' && (
+          {/* Toggle Context Panel (Apenas quando o painel regional for suportado no layout atual) */}
+          {geometry.isContextAvailable && (
             <button
               type="button"
               id="toggle-context-panel"
