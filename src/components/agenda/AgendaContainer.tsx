@@ -1,0 +1,232 @@
+/**
+ * Medusa — Agenda Container
+ *
+ * Orquestrador principal da camada temporal (Temporal OS).
+ * Conecta as visualizações (Dia, Semana, Mês, Lista), filtros por domínio,
+ * seleção, painel de detalhes, drawer de criação/edição e modal de categorias.
+ */
+
+'use client';
+
+import React, { useMemo } from 'react';
+import { useAgenda } from '@/context/AgendaContext';
+import { AgendaHeader } from './AgendaHeader';
+import { AgendaFilters } from './AgendaFilters';
+import { DayView } from './DayView';
+import { WeekView } from './WeekView';
+import { MonthView } from './MonthView';
+import { ListView } from './ListView';
+import { EventDetailPanel } from './EventDetailPanel';
+import { EventFormDrawer } from './EventFormDrawer';
+import { CategoryModal } from './CategoryModal';
+import {
+  detectTimeConflicts,
+  expandRecurringItems,
+  getWeekDays,
+} from './agendaHelpers';
+import { formatDateISO } from './agendaFixtures';
+
+export function AgendaContainer() {
+  const {
+    items,
+    categories,
+    currentDate,
+    viewMode,
+    selectedDomainFilter,
+    selectedItemId,
+    isDrawerOpen,
+    editingItem,
+    isCategoryModalOpen,
+    activeSlotTime,
+    setCurrentDate,
+    setViewMode,
+    setSelectedDomainFilter,
+    setSelectedItemId,
+    setDrawerOpen,
+    setEditingItem,
+    setCategoryModalOpen,
+    createOrUpdateItem,
+    deleteItem,
+    saveCategory,
+    deleteCategory,
+    goToToday,
+    goToPrevDate,
+    goToNextDate,
+    openAddDrawerWithSlot,
+  } = useAgenda();
+
+  // Expansão virtual de rotinas recorrentes para o horizonte visual atual
+  const expandedItems = useMemo(() => {
+    const week = getWeekDays(currentDate);
+    const startDate = new Date(week[0]);
+    startDate.setDate(startDate.getDate() - 14); // 2 semanas antes
+    const endDate = new Date(week[6]);
+    endDate.setDate(endDate.getDate() + 35); // 5 semanas depois
+    return expandRecurringItems(items, startDate, endDate);
+  }, [items, currentDate]);
+
+  // Contagem de itens por domínio para os filtros
+  const countsByDomain = useMemo(() => {
+    const counts: Record<string, number> = { all: expandedItems.length };
+    expandedItems.forEach((it) => {
+      counts[it.domain] = (counts[it.domain] || 0) + 1;
+    });
+    return counts;
+  }, [expandedItems]);
+
+  // Itens filtrados pelo domínio selecionado
+  const filteredItems = useMemo(() => {
+    if (selectedDomainFilter === 'all') return expandedItems;
+    return expandedItems.filter((it) => it.domain === selectedDomainFilter);
+  }, [expandedItems, selectedDomainFilter]);
+
+  // Item selecionado para o painel de detalhes
+  const selectedItem = useMemo(() => {
+    if (!selectedItemId) return null;
+    return expandedItems.find((it) => it.id === selectedItemId) || null;
+  }, [selectedItemId, expandedItems]);
+
+  const selectedCategory = useMemo(() => {
+    if (!selectedItem) return undefined;
+    return categories.find((c) => c.id === selectedItem.categoryId);
+  }, [selectedItem, categories]);
+
+  // Detecção de conflito para o item selecionado
+  const selectedItemConflict = useMemo(() => {
+    if (!selectedItem) return undefined;
+    const dayItems = expandedItems.filter((it) => it.date === selectedItem.date);
+    const conflicts = detectTimeConflicts(dayItems);
+    return conflicts.find(
+      (c) => c.itemA.id === selectedItem.id || c.itemB.id === selectedItem.id
+    );
+  }, [selectedItem, expandedItems]);
+
+  const handleOpenEdit = (itemToEdit: typeof selectedItem) => {
+    if (!itemToEdit) return;
+    setEditingItem(itemToEdit);
+    setDrawerOpen(true);
+  };
+
+  return (
+    <main
+      id="agenda-main"
+      className="w-full pb-20 px-3 sm:px-8 max-w-6xl mx-auto flex flex-col gap-6 pt-4 flex-1 animate-in fade-in duration-200"
+    >
+      {/* 1. Cabeçalho de Navegação e Modos */}
+      <AgendaHeader
+        currentDate={currentDate}
+        viewMode={viewMode}
+        onChangeViewMode={setViewMode}
+        onPrevDate={goToPrevDate}
+        onNextDate={goToNextDate}
+        onToday={goToToday}
+        onOpenAddDrawer={() => {
+          setEditingItem(null);
+          setDrawerOpen(true);
+        }}
+        onOpenCategoryModal={() => setCategoryModalOpen(true)}
+      />
+
+      {/* 2. Barra de Filtros por Domínio */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <AgendaFilters
+          selectedDomain={selectedDomainFilter}
+          onSelectDomain={setSelectedDomainFilter}
+          countsByDomain={countsByDomain}
+        />
+      </div>
+
+      {/* 3. Área Principal de Visualização + Painel Lateral de Detalhes */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
+        {/* Core View Selecionada */}
+        <div className="flex-1 w-full min-w-0">
+          {viewMode === 'dia' && (
+            <DayView
+              currentDate={currentDate}
+              items={filteredItems}
+              categories={categories}
+              selectedItemId={selectedItemId}
+              onSelectItem={(it) => setSelectedItemId(it.id)}
+              onSelectSlot={openAddDrawerWithSlot}
+            />
+          )}
+
+          {viewMode === 'semana' && (
+            <WeekView
+              currentDate={currentDate}
+              items={filteredItems}
+              categories={categories}
+              selectedItemId={selectedItemId}
+              onSelectItem={(it) => setSelectedItemId(it.id)}
+              onSelectSlot={openAddDrawerWithSlot}
+              onSelectDayDate={(date) => setCurrentDate(date)}
+            />
+          )}
+
+          {viewMode === 'mes' && (
+            <MonthView
+              currentDate={currentDate}
+              items={filteredItems}
+              categories={categories}
+              onSelectDate={(date) => {
+                setCurrentDate(date);
+                setViewMode('dia');
+              }}
+              onSelectItem={(it) => setSelectedItemId(it.id)}
+            />
+          )}
+
+          {viewMode === 'lista' && (
+            <ListView
+              currentDate={currentDate}
+              items={filteredItems}
+              categories={categories}
+              selectedItemId={selectedItemId}
+              onSelectItem={(it) => setSelectedItemId(it.id)}
+              onEditItem={handleOpenEdit}
+              onDeleteItem={deleteItem}
+            />
+          )}
+        </div>
+
+        {/* Painel de Detalhes do Item Selecionado (Desktop Lateral, Mobile abaixo) */}
+        {selectedItem && (
+          <div className="w-full lg:w-80 flex-shrink-0">
+            <EventDetailPanel
+              item={selectedItem}
+              category={selectedCategory}
+              conflict={selectedItemConflict}
+              onClose={() => setSelectedItemId(null)}
+              onEdit={handleOpenEdit}
+              onDelete={deleteItem}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* 4. Drawer de Criação e Edição */}
+      <EventFormDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setEditingItem(null);
+        }}
+        onSave={createOrUpdateItem}
+        initialItem={editingItem}
+        categories={categories}
+        defaultDate={formatDateISO(currentDate)}
+        defaultStartTime={activeSlotTime?.start || '10:00'}
+        defaultEndTime={activeSlotTime?.end || '11:00'}
+      />
+
+      {/* 5. Modal de Gerenciamento de Categorias & 24 Cores */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        categories={categories}
+        onSaveCategory={saveCategory}
+        onDeleteCategory={deleteCategory}
+      />
+    </main>
+  );
+}
