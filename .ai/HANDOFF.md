@@ -22,16 +22,37 @@ EXPECTED OUTPUT
 
 ## Processo
 
+Ver `AGENT_RULES.md` → seção 9 ("Fluxo Oficial de Orquestração") para o fluxo completo
+`TASK_QUEUE → ACTIVE_TASK → PLAN → HANDOFF → EXECUTOR → CODE → TEST → BROWSER QA → REGRESSION →
+AUDIT → status final → TASK_QUEUE.next`. Este documento cobre especificamente o passo `HANDOFF`
+e a decisão de executor:
+
 1. Claude confirma que a tarefa em `ACTIVE_TASK.md` está completa e sem `HUMAN DECISION REQUIRED`
    pendente que a bloqueie.
 2. Claude preenche este formato a partir de `ACTIVE_TASK.md` (não reescreve do zero — copia os
    fatos já verificados).
-3. Claude executa `scripts/agent-orchestrator.mjs`, que invoca `agy` com o handoff serializado.
-4. O resultado (stdout, stderr, exit code) é salvo em `.ai/runs/<timestamp>-<task-id>.json`.
-5. Claude lê o resultado, audita contra `QA_GATE.md`, e só então decide se a tarefa avança, fica
-   `PARTIAL` ou volta para `BLOCKED`.
-6. Claude nunca aceita a alegação do Antigravity de que algo está `PROVADO` sem reexecutar/
-   reconferir pelo menos os gates de Test/Build/Browser QA (ver `AGENT_RULES.md` → Honestidade).
+3. Claude executa `scripts/agent-orchestrator.cjs`, que tenta invocar `agy` com o handoff
+   serializado.
+   - Se `agy` estiver disponível e autenticado: o script executa a tarefa através dele e o
+     resultado (stdout, stderr, exit code) é salvo em `.ai/runs/<timestamp>-<task-id>.json`
+     (exit code 0 = executado, precisa de auditoria).
+   - Se `agy` estiver indisponível: o script retorna o status de fallback (exit code 2) sem
+     inventar uma execução — ver `AGENT_RULES.md` → seção 7 ("Executor e Fallback"). Neste caso,
+     **Claude implementa a tarefa diretamente**, usando este mesmo `HANDOFF.md` preenchido como a
+     especificação exata do escopo (não um resumo, não uma reinterpretação).
+   - Se `agy` estiver disponível mas a execução falhar de fato (exit code 3): Claude investiga a
+     falha, decide entre tentar novamente, acionar o fallback (Claude direto), ou registrar
+     `BLOQUEADO` com o motivo real em `BLOCKERS.md`.
+4. Claude lê o resultado (de qualquer um dos três caminhos acima), audita contra `QA_GATE.md`, e
+   só então decide se a tarefa avança, fica `PARTIAL`/`PARCIAL` ou volta para `BLOCKED`/`BLOQUEADO`.
+5. Claude nunca aceita a alegação de que algo está `PROVADO` — nem do Antigravity, nem da própria
+   execução direta de Claude — sem reexecutar/reconferir pelo menos os gates de Test/Build/Browser
+   QA (ver `AGENT_RULES.md` → Honestidade). Executar a tarefa e auditar a tarefa são papéis
+   distintos mesmo quando é o mesmo agente (Claude) fazendo os dois.
+6. Antes de encerrar a tarefa ou a sessão, Claude atualiza o bloco de checkpoint (formato em
+   `AGENT_RULES.md` → seção 8) em `CURRENT_STATE.md`, `ACTIVE_TASK.md`, `TASK_QUEUE.md` e
+   `EVIDENCE.md`, para que qualquer sessão futura possa retomar sem depender de memória de
+   conversa.
 
 ## Rascunho de handoff para TASK-AGENDA-001 (não enviado — `agy` indisponível nesta sessão)
 

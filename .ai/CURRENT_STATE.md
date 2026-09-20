@@ -1,7 +1,49 @@
 # CURRENT_STATE.md — Estado Real do Repositório
 
-**Última verificação**: nesta sessão de bootstrap do Agent Operating System.
-**Não afirme nada aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluído.
+**Última verificação**: sessão de continuação do bootstrap do Agent Operating System (resolução
+Claude↔Antigravity, fallback de executor, checkpoints). **Não afirme nada aqui sem ter
+verificado.** Este arquivo deve ser atualizado a cada gate concluído.
+
+## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
+
+Este checkpoint descreve o próprio trabalho de bootstrap do Agent Operating System — que é, em si,
+uma tarefa longa e retomável entre sessões, tratada aqui com o mesmo rigor de qualquer tarefa de
+`TASK_QUEUE.md`.
+
+```
+STATUS:        PARCIAL (protocolo funcional; Antigravity real ainda não acionável)
+FASE ATUAL:    Bootstrap do sistema de agentes concluído; PR #3 aberto (draft) contra main,
+               aguardando decisão humana para prosseguir ao primeiro piloto (TASK-AGENDA-001).
+CONCLUÍDO:
+  - Os 12 arquivos obrigatórios de .ai/ existem e estão sincronizados com o estado real do repo.
+  - scripts/agent-orchestrator.cjs implementa a cadeia de fallback completa (Antigravity → Claude
+    direto → BLOQUEADO), com contrato de exit code estável (0/1/2/3) — ver AGENT_RULES.md §7.
+  - Caminho legítimo de instalação do Antigravity CLI identificado, lido e verificado como seguro
+    (checksum SHA512, instalação local, sem sudo) — ver BLOCKERS.md → BLOCK-001, EVIDENCE.md → E-010.
+  - PR #3 (branch chore/agent-os-bootstrap) aberto como draft, sem tocar src/**, com QA do próprio
+    protocolo (sintaxe, fallback, restauração de estado) documentado em EVIDENCE.md.
+  - Vercel confirmado como pipeline de build/preview real e funcional (EVIDENCE.md → E-009).
+RESTANTE:
+  - Decisão humana sobre HDR-009 (investir em acesso persistente/autenticado ao Antigravity real).
+  - Decisão humana sobre HDR-001 e HDR-003 para promover TASK-AGENDA-001 a READY.
+  - GitHub Actions para automatizar os gates de Test/Build (HDR-007) — ainda não decidido.
+ÚLTIMO TESTE:
+  node scripts/agent-orchestrator.cjs (sem tarefa ativa) → exit 1 (esperado);
+  node scripts/agent-orchestrator.cjs (tarefa sintética, agy ausente) → exit 2, status
+  "FALLBACK: CLAUDE_DIRECT", registro salvo em .ai/runs/2026-09-20T23-06-47-875Z-TASK-TEST-001.json;
+  git diff --stat -- src/ → vazio (nenhum código de produto tocado).
+FALHAS:
+  Tentativa de instalar o Antigravity CLI real foi recusada pelo classificador de segurança do
+  próprio ambiente (código externo sem permissão explícita) — não é uma falha do protocolo, é uma
+  barreira de ambiente documentada e respeitada (ver BLOCKERS.md → BLOCK-001). Sem workaround.
+PRÓXIMO PASSO:
+  Aguardar decisão humana sobre HDR-001/HDR-003 (para TASK-AGENDA-001) e HDR-009 (para Antigravity
+  persistente). Até lá, o sistema já está pronto para que uma única instrução inicie a execução de
+  TASK-AGENDA-001 via fallback Claude direto, seguindo o fluxo de AGENT_RULES.md → seção 9.
+BLOCKERS:
+  Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-002 (PR #1 não mesclado), BLOCK-003 (GitHub
+  Actions ausente — Vercel já não é mais um bloqueio, ver correção em BLOCKERS.md).
+```
 
 ## Baseline Git
 

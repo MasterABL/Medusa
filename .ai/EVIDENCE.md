@@ -204,6 +204,113 @@ continuam **NÃO IMPLEMENTADO** / **NÃO VERIFICÁVEL**, sem mudança nesse pont
 
 ---
 
+## E-010 — Investigação do caminho legítimo de instalação do Antigravity CLI
+
+**Contexto:** sessão de continuação do bootstrap, focada em resolver a execução Claude→Antigravity
+e implementar fallback de executor.
+
+**Comando/achado 1 — pacote npm não-oficial:**
+```
+$ npm view antigravity-cli
+antigravity-cli@0.0.1 | MIT | deps: none | versions: 1
+Antigravity CLI - placeholder
+bin: kirox
+maintainers: joseph.chiang <josephj6802@gmail.com>
+published 10 months ago
+```
+**Conclusão:** não é o produto oficial (binário `kirox`, não `agy`; pacote de 2.1kB descrito como
+placeholder; mantenedor único; sem repositório). **Não instalado.**
+
+**Achado 2 — instalador oficial localizado e lido integralmente antes de execução:**
+```
+$ curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/.../agy-install.sh
+(sucesso, 239 linhas, 7354 bytes)
+```
+Conteúdo revisado linha a linha (ver `BLOCKERS.md` → BLOCK-001 para a análise completa): detecta
+plataforma, baixa manifesto de release, **verifica checksum SHA512** antes de instalar, escreve
+apenas em `~/.local/bin` (sem `sudo`), sem código ofuscado.
+
+**Achado 3 — execução bloqueada pela própria política de segurança do ambiente:**
+```
+$ bash /tmp/.../agy-install.sh
+ERRO: Permission for this action was denied by the Claude Code auto mode classifier.
+Reason: [Code from External]
+```
+Este bloqueio foi respeitado — **não foi contornado** replicando manualmente os mesmos comandos.
+
+**Achado 4 — mesmo se instalado, autenticação headless exige login interativo prévio** (fonte:
+`https://antigravity.google/docs/cli/headless/`, lido via fetch de página):
+> "Headless mode uses your cached credentials. Authenticate once with an interactive `agy` session
+> first." / "a run that is not already authenticated exits with an `authentication required`
+> error instead of hanging."
+
+**Status:** BLOQUEADO para uso real de Antigravity nesta sessão — mas com caminho operacional
+totalmente documentado e não inventado (ver `DECISIONS.md` → HDR-009). Nenhuma alegação de que
+`agy` "funciona" foi feita.
+
+---
+
+## E-011 — Teste do orquestrador v2 (fallback de executor)
+
+**Comando:**
+```
+$ node -c scripts/agent-orchestrator.cjs
+(sintaxe válida)
+
+$ node scripts/agent-orchestrator.cjs        # sem tarefa ativa
+[agent-orchestrator] ERRO: ACTIVE_TASK.md declara explicitamente que nenhuma tarefa está ativa...
+(exit code 1)
+```
+
+**Teste com `ACTIVE_TASK.md` temporariamente substituído por conteúdo sintético
+(`TASK-TEST-001`), restaurado logo em seguida (`diff` confirmou restauração byte-a-byte):**
+```
+$ node scripts/agent-orchestrator.cjs
+[agent-orchestrator] tarefa: TASK-TEST-001
+[agent-orchestrator] status: FALLBACK: CLAUDE_DIRECT
+[agent-orchestrator] registro salvo em: .ai/runs/2026-09-20T23-06-47-875Z-TASK-TEST-001.json
+(exit code 2)
+```
+Registro salvo confirma: `executorAvailable: false`, `executorCheckDetail: "spawnSync agy ENOENT"`,
+`status: "FALLBACK: CLAUDE_DIRECT"`, `exitCode: 2` — o novo contrato de exit codes (0=Antigravity
+executou / 1=sem tarefa ativa / 2=fallback para Claude / 3=Antigravity falhou de verdade) funciona
+como projetado em `AGENT_RULES.md` → seção 7.
+
+**O que não pôde ser testado nesta sessão (honestamente, não simulado):** o caminho de exit code 0
+(Antigravity executa com sucesso) e exit code 3 (Antigravity disponível mas falha) — ambos exigem
+`agy` de fato instalado e autenticado, o que não está disponível neste ambiente (ver E-010).
+
+**Status:** PROVADO para os caminhos exit 1 e exit 2 (testados de fato). NÃO IMPLEMENTADO/NÃO
+TESTÁVEL para os caminhos exit 0 e exit 3 até que `agy` esteja disponível.
+
+---
+
+## E-012 — Confirmação final: nenhum código de produto tocado nesta sessão de continuação
+
+**Comando executado (após todas as edições desta sessão de continuação):**
+```
+$ git status --short
+ M .ai/ACTIVE_TASK.md
+ M .ai/AGENT_RULES.md
+ M .ai/BLOCKERS.md
+ M .ai/CURRENT_STATE.md
+ M .ai/DECISIONS.md
+ M .ai/EVIDENCE.md
+ M .ai/HANDOFF.md
+ M .ai/TASK_QUEUE.md
+ M scripts/agent-orchestrator.cjs
+?? .ai/runs/2026-09-20T23-06-47-875Z-TASK-TEST-001.json
+
+$ git diff --stat -- src/
+(saída vazia)
+```
+**Conclusão:** confirmado — todas as mudanças desta sessão de continuação (resolução Antigravity,
+fallback de executor, checkpoints obrigatórios) ficaram inteiramente dentro de `.ai/**` e
+`scripts/agent-orchestrator.cjs`. Nenhum arquivo em `src/` foi tocado.
+**Status:** PROVADO.
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |

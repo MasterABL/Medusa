@@ -1,24 +1,32 @@
 #!/usr/bin/env node
 /**
- * agent-orchestrator.cjs — invólucro mínimo entre Claude e um executor externo (ex.: Antigravity/agy).
+ * agent-orchestrator.cjs — invólucro mínimo entre Claude e um executor externo (ex.: Antigravity/agy),
+ * com fallback explícito para execução direta por Claude quando o executor preferencial está
+ * indisponível (ver .ai/AGENT_RULES.md → seção 7, "Executor e Fallback").
  *
- * Deliberadamente simples (ver .ai/AGENT_RULES.md): não tenta orquestrar múltiplos agentes, não
- * faz retry automático, não decide se uma tarefa avança — apenas executa, captura e registra.
+ * Deliberadamente simples: não tenta orquestrar múltiplos agentes, não faz retry automático, não
+ * decide se uma tarefa está PROVADO — apenas executa (ou detecta que não pode), captura e registra.
+ * A decisão de status final é sempre de Claude, via auditoria contra QA_GATE.md.
  *
  * Uso:
  *   node scripts/agent-orchestrator.cjs [--dry-run]
  *
- * Passos:
- *   1. Lê .ai/ACTIVE_TASK.md (precisa conter um bloco preenchido, não o estado "nenhuma tarefa ativa").
- *   2. Extrai o TASK ID.
- *   3. Executa o executor configurado via variável de ambiente MEDUSA_AGENT_CMD (default: "agy").
- *   4. Captura stdout, stderr e exit code.
- *   5. Salva tudo em .ai/runs/<timestamp>-<task-id>.json.
- *   6. Sai com o mesmo exit code do executor (0 = sucesso do processo; NÃO significa "PROVADO" —
- *      Claude ainda precisa auditar o resultado contra QA_GATE.md, ver .ai/HANDOFF.md).
+ * Cadeia de execução (AGENT_RULES.md → seção 7):
+ *   Executor principal:  Antigravity (agy)
+ *   Fallback:             Claude Code (execução direta)
+ *   Fallback final:       BLOQUEADO (apenas para bloqueios reais — decisão humana pendente etc.)
  *
- * Este script NUNCA decide sozinho que uma tarefa está PROVADO. Ele só produz o registro que
- * Claude usa para decidir.
+ * Contrato de exit code (estável — outros scripts/humanos podem depender dele):
+ *   0 = Antigravity executou o processo (exit 0 dele). NÃO significa PROVADO — precisa de auditoria.
+ *   1 = Não há tarefa ativa em ACTIVE_TASK.md, ou o arquivo está em formato inesperado. Ação:
+ *       promover uma tarefa de TASK_QUEUE.md antes de rodar de novo.
+ *   2 = Antigravity indisponível → FALLBACK. Não é uma falha do protocolo: é o sinal de que
+ *       Claude deve implementar a tarefa diretamente, usando o mesmo HANDOFF.md como especificação.
+ *   3 = Antigravity estava disponível mas a execução dele falhou de verdade. Claude decide entre
+ *       tentar de novo, acionar o fallback, ou registrar BLOQUEADO com o motivo real.
+ *
+ * Este script nunca inventa que um executor está disponível/autenticado quando não está, e nunca
+ * declara uma tarefa PROVADO sozinho.
  */
 
 const fs = require('fs');
@@ -31,27 +39,34 @@ const RUNS_DIR = path.join(ROOT, '.ai', 'runs');
 const AGENT_CMD = process.env.MEDUSA_AGENT_CMD || 'agy';
 const DRY_RUN = process.argv.includes('--dry-run');
 
-function fail(message) {
-  console.error(`[agent-orchestrator] ERRO: ${message}`);
-  process.exit(1);
-}
+const EXIT = {
+  ANTIGRAVITY_EXECUTED: 0,
+  NO_ACTIVE_TASK: 1,
+  FALLBACK_CLAUDE: 2,
+  ANTIGRAVITY_FAILED: 3,
+};
 
 function readActiveTask() {
   if (!fs.existsSync(ACTIVE_TASK_PATH)) {
-    fail(`arquivo não encontrado: ${ACTIVE_TASK_PATH}`);
+    console.error(`[agent-orchestrator] ERRO: arquivo não encontrado: ${ACTIVE_TASK_PATH}`);
+    process.exit(EXIT.NO_ACTIVE_TASK);
   }
   const content = fs.readFileSync(ACTIVE_TASK_PATH, 'utf8');
 
   if (content.includes('Nenhuma tarefa está ativa neste momento.')) {
-    fail(
-      'ACTIVE_TASK.md declara explicitamente que nenhuma tarefa está ativa. ' +
-        'Promova uma tarefa de TASK_QUEUE.md antes de executar o orquestrador.'
+    console.error(
+      '[agent-orchestrator] ERRO: ACTIVE_TASK.md declara explicitamente que nenhuma tarefa ' +
+        'está ativa. Promova uma tarefa de TASK_QUEUE.md antes de executar o orquestrador.'
     );
+    process.exit(EXIT.NO_ACTIVE_TASK);
   }
 
   const idMatch = content.match(/TASK ID:\s*(\S+)/);
   if (!idMatch) {
-    fail('não foi possível extrair TASK ID de ACTIVE_TASK.md — formato inesperado.');
+    console.error(
+      '[agent-orchestrator] ERRO: não foi possível extrair TASK ID de ACTIVE_TASK.md — formato inesperado.'
+    );
+    process.exit(EXIT.NO_ACTIVE_TASK);
   }
 
   return { taskId: idMatch[1], content };
@@ -68,36 +83,72 @@ function checkExecutorAvailable() {
   return { available: true, detail: probe.stdout.trim() };
 }
 
+function buildFallbackRecord(taskId, startedAt, executorCheck) {
+  return {
+    taskId,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    executor: AGENT_CMD,
+    executorAvailable: false,
+    executorCheckDetail: executorCheck.detail,
+    status: 'FALLBACK: CLAUDE_DIRECT',
+    exitCode: EXIT.FALLBACK_CLAUDE,
+    note:
+      `Executor "${AGENT_CMD}" indisponível neste ambiente (ver .ai/BLOCKERS.md → BLOCK-001). ` +
+      'Por AGENT_RULES.md → seção 7 ("Executor e Fallback"), isto NÃO bloqueia o roadmap: ' +
+      'Claude deve implementar a tarefa diretamente, usando .ai/HANDOFF.md (o handoff já ' +
+      'preenchido) como especificação exata de escopo — não uma versão resumida ou reinterpretada. ' +
+      'Os mesmos gates de QA_GATE.md se aplicam integralmente à execução direta de Claude.',
+  };
+}
+
+function buildDryRunRecord(taskId, startedAt) {
+  return {
+    taskId,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    executor: AGENT_CMD,
+    executorAvailable: true,
+    dryRun: true,
+    status: 'NÃO EXECUTADO (dry-run)',
+    exitCode: EXIT.ANTIGRAVITY_EXECUTED,
+    note: 'Executor disponível, mas --dry-run impediu a execução real.',
+  };
+}
+
+function buildAntigravityRecord(taskId, startedAt, result) {
+  const succeeded = result.status === 0;
+  return {
+    taskId,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    executor: AGENT_CMD,
+    executorAvailable: true,
+    exitCode: succeeded ? EXIT.ANTIGRAVITY_EXECUTED : EXIT.ANTIGRAVITY_FAILED,
+    processExitCode: result.status,
+    stdout: result.stdout || '',
+    stderr: result.stderr || '',
+    status: succeeded ? 'EXECUTADO — AGUARDANDO AUDITORIA DE CLAUDE' : 'ANTIGRAVITY FALHOU',
+    note: succeeded
+      ? 'Exit code 0 do processo significa apenas que o Antigravity terminou sem erro. Isso NÃO ' +
+        'equivale a PROVADO — Claude deve reexecutar/reconferir os gates de Test/Build/Browser QA ' +
+        'antes de qualquer alegação de status (ver .ai/AGENT_RULES.md → Honestidade).'
+      : 'O processo do Antigravity terminou com erro real (não é indisponibilidade — o executor ' +
+        'rodou e falhou). Claude decide: tentar de novo, acionar o fallback (Claude direto), ou ' +
+        'registrar BLOQUEADO em .ai/BLOCKERS.md com o motivo real, nunca automaticamente.',
+  };
+}
+
 function runTask(taskId, activeTaskContent) {
   const startedAt = new Date().toISOString();
 
   const executorCheck = checkExecutorAvailable();
   if (!executorCheck.available) {
-    return {
-      taskId,
-      startedAt,
-      finishedAt: new Date().toISOString(),
-      executor: AGENT_CMD,
-      executorAvailable: false,
-      executorCheckDetail: executorCheck.detail,
-      status: 'BLOQUEADO',
-      note:
-        `Executor "${AGENT_CMD}" não está disponível neste ambiente (ver .ai/BLOCKERS.md → ` +
-        'BLOCK-001). Nenhum processo foi executado. Handoff permanece pronto em .ai/HANDOFF.md.',
-    };
+    return buildFallbackRecord(taskId, startedAt, executorCheck);
   }
 
   if (DRY_RUN) {
-    return {
-      taskId,
-      startedAt,
-      finishedAt: new Date().toISOString(),
-      executor: AGENT_CMD,
-      executorAvailable: true,
-      dryRun: true,
-      status: 'NÃO EXECUTADO (dry-run)',
-      note: 'Executor disponível, mas --dry-run impediu a execução real.',
-    };
+    return buildDryRunRecord(taskId, startedAt);
   }
 
   const result = spawnSync(AGENT_CMD, ['-p', activeTaskContent], {
@@ -105,21 +156,7 @@ function runTask(taskId, activeTaskContent) {
     maxBuffer: 20 * 1024 * 1024,
   });
 
-  return {
-    taskId,
-    startedAt,
-    finishedAt: new Date().toISOString(),
-    executor: AGENT_CMD,
-    executorAvailable: true,
-    exitCode: result.status,
-    stdout: result.stdout || '',
-    stderr: result.stderr || '',
-    status: result.status === 0 ? 'EXECUTADO — AGUARDANDO AUDITORIA DE CLAUDE' : 'FALHOU',
-    note:
-      'Exit code 0 significa apenas que o processo do executor terminou sem erro. ' +
-      'Isso NÃO equivale a PROVADO — Claude deve reexecutar/reconferir os gates de ' +
-      'Test/Build/Browser QA antes de qualquer alegação de status (ver .ai/AGENT_RULES.md).',
-  };
+  return buildAntigravityRecord(taskId, startedAt, result);
 }
 
 function saveRun(record) {
@@ -141,10 +178,7 @@ function main() {
   console.log(`[agent-orchestrator] status: ${record.status}`);
   console.log(`[agent-orchestrator] registro salvo em: ${path.relative(ROOT, outPath)}`);
 
-  if (record.status === 'BLOQUEADO' || record.status === 'FALHOU') {
-    process.exit(1);
-  }
-  process.exit(0);
+  process.exit(record.exitCode);
 }
 
 main();

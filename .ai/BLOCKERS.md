@@ -5,9 +5,9 @@ um bloqueio hipotético ou "provavelmente".
 
 ---
 
-## BLOCK-001 — Antigravity CLI (`agy`) indisponível
+## BLOCK-001 — Antigravity CLI (`agy`) indisponível (investigado a fundo nesta sessão)
 
-**Comando executado:**
+**Comando executado (verificação inicial, repetida em duas sessões):**
 ```
 $ which agy
 (sem saída, exit code 1)
@@ -17,19 +17,64 @@ $ agy --version
 (exit code 127)
 ```
 
-**Impacto:** Nenhuma tarefa pode ser delegada a Antigravity nesta sessão. `HANDOFF.md` mantém um
-rascunho pronto para `TASK-AGENDA-001`, mas ele não foi (e não pôde ser) enviado a nenhum
-executor.
+**Investigação de caminho de instalação legítimo (nesta sessão):**
 
-**Não tentado como contorno:** instalar `agy` sem instrução explícita do humano; usar
-`--dangerously-skip-permissions` como configuração permanente (proibido por `AGENT_RULES.md`);
-simular a saída de `agy` para fingir que a tarefa avançou.
+1. `npm view antigravity-cli` retorna um pacote real no registro do npm, mas **não é o produto
+   oficial**: mantenedor único, sem repositório declarado, pacote de 2.1 kB descrito como
+   "placeholder", binário chamado `kirox` (não `agy`), publicado uma única vez há 10 meses e nunca
+   atualizado. **Não instalado — risco de supply chain sem benefício real.**
+2. Pesquisa web confirmou o produto real: **Google Antigravity CLI**, instalável via
+   `curl -fsSL https://antigravity.google/cli/install.sh | bash`, binário resultante chamado `agy`.
+   Documentação oficial: `https://antigravity.google/docs/cli/install/` e
+   `https://antigravity.google/docs/cli/headless/`.
+3. O script de instalação foi **baixado e lido integralmente antes de qualquer execução** (nunca
+   `curl | bash` às cegas). Achados da leitura: script hospedado no domínio oficial do produto,
+   detecta plataforma, consulta um manifesto de release, baixa o binário, **verifica checksum
+   SHA512 contra o manifesto antes de instalar**, escreve apenas em `~/.local/bin` (sem `sudo`,
+   sem alteração de arquivos de sistema), e finaliza chamando `agy install` para configuração de
+   shell. Nenhum código ofuscado, nenhuma chamada de rede para destino não documentado.
+4. **A execução do script foi bloqueada pelo classificador de modo automático desta própria
+   sessão** ("Permission for this action was denied... Reason: [Code from External]") — ou seja,
+   o ambiente recusa por padrão executar código baixado de uma fonte externa, mesmo já revisado
+   manualmente, sem uma regra de permissão Bash explícita do usuário. **Isto não foi contornado**
+   (replicar os mesmos passos manualmente para burlar a recusa violaria o espírito da própria
+   política de segurança do ambiente, e não foi feito).
+5. Mesmo que a instalação fosse concluída, a documentação oficial de modo headless declara
+   explicitamente: *"Headless mode uses your cached credentials. Authenticate once with an
+   interactive `agy` session first."* e *"In a non-interactive environment with no terminal ...,
+   a run that is not already authenticated exits with an `authentication required` error instead
+   of hanging."* — ou seja, **autenticação exige uma sessão interativa prévia** (provavelmente
+   OAuth de conta Google), que não é possível dentro desta sessão não interativa, e não há
+   variável de ambiente de API key documentada como alternativa direta.
+6. Consideração adicional: este ambiente de execução remota é **efêmero** (container reciclado
+   entre sessões). Mesmo que uma autenticação interativa fosse feita uma vez, não há garantia de
+   que as credenciais em cache sobreviveriam a um novo container, a menos que o usuário configure
+   armazenamento persistente para o `$HOME` deste ambiente.
 
-**Resolução necessária:** decisão humana sobre como/quando instalar e autenticar `agy` neste
-ambiente, ou decisão de que Claude executa as tarefas de implementação diretamente (sem
-Antigravity) até que o CLI esteja disponível.
+**Conclusão honesta:** existe um caminho de instalação **legítimo e tecnicamente seguro**
+(`antigravity.google/cli/install.sh`), mas ele exige duas coisas que só um humano pode prover
+nesta configuração de ambiente: (a) autorização explícita para executar código externo (uma regra
+de permissão Bash), e (b) uma sessão interativa de login único. Nenhuma das duas foi simulada,
+inventada ou contornada.
 
-**Status:** BLOQUEADO.
+**Caminho operacional viável determinado nesta sessão:**
+- **Curto prazo (esta e futuras sessões neste ambiente efêmero):** Claude executa diretamente as
+  tarefas do `TASK_QUEUE.md`, seguindo o mesmo formato de `HANDOFF.md` como especificação de
+  escopo — ver `AGENT_RULES.md` → seção "Executor e Fallback". Isto não é um desvio do protocolo;
+  é o próprio protocolo de fallback, desenhado exatamente para este caso.
+- **Médio prazo (se o humano decidir investir em Antigravity real):** (1) o humano concede
+  permissão Bash para instalar `agy` neste tipo de ambiente (ou instala em um ambiente persistente
+  próprio), (2) o humano realiza o login interativo uma única vez nesse ambiente persistente, (3) a
+  partir daí, `scripts/agent-orchestrator.cjs` pode invocar `agy` em modo headless normalmente.
+  Isso é uma decisão humana, registrada como `HDR-009` em `DECISIONS.md` — não foi assumida.
+
+**Não tentado como contorno:** usar `--dangerously-skip-permissions` como configuração permanente
+(proibido por `AGENT_RULES.md`); simular a saída de `agy` para fingir que a tarefa avançou;
+replicar manualmente os passos do instalador para burlar a recusa do classificador de segurança.
+
+**Status:** BLOQUEADO para execução real de Antigravity nesta sessão — mas **NÃO BLOQUEADO** para
+o roadmap do Medusa, que segue via o executor de fallback (Claude direto), conforme
+`AGENT_RULES.md` → "Executor e Fallback".
 
 ---
 

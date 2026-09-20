@@ -20,6 +20,10 @@ DEPENDENCIES:
   - HDR-003 (decidir agrupamento da List View: por dia vs. Agora/Próximo/Depois/Mais tarde)
   - Leitura obrigatória de PRODUCT_CONTRACT.md, ARCHITECTURE.md e AGENT_RULES.md antes de iniciar
 
+EXECUTOR: Antigravity preferencial; fallback Claude Code direto se Antigravity indisponível
+  (ver AGENT_RULES.md → seção 7 "Executor e Fallback" e BLOCKERS.md → BLOCK-001). A
+  indisponibilidade do Antigravity NÃO bloqueia esta tarefa — apenas HDR-001/HDR-003 bloqueiam.
+
 DESCRIPTION:
   Implementar a primeira versão real da Agenda dentro do Shell existente do Medusa (Next.js 14 /
   React 18 / Tailwind 3), seguindo o padrão de integração já usado por Educação (troca condicional

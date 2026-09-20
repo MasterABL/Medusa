@@ -71,11 +71,27 @@ uma rodada de definição de contrato antes de virar tarefa executável. Ver `MA
 desse contrato (que dados, que shape, push ou pull) ainda não foi especificado. Precisa de decisão
 antes de Hoje virar tarefa executável.
 
-### HDR-007 — Deploy/CI
-Não há GitHub Actions nem `vercel.json` no repositório. Decidir se/quando configurar CI
-automatizado (typecheck + build + QA de browser em PR) faz parte do escopo deste protocolo de
-agentes ou é um projeto separado.
+### HDR-007 — CI de testes (typecheck/build/QA automatizado em PR)
+Não há GitHub Actions no repositório. **Atualizado nesta sessão:** o deploy/preview em si já
+funciona via integração Vercel↔GitHub (confirmado em `EVIDENCE.md` → E-009) — o que falta decidir
+é apenas se/quando configurar GitHub Actions para automatizar os gates de `QA_GATE.md`
+(typecheck, build, QA de browser) em cada PR, já que isso hoje depende de execução manual por
+Claude ou por um humano.
 
 ### HDR-008 — Escolha de framework de testes formal
 Hoje a única verificação automatizada é via scripts Puppeteer ad-hoc. Decidir se vale adotar um
 framework formal (Vitest, Playwright Test) ou manter o padrão de scripts próprios já em uso.
+
+### HDR-009 — Investimento em acesso persistente e autenticado ao Antigravity CLI
+Existe um caminho de instalação legítimo e verificado para o Antigravity CLI real
+(`https://antigravity.google/cli/install.sh` → binário `agy`), documentado em `BLOCKERS.md` →
+BLOCK-001. Ele não foi executado nesta sessão porque (a) o próprio ambiente de execução recusa
+rodar código externo sem uma regra de permissão Bash explícita do usuário, e (b) o modo headless
+do `agy` exige uma autenticação interativa prévia que não é possível numa sessão não interativa, e
+que talvez não sobreviva a um container efêmero mesmo se feita uma vez.
+
+Decisão necessária: vale a pena o humano (1) conceder a permissão Bash necessária, (2) rodar a
+instalação e o login interativo uma vez em um ambiente persistente (não este container efêmero), e
+(3) manter esse ambiente disponível para que `scripts/agent-orchestrator.cjs` o invoque em modo
+headless nas próximas sessões? Até essa decisão, o executor de fallback (Claude direto, ver
+`AGENT_RULES.md` → "Executor e Fallback") é o caminho operacional real do roadmap.

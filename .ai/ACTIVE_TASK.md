@@ -81,3 +81,13 @@ EXPECTED EVIDENCE:
 Saída real de tsc/build, screenshots ou asserções programáticas dos 4 breakpoints, screenshot de
 Educação intacta — tudo anexado/registrado em EVIDENCE.md antes de marcar a tarefa como PROVADO.
 ```
+
+**Nota de execução (ver AGENT_RULES.md → seção 7):** ao promover esta tarefa, rodar
+`node scripts/agent-orchestrator.cjs` primeiro. Se retornar exit 2 (`FALLBACK: CLAUDE_DIRECT`,
+caso esperado hoje — ver `BLOCKERS.md` → BLOCK-001), Claude implementa diretamente usando o
+`HANDOFF.md` já preenchido como especificação exata. Isso não é um desvio do protocolo.
+
+**Nota de checkpoint (ver AGENT_RULES.md → seção 8):** assim que esta tarefa for promovida a
+`IN_PROGRESS`, este arquivo passa a manter também um bloco `CHECKPOINT ATUAL` (mesmo formato usado
+em `CURRENT_STATE.md`) refletindo o progresso real da implementação, atualizado antes de encerrar
+qualquer sessão — para que uma sessão futura possa retomar exatamente de onde esta parou.
