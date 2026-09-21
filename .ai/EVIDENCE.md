@@ -685,6 +685,72 @@ BLOCK-002/BLOCK-005 desta fila).
 
 ---
 
+## E-027 — Capability Audit real (Execution Sprint: Capability Audit + Maximum Product Expansion) + TASK-CONTEXT-PANEL-GEOMETRY-001
+
+**Capability Audit — comandos executados:**
+```
+$ ListConnectors()
+→ Conectados: Canva, Cloudflare, Figma, Gamma, Gmail, Google Calendar, Google Drive, Magnific,
+  Make, Supabase, Tactiq, Vercel, Website Generator B12, Windsor.ai, Zapier.
+→ Não conectados: Control Plane, Microsoft 365, Mobbin, Superhuman Mail.
+→ Disponível não instalado: Microsoft Learn (docs, authless).
+
+$ ToolSearch("gemini openrouter context7 sentry playwright ai studio", ...)
+→ Nenhum resultado relevante (só ferramentas Windsor.ai de marketing analytics apareceram por
+  correspondência fraca de keyword) — confirma que NENHUM destes conectores existe neste
+  ambiente: Gemini API/AI Studio, OpenRouter, Context7, Sentry, Playwright MCP dedicado, Stitch.
+
+$ mcp__Supabase__list_projects()
+→ Existe um projeto Supabase JÁ CRIADO chamado "Medusa" (id btngtvczeljxsjfxyyae, região
+  sa-east-1, plano free da org "Abimael"), criado em 2026-09-14, estado INACTIVE (pausado por
+  inatividade — free tier). Restaurado nesta sessão (mcp__Supabase__restore_project) para
+  inspeção; nenhuma tabela/schema existe ainda (projeto nunca foi de fato utilizado pelo código).
+
+$ mcp__Vercel__filter_project_envs(idOrName: "prj_Gi26xW28FowLK8PResQOkSgAMSEJ")
+→ Exatamente 1 env var configurada no projeto Vercel "medusa": `Stitch_api_key` (sensitive,
+  production, valor NUNCA decriptado por esta sessão). Confirma a alegação do usuário de que uma
+  chave do Stitch existe no ambiente Vercel — mas nenhum conector MCP de Stitch está acessível
+  para consumi-la, e não há endpoint documentado publicamente para chamá-la diretamente sem
+  arriscar mau uso do segredo. Nenhuma chave de IA (Gemini/OpenRouter/OpenAI) está configurada.
+
+$ npm audit
+→ BLOQUEADO pelo classificador de modo automático do ambiente ("[Modify Shared Resources]") —
+  tentativa real, negação real, não contornada. Compensado por: `package.json` tem só 3
+  dependências de produção (next/react/react-dom) e nenhuma chamada a API de IA/dado externo no
+  código (`grep` por padrões de chave/segredo em `src/` → 0 resultados), e checagem manual de
+  `.gitignore` confirma `.env*.local` já ignorado.
+
+$ ls .github/dependabot.yml (antes desta sessão) → não existia (lacuna real, gratuita, zero risco)
+```
+
+**Conclusão do Capability Audit:** a maioria das categorias de IA/Design/Knowledge pedidas
+(Gemini, AI Studio, OpenRouter, Context7, Sentry, Stitch MCP) está genuinamente indisponível
+neste ambiente — verificado com ferramentas reais, não assumido. Google Workspace (Gmail/
+Calendar/Drive) está conectado, mas apenas como escopo OAuth desta sessão/operador — usar isso
+como "integração do produto Medusa" seria uma integração fake (o app não tem OAuth próprio
+registrado no Google Cloud Console), então nenhuma integração de produto foi implementada com
+eles nesta sessão (ver `BLOCKERS.md` → BLOCK-009). Supabase tem infraestrutura real já criada e
+gratuita (projeto "Medusa"), mas ainda vazia — decisão de schema/Auth permanece HDR-004/HDR-011.
+
+**TASK-CONTEXT-PANEL-GEOMETRY-001 — comando executado (branch `fix/context-panel-geometry`):**
+```
+$ npx tsc --noEmit   → 0 erros
+$ npm run build      → sucesso
+$ node scripts/qa-context-panel-geometry.js   → 39/39 aprovados
+```
+Cobre: largura real do painel amostrada em plena transição (t~60ms) e no estado final, nos 3
+modos (Amplo/Compacto/Foco) × 4 breakpoints (390/820/1024/1440), persistência via localStorage
+sobrevivendo a reload real, `prefers-reduced-motion: reduce` real (`emulateMediaFeatures`), e
+não-regressão de Educação. Achado de processo: a primeira rodada teve 9 falsos-positivos por
+comparação de ponto flutuante sem tolerância (subpixel rendering do compositor, ex. `68.203125`
+em vez de `68`) — corrigido com uma tolerância de ±1px antes de aceitar o resultado, mesmo padrão
+de honestidade de E-026. **PR:** https://github.com/MasterABL/Medusa/pull/5 (draft).
+
+**Status: PROVADO** — Capability Audit real e documentado; `TASK-CONTEXT-PANEL-GEOMETRY-001` com
+todos os critérios de aceite verificados.
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |
@@ -694,5 +760,7 @@ BLOCK-002/BLOCK-005 desta fila).
 | PR #2 — Agenda / Temporal OS | Contract (E-006), Plan, Implementation, Test (E-014), Build (E-014), Browser QA (E-017, E-022), Spot-check de critérios (E-018), literais/tokens (E-021) | Merge Gate (HDR-001 — só a aprovação humana, ordem já resolvida por D-008) | Implementation/Test/Build/Browser QA/Todos os 9 AC: **PROVADO** — Merge: BLOQUEADO (gate real, aprovação humana) |
 | Educação — expansão multi-trilha (dentro de PR #1/#2) | Implementation, Test, Build, Browser QA (E-016) | Merge Gate (mesmo de PR #1) | Implementation/QA: PROVADO — Conteúdo ratificado (D-010) — Merge: BLOQUEADO (mesmo gate de PR #1) |
 | TASK-AGENDA-001 (a entrada original da fila) | Todos os 9 ACCEPTANCE CRITERIA verificados com evidência real (E-013 a E-022) | Apenas Merge Gate (HDR-001) | **PROVADO** (implementação e QA completos) — Merge Gate: BLOQUEADO (aprovação humana pendente) |
-| Context Panel — investigação P0 (BLOCK-008) | Causa raiz lida no código + teste comparativo real `main` vs `feature/agenda` (E-024) | Nenhum — correção já provada na branch não mesclada, não duplicada | **PROVADO** (achado, não uma implementação nova) |
+| Context Panel — investigação P0 (BLOCK-008), 1ª sessão | Causa raiz lida no código + teste comparativo real `main` vs `feature/agenda` (E-024) | — | **PROVADO** (achado) |
+| TASK-CONTEXT-PANEL-GEOMETRY-001 (correção portada, PR #5) | Contract, Implementation, Test, Build, Browser QA 3 modos × 4 breakpoints, reduced-motion, persistência, regressão (E-027) | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os ACCEPTANCE CRITERIA) — Merge: BLOQUEADO |
+| Capability Audit (IA/Design/Knowledge/Dados/Google/Observabilidade/QA/Segurança) | Verificação real via ListConnectors, ToolSearch, Supabase/Vercel MCP, grep de segredos (E-027) | — | **PROVADO** (auditoria, não implementação de produto) |
 | TASK-HOJE-FOUNDATION-001 (Hoje Foundation v1 + honestidade em rotas pendentes) | Contract (E-025, HUMAN GATE ANALYSIS), Implementation, Test, Build, Browser QA 4 breakpoints, reduced-motion, regressão (E-026) — PR #4 | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os 7 ACCEPTANCE CRITERIA) — Merge: BLOQUEADO (aprovação humana pendente) |

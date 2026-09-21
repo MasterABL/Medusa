@@ -1,62 +1,70 @@
 # CURRENT_STATE.md — Estado Real do Repositório
 
-**Última verificação**: sessão "EXECUTION SPRINT — MAXIMUM AUTONOMY". Regra central: nunca parar
-por "fila antiga acabou" sem antes auditar o estado inteiro do produto em busca de trabalho
-executável não dependente de Human Gate. Investigou o bug P0 do Context Panel até a raiz,
-encontrou e corrigiu uma violação real de honestidade (dados fabricados apresentados como reais em
-`hoje`/`agenda`/`corpo`/`financas`/`progresso`) e executou `TASK-HOJE-FOUNDATION-001`. **Não afirme
-nada aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluído.
+**Última verificação**: sessão "CAPABILITY AUDIT + MAXIMUM PRODUCT EXPANSION SPRINT" (segunda
+rodada da EXECUTION SPRINT). Executou um Capability Audit real (IA/Design/Knowledge/Dados/
+Google/Observabilidade/QA/Segurança — `EVIDENCE.md` → E-027) e **resolveu de fato** o P0 do
+Context Panel (a sessão anterior só tinha investigado e decidido não duplicar; esta sessão portou
+a correção para `main` numa branch própria, PR #5, 39/39 checks reais). Sessão anterior já havia
+investigado o Context Panel até a raiz, corrigido a violação de honestidade das telas placeholder
+e executado `TASK-HOJE-FOUNDATION-001` (PR #4). **Não afirme nada aqui sem ter verificado.** Este
+arquivo deve ser atualizado a cada gate concluído.
 
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```
-STATUS:        PARCIAL — nova PR aberta e provada (PR #4), mais 3 PRs anteriores ainda aguardando
-               Merge Gate (HDR-001/HDR-005/HDR-011 inalterados). Sprint não esgotado: ver
-               TASK_QUEUE.md → QUEUE AUDIT para o que ficou identificado mas não executado.
-FASE ATUAL:    Fase 5 (Hoje) ganhou um recorte mínimo real e provado, sem esperar pela
-               especificação completa (HDR-006). Fases 1/3/4 inalteradas (mesmo Merge Gate).
+STATUS:        PARCIAL — 2 PRs abertos e provados nesta sessão/anterior (PR #4 Hoje Foundation,
+               PR #5 Context Panel geometry), mais PR #1/#2/#3 aguardando Merge Gate. Sprint não
+               esgotado: ver TASK_QUEUE.md → QUEUE AUDIT para o que ficou identificado mas não
+               executado (Educação continua sendo a next executable task, ainda não puxada).
+FASE ATUAL:    P0 do Shell (Context Panel) agora RESOLVIDO em código, não apenas investigado.
+               Fase 5 (Hoje) com recorte mínimo provado (sessão anterior). Fases 1/3/4 inalteradas.
 CONCLUÍDO NESTA SESSÃO:
-  - Investigação P0 do Context Panel (12 pontos pedidos: quem controla o estado, onde vive,
-    geometria real, breakpoints, modos) → raiz encontrada por teste comparativo real
-    (`main` 42/48 vs `feature/agenda` 47/48) e leitura de código: 3 funções de geometria
-    duplicadas em `main` (ContextPanel.tsx/ShellLayout.tsx/Header.tsx), já resolvidas por
-    `calculateShellGeometry()` na branch não mesclada. Não duplicado — ver BLOCKERS.md → BLOCK-008.
-  - Achado de honestidade: `src/app/page.tsx` em `main` apresentava estatísticas fabricadas
-    ("14 rpm", "0.02%", "ALL GATES PROVED") como dados reais na rota padrão (`hoje`) e em todo
-    fallback de aba não implementada (`agenda`/`corpo`/`financas`/`progresso`).
-  - Evidência do legado `minha-vida` (`src/lib/hoje.js`) minerada e filtrada: reaproveitado
-    `itemAtualId`/`montarLinhaDoTempo` (generalizáveis); descartado `ROTINA_PADRAO` (pessoal
-    demais), clima/Google Calendar/IA (fora de escopo), gamificação (contradiz MASTER_PLAN.md).
-  - TASK-HOJE-FOUNDATION-001 executada: Hoje Foundation v1 honesta (Local State, agrupamento
-    Agora/Próximo/Depois/Mais tarde, motion reaproveitado de `.study-stage-enter`) + estado
-    honesto de pendência para agenda/corpo/financas/progresso. PR aberta (draft):
-    https://github.com/MasterABL/Medusa/pull/4. 39/39 checks reais (tsc/build/browser QA 4
-    breakpoints/reduced-motion/regressão) — EVIDENCE.md → E-026.
-  - Nenhum conector Stitch existe neste ambiente (verificado via SearchMcpRegistry) — registrado
-    como limitação real, não suposta.
+  - Capability Audit real e completo (IA/Design/Knowledge/Dados/Google Workspace/Observabilidade/
+    QA/Segurança) — ver EVIDENCE.md → E-027. Achados principais: nenhum conector de IA (Gemini/
+    AI Studio/OpenRouter/Context7/Sentry) existe neste ambiente (verificado via ToolSearch, não
+    suposto); existe uma chave real `Stitch_api_key` no Vercel do projeto `medusa` mas nenhuma via
+    de acesso a ela; Google Workspace conectado só ao escopo desta sessão/operador, não ao
+    produto; existe um projeto Supabase real chamado "Medusa" (plano free, criado 2026-09-14,
+    estava pausado, restaurado nesta sessão) mas ainda vazio.
+  - TASK-CONTEXT-PANEL-GEOMETRY-001: a correção de geometria (achada na sessão anterior, decidida
+    NÃO duplicar então) foi portada para uma branch própria a partir de `main`
+    (`fix/context-panel-geometry`), incluindo um 4º cálculo duplicado que a sessão anterior não
+    tinha visto (Sidebar.getSidebarWidth) e um bug novo achado durante o port (borda de 1px que
+    não zera com box-sizing:border-box quando width:0 — presente também em `feature/agenda`,
+    ainda não reportado lá). PR #5, 39/39 checks reais (largura amostrada em plena transição, não
+    só antes/depois) — EVIDENCE.md → E-027.
+  - `.github/dependabot.yml` criado (gap real de segurança achado no audit, gratuito, incluído na
+    PR #5).
 RESTANTE — identificado mas NÃO executado nesta sessão (ver QUEUE AUDIT para detalhe honesto):
-  - Auditoria de qualidade de Educação/Study Mode.
-  - Auditoria completa de Shell/motion/responsivo além do que já foi testado.
-  - Mineração adicional do legado para Corpo/Finanças além do estado honesto já aplicado.
-RESTANTE (decisões humanas reais / especificação de produto — nada executável por Claude hoje):
-  - HDR-001: aprovação humana de merge (agora PR #1 → PR #2 → PR #3 → PR #4).
-  - HDR-011: escolha de provedor de Auth (bloqueia só a Fase 2 e Persistence Slices futuros).
-  - Layout final completo de Hoje/Corpo/Finanças/Progresso/Guardian/Buscar (HDR-005/HDR-006) — o
-    recorte mínimo honesto de Hoje já não depende mais disso.
+  - Auditoria de qualidade de Educação/Study Mode (continua sendo a next executable task mais
+    óbvia, ainda não puxada em 2 sessões seguidas — não por bloqueio, por escolha de priorizar
+    Capability Audit + P0 nesta rodada).
+  - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro.
+  - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão.
+  - QA consolidado como suíte reutilizável (hoje são scripts individuais, reais e passando).
+  - Observabilidade (Sentry ou alternativa) — nenhuma conta de terceiro criada sem confirmação.
+RESTANTE (decisões humanas reais / pré-requisitos de infraestrutura — nada executável por Claude
+hoje):
+  - HDR-001: aprovação humana de merge (agora PR #1 → PR #2 → PR #3 → PR #4 → PR #5).
+  - HDR-011: escolha de provedor de Auth (bloqueia Fase 2 E o wiring do Supabase já existente).
+  - BLOCK-009: IA (falta chave de API), Google Workspace como feature de produto (falta app OAuth
+    próprio do Medusa) — pré-requisitos de infraestrutura ausentes, não escolhas entre opções.
+  - Layout final completo de Hoje/Corpo/Finanças/Progresso/Guardian/Buscar (HDR-005/HDR-006).
 ÚLTIMO TESTE:
-  node scripts/qa-hoje-foundation.js (novo, real, Puppeteer) → 39 PASSOU | 0 FALHOU.
-  npx tsc --noEmit / npm run build em `feat/hoje-foundation` → ambos limpos.
+  node scripts/qa-context-panel-geometry.js (novo, real, Puppeteer) → 39 PASSOU | 0 FALHOU.
+  npx tsc --noEmit / npm run build em `fix/context-panel-geometry` → ambos limpos.
 FALHAS:
-  A primeira rodada do próprio script de QA teve 8 falsos-positivos por comparar texto literal
-  contra `innerText` transformado por `text-transform: uppercase` do CSS — diagnosticado e
-  corrigido antes de aceitar o resultado (EVIDENCE.md → E-026).
+  A primeira rodada do próprio script de QA teve 11 falhas: 9 por comparação de ponto flutuante
+  sem tolerância (subpixel rendering, ex. `68.203125` em vez de `68`) e 2 por um bug real (borda
+  de 1px não zerada com box-sizing:border-box) — diagnosticado, corrigido no código E no teste
+  antes de aceitar o resultado (EVIDENCE.md → E-027).
 PRÓXIMO PASSO:
-  Auditoria de qualidade de Educação/Study Mode — não depende de nenhum HDR, escopo definido,
-  candidata natural para a continuidade autônoma. Ver TASK_QUEUE.md → QUEUE AUDIT.
+  Auditoria de qualidade de Educação/Study Mode — não depende de nenhum HDR nem de BLOCK-009,
+  escopo definido, candidata natural para a continuidade autônoma. Ver TASK_QUEUE.md → QUEUE AUDIT.
 BLOCKERS:
-  Ver BLOCKERS.md → BLOCK-001 (Antigravity — inalcançável desta sessão), BLOCK-006 (next@14.2.24
-  CVE, dívida técnica não urgente), BLOCK-007 (ESLint não configurado, backlog não urgente),
-  BLOCK-008 (Context Panel em `main` — já corrigido em branch não mesclada, aguarda HDR-001).
+  Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-006 (next@14.2.24 CVE), BLOCK-007 (ESLint não
+  configurado), BLOCK-008 (Context Panel — RESOLVIDO, PR #5, aguarda só Merge Gate), BLOCK-009
+  (IA/Google Workspace/Stitch — pré-requisitos de infraestrutura ausentes).
 ```
 
 ## Baseline Git
@@ -81,6 +89,9 @@ branch de trabalho atual = chore/agent-os-bootstrap (PR #3, draft, aberta contra
 - `origin/feat/hoje-foundation` (**PR #4**, draft, aberta contra `main`) — Hoje Foundation v1 +
   correção de honestidade em rotas pendentes. `main` + 1 commit próprio (`f58860e`). PROVADO
   (`EVIDENCE.md` → E-026). Independente de PR #1/#2/#3 (branch criada direto de `main`).
+- `origin/fix/context-panel-geometry` (**PR #5**, draft, aberta contra `main`) — correção de
+  BLOCK-008 (geometria do Shell unificada em `calculateShellGeometry()`). `main` + 1 commit
+  próprio (`6a592f8`). PROVADO (`EVIDENCE.md` → E-027). Independente de PR #1/#2/#3/#4.
 - Vercel builda preview automaticamente para as 3 PRs (confirmado real — `EVIDENCE.md` → E-009,
   E-013).
 

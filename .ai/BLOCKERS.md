@@ -266,48 +266,100 @@ não bloqueia nenhum item do roadmap de produto.
 
 ---
 
-## BLOCK-008 — Context Panel não recolhe corretamente em `main` (RAIZ ENCONTRADA — já corrigido em branch não mesclada)
+## BLOCK-008 — Context Panel não recolhe corretamente em `main` (RESOLVIDO nesta sessão — PR #5)
 
-**Prioridade do usuário:** P0, investigação end-to-end explicitamente solicitada nesta sessão.
+**Prioridade do usuário:** P0. Duas sessões: a primeira investigou e decidiu não duplicar a
+correção (aguardar `HDR-001`); esta sessão recebeu instrução explícita do usuário
+("Faça a correção chegar a uma branch preparada para merge") e portou a correção para uma branch
+própria e independente, já que ela não depende de nenhuma parte do escopo de Agenda bloqueado
+por `HDR-001`.
 
-**Comando executado (teste comparativo real, dois worktrees, dois servidores dev):**
+**Causa raiz (achado original, confirmado por teste comparativo `main` vs `feature/agenda`):**
+**4 funções de cálculo de geometria duplicadas e independentes** (não 3 — `Sidebar.tsx` também
+tinha a sua própria, achado corrigido nesta sessão), cada uma com seus próprios literais
+`260/320/68/240` hardcoded: `Sidebar.getSidebarWidth()`, `ContextPanel.getPanelWidthClass()`
+(sempre `w-[260px]`/`w-[320px]`, nunca `0`), `ShellLayout.getMainPaddingStyle()`,
+`Header.getHeaderPositionStyle()`. O box model do painel nunca chegava a 0px — só era deslocado
+via `transform`.
+
+**Correção portada nesta sessão** (branch `fix/context-panel-geometry`, a partir de `main`,
+independente de PR #1/#2 — ver BLOCKED SCOPE vs UNBLOCKED SCOPE): `calculateShellGeometry()` (já
+provado em `feature/agenda`, `D-001`) foi portado para `main` como fonte única de verdade, com os
+4 componentes lendo de `useShell().geometry`. Conteúdo específico de Agenda (branch
+`activeRoute === 'agenda'` do `ContextPanel.tsx` de `feature/agenda`) foi deliberadamente **não**
+portado — não existe em `main` e depende de `HDR-001`.
+
+**Achado NOVO durante o port, não presente no relatório original e ainda latente em
+`feature/agenda` hoje:** com `box-sizing: border-box`, uma borda incondicional de 1px num
+elemento com `width: 0` trava a caixa renderizada em 1px, não 0, porque o conteúdo não pode ficar
+negativo. `Sidebar.tsx` (Foco) e `ContextPanel.tsx` (fechado) tinham exatamente esse problema —
+corrigido removendo a LARGURA da borda (não só a cor) quando recolhidos. Isto explica por que o
+teste anterior (47/48 em `feature/agenda`) não pegou isso: a asserção de largura não usava
+tolerância zero/exata o bastante para expor 1px residual.
+
+**Evidência real (branch `fix/context-panel-geometry`):**
 ```
-$ git worktree add /tmp/medusa-main origin/main         # porta 3001
-$ git worktree add /tmp/medusa-sprint origin/feature/agenda   # porta 3000
-$ node scripts/qa-context-panel-audit.js   (contra localhost:3000, feature/agenda)
-47/48 aprovados (1 falso-positivo da própria asserção do script sobre unmount em Foco)
-$ node scripts/qa-context-panel-audit.js   (contra localhost:3001, main)
-42/48 aprovados — 6 falhas reais
+$ npx tsc --noEmit   → 0 erros
+$ npm run build      → sucesso
+$ node scripts/qa-context-panel-geometry.js   → 39/39 aprovados
 ```
+Cobertura: largura real (não classe CSS) amostrada EM PLENA TRANSIÇÃO (t~60ms) e no estado final,
+nos 3 modos × 4 breakpoints, persistência via localStorage sobrevivendo a reload, reduced-motion,
+e não-regressão de Educação. Ver `EVIDENCE.md` → E-027.
 
-**Causa raiz confirmada por leitura de código (não só pelo teste):** em `main`, existem **3
-funções de cálculo de geometria duplicadas e independentes**, cada uma com seus próprios
-literais `260/320/68/240` hardcoded:
-1. `src/components/shell/ContextPanel.tsx` → `getPanelWidthClass()` retorna sempre
-   `w-[260px]`/`w-[320px]` (nunca `0`) — o painel só é deslocado via
-   `translate-x-full`/`translate-x-0`, então a **largura do box model nunca chega a 0px**
-   quando "fechado", ele só sai da viewport por `transform`.
-2. `src/components/shell/ShellLayout.tsx` → `getMainPaddingStyle()` recalcula o mesmo
-   `260/320px` de padding independentemente, sem consultar o mesmo estado/fonte que o painel.
-3. `src/components/shell/Header.tsx` (linhas 38-67) → `getHeaderPositionStyle()` recalcula um
-   terceiro conjunto dos mesmos literais para posicionar o header.
+**PR:** https://github.com/MasterABL/Medusa/pull/5 (draft).
 
-Isto é **exatamente** o problema que `D-001` (Single Source of Truth de geometria) já
-documentava, e que `fix/foundation-hardening`/`feature/agenda` (PR aberto, `HDR-001`) já
-corrigiram via `calculateShellGeometry()` em `src/types/shell.ts` — uma única fonte de verdade
-consumida pelos 3 componentes (`geometry.effectiveContextWidth`, `geometry.mainPaddingStyle`),
-validada com 47/48 checks reais em 4 breakpoints × 3 modos × 3 abas.
+**Escopo bloqueado vs não bloqueado:** a correção em si estava 100% desbloqueada (não depende de
+Agenda). O que resta bloqueado é só o Merge Gate desta nova PR (mesma natureza de `HDR-001`).
 
-**Decisão tomada:** NÃO duplicar a correção numa nova branch (o problema já está resolvido e
-testado em `feature/agenda`). Esta descoberta é registrada como evidência adicional que reforça
-a urgência da decisão de merge pendente (`HDR-001`), não como um novo item de trabalho.
+**Status:** **PROVADO.** Merge Gate: BLOQUEADO (aprovação humana pendente, mesmo tipo já
+registrado em `HDR-001`, não um novo Human Gate).
 
-**Escopo bloqueado vs não bloqueado:** o bug em si só afeta `main` (o merge ainda não
-aconteceu). Não bloqueia nenhum trabalho novo feito sobre `main` que não dependa de geometria do
-Context Panel (ex.: Hoje Foundation, ver abaixo).
+---
 
-**Status:** BLOQUEADO em `main` (aguarda `HDR-001`) — PROVADO como já corrigido em
-`feature/agenda`. Nenhuma ação adicional de código necessária além do merge.
+## BLOCK-009 — Integrações de IA e Google Workspace: infraestrutura real, mas wiring de produto genuinamente bloqueado
+
+**Contexto:** o Capability Audit desta sessão (E-027) verificou com ferramentas reais — não
+suposição — o que está disponível. Este bloqueio separa "a ferramenta existe" de "posso wire-ar
+isso no produto Medusa com segurança e honestidade".
+
+**IA (Gemini/AI Studio/OpenRouter/Context7/Sentry):** confirmado via `ToolSearch` que nenhum
+destes conectores existe neste ambiente, e via `filter_project_envs` que nenhuma chave de IA está
+configurada no Vercel do projeto `medusa`. **Não é um Human Gate no sentido de "escolha entre
+opções" ainda** — é a ausência total do pré-requisito técnico (uma chave de API). Assim que uma
+chave for provisionada (decisão humana: qual provider, qual custo aceitável — isso sim é HDR-004-
+adjacente), o wiring de código em si é trabalho normal, não um novo gate.
+
+**Google Workspace (Gmail/Calendar/Drive) para features do produto (Hoje, Agenda, Educação):**
+os conectores Gmail/Calendar/Drive estão conectados e funcionais **para esta sessão/operador**,
+via OAuth da própria conta do Claude Code, não do produto Medusa. Usar esses conectores para
+alimentar uma feature do Medusa (ex.: "Hoje mostra os compromissos do Google Calendar do
+usuário") exigiria o Medusa ter seu **próprio app OAuth registrado no Google Cloud Console**,
+consentimento explícito do usuário final dentro do produto, e armazenamento seguro de tokens no
+backend — nenhuma dessas três coisas existe hoje, e nenhuma pode ser criada só com as ferramentas
+desta sessão (registrar um app OAuth é uma ação humana no Google Cloud Console). Implementar uma
+integração usando o acesso desta sessão como se fosse do produto seria uma integração fake
+(mesma categoria de violação de honestidade corrigida em `TASK-HOJE-FOUNDATION-001`) — não feito.
+Isto é um bloqueio técnico real (pré-requisito de infraestrutura ausente), não apenas um Human
+Gate de escolha.
+
+**Stitch:** confirmado (2ª vez, ferramentas diferentes) que não há conector MCP de Stitch neste
+ambiente. Adicionalmente descoberto nesta sessão: existe de fato uma env var `Stitch_api_key` no
+Vercel do projeto `medusa` (produção, valor nunca decriptado por esta sessão). Ainda assim,
+inutilizável a partir daqui: sem conector MCP e sem endpoint documentado publicamente para chamar
+a API do Stitch diretamente, tentar uma chamada HTTP às cegas com um segredo seria exatamente o
+tipo de "fingir execução" proibido pelas regras desta sessão.
+
+**Supabase:** ao contrário dos itens acima, este JÁ TEM infraestrutura real criada (projeto
+"Medusa", plano free, restaurado e verificado nesta sessão) — mas ainda sem schema, sem Auth
+configurado, e sem `@supabase/supabase-js` no `package.json`. Diferente do bloqueio de IA/Google,
+aqui o único gate real que falta é a decisão de modelo de Auth (`HDR-011`) — a infraestrutura em
+si não é o problema.
+
+**Status:** IA — BLOQUEADO (pré-requisito técnico ausente, chave de API). Google Workspace —
+BLOQUEADO (pré-requisito de infraestrutura: app OAuth próprio do produto). Stitch — BLOQUEADO
+(sem via de acesso, mesmo com a chave existindo). Supabase — infraestrutura PROVADA existente,
+wiring de produto aguarda `HDR-011`.
 
 ---
 

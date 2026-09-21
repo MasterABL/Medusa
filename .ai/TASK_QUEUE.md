@@ -241,71 +241,104 @@ suposição. O que existe hoje para cada uma:
 
 ---
 
-## QUEUE AUDIT (Execution Sprint — Maximum Autonomy, sessão atual)
+### TASK-CONTEXT-PANEL-GEOMETRY-001 — Portar a correção de geometria do Context Panel para `main`
 
-**Nota de processo:** a rodada anterior desta fila havia concluído "Nenhuma [tarefa executável]".
-Sob a instrução explícita desta sessão de nunca aceitar esse veredito sem antes esgotar toda
-evidência disponível (contrato, legado, Stitch, precedente), essa conclusão foi **revisitada e
-revertida** — havia trabalho real executável que não dependia de nenhum HDR: o achado de
-honestidade em `hoje`/`agenda`/`corpo`/`financas`/`progresso` (estatísticas fabricadas
-apresentadas como reais) e a investigação P0 do Context Panel. Ver `EVIDENCE.md` → E-024, E-025,
-E-026.
+- **FASE:** Shell / P0.
+- **ORIGEM:** BLOCK-008 (raiz encontrada na sessão anterior: 4 funções de geometria duplicadas).
+  Instrução explícita desta sessão: "Faça a correção chegar a uma branch preparada para merge."
+- **ESCOPO:** portar `calculateShellGeometry()` (já provado em `feature/agenda`) para `main`,
+  consumido por `Sidebar`/`ContextPanel`/`ShellLayout`/`Header` via `useShell().geometry`. Sem
+  nenhum conteúdo específico de Agenda (não existe em `main`, depende de `HDR-001`).
+- **DO NOT TOUCH:** nada de Agenda; Educação (só verificado como não-regressão).
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-027)
+  1. Largura real do painel chega a 0px ao fechar, em todos os 3 modos.
+  2. Sidebar/Header/ShellLayout usam a mesma fonte única de geometria.
+  3. `npx tsc --noEmit` e `npm run build` sem erro.
+  4. Browser QA real em 390/820/1024/1440, amostrando largura DURANTE a transição (não só antes/
+     depois).
+  5. `prefers-reduced-motion: reduce` real testado.
+  6. Persistência do estado aberto/fechado via localStorage sobrevive a reload.
+  7. Nenhuma regressão em Educação.
+- **STATUS:** **PROVADO.** PR https://github.com/MasterABL/Medusa/pull/5 (draft). Merge Gate:
+  BLOQUEADO (aprovação humana, mesma natureza de HDR-001).
+
+---
+
+## QUEUE AUDIT (Execution Sprint — Capability Audit + Maximum Product Expansion, sessão atual)
+
+**Nota de processo:** esta sessão ampliou o escopo do sprint anterior para um Capability Audit
+completo (IA/Design/Knowledge/Dados/Google/Observabilidade/QA/Segurança — ver `EVIDENCE.md` →
+E-027) e para resolver de fato o P0 do Context Panel (antes só investigado, agora corrigido e em
+PR). A fila anterior já havia identificado "auditoria de Educação" como próxima tarefa — ver
+`QUEUE AUDIT PARCIAL` abaixo para por que ela ainda não foi executada nesta rodada.
 
 ```
 UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
-  - Investigação Context Panel (P0, BLOCK-008) → CONCLUÍDA, PROVADO (E-024). Raiz encontrada
-    (3 cálculos de geometria duplicados em `main`); correção já existe e está provada em
-    `feature/agenda`. Não duplicada — reforça urgência de HDR-001.
-  - TASK-HOJE-FOUNDATION-001 → EXECUTADA, PROVADO (E-025, E-026). PR aberta:
-    https://github.com/MasterABL/Medusa/pull/4 (draft).
-  - Honestidade em rotas pendentes (agenda/corpo/financas/progresso em `main`): removidas as
-    estatísticas fabricadas do fallback compartilhado, substituídas por estado honesto de
-    pendência — PROVADO (mesma PR #4, E-026). Isto não é a implementação completa dessas
-    fases (ainda bloqueada por HDR-005), é a correção do problema de honestidade que existia
-    nelas, que é um item de trabalho distinto e desbloqueado.
+  - Capability Audit completo → CONCLUÍDO, PROVADO (E-027). Achados principais: nenhum conector
+    de IA (Gemini/AI Studio/OpenRouter/Context7/Sentry) existe neste ambiente; Stitch tem uma
+    chave real no Vercel mas nenhuma via de acesso; Google Workspace conectado só ao escopo desta
+    sessão, não ao produto; Supabase tem um projeto real "Medusa" já criado (vazio, plano free).
+  - TASK-CONTEXT-PANEL-GEOMETRY-001 → EXECUTADA, PROVADO (E-027). PR #5 aberta.
+  - `.github/dependabot.yml` criado (achado do audit de segurança, gratuito, zero risco) —
+    incluído na mesma PR #5.
 
-QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (falta de tempo/
-orçamento de execução, não falta de tarefa executável — registrado para não fingir conclusão):
-  - Auditoria completa de produto/UX/UI/motion do Shell inteiro (todas as abas, todos os modos,
-    resize ao vivo) além do que já foi testado (Hoje + reduced-motion + regressão pontual de
-    Educação) — NÃO EXECUTADA.
-  - Reauditoria completa de Agenda sob a lente desta sprint (ela só existe em `feature/agenda`,
-    não em `main` — reauditar uma branch não mesclada não muda o estado de produto até o merge;
-    a auditoria já registrada em `TASK-AGENDA-001`/E-013 a E-022 permanece válida) — NÃO REPETIDA
-    (decisão consciente: reauditar uma branch já provada e travada por HDR-001 não gera valor
-    novo antes do merge).
-  - Auditoria de qualidade da Educação/Study Mode em busca de problemas reais — NÃO EXECUTADA.
-  - Mineração adicional de `AUDITORIA_MINHA_VIDA.md`/legado para Corpo/Finanças (para além do
-    estado honesto de pendência já aplicado) — parcialmente levantada, não convertida em tarefa.
+QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (falta de orçamento de
+execução dentro desta rodada, não falta de tarefa executável — registrado para não fingir
+conclusão; ver seção 31 do prompt do usuário: "quando não puder fazer algo, explique exatamente
+por quê"):
+  - Auditoria de qualidade de Educação/Study Mode (a "next executable task" já identificada na
+    sessão anterior) — NÃO EXECUTADA nesta rodada; o tempo foi para o Capability Audit + Context
+    Panel (P0 explícito). Continua sendo a próxima tarefa executável mais óbvia.
+  - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
+    (seções 20-24 do prompt) — NÃO EXECUTADA além do que a suíte de QA do Context Panel já cobre
+    (motion/reduced-motion/responsive desse componente específico).
+  - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão contrato→legado→Stitch→
+    precedente→gate — NÃO EXECUTADA nesta rodada (além do estado honesto de pendência já aplicado
+    na sessão anterior).
+  - QA como produto (suíte reutilizável unit/integration/e2e/a11y/performance/security) — NÃO
+    ESTRUTURADA; hoje continuam sendo scripts individuais (`scripts/qa-*.js`), reais e passando,
+    mas não consolidados num framework único.
+  - Observabilidade (Sentry ou alternativa) — NÃO IMPLEMENTADA. Nenhuma conta de terceiro foi
+    criada nesta sessão (criar uma conta em nome do usuário sem confirmação não é apropriado);
+    registrado como preparável, não como decisão tomada.
 
 BLOCKED TASKS (Human Gate real, não escopo inteiro):
-  - Fase 2 (Auth): HDR-011 (escolha de provedor externo — decisão humana real).
+  - Fase 2 (Auth): HDR-011 (escolha de provedor externo — decisão humana real). Bloqueia também
+    o wiring de Supabase como persistência real (infraestrutura já existe, ver BLOCK-009).
+  - IA/Gemini/OpenRouter: BLOCK-009 — falta pré-requisito técnico (nenhuma chave de API existe).
+  - Google Workspace como feature de produto: BLOCK-009 — falta pré-requisito de infraestrutura
+    (app OAuth próprio do Medusa no Google Cloud Console, não escolha entre opções).
   - Fases 6-13 / layout final completo de Hoje / Corpo / Finanças / Progresso / Guardian / Buscar:
-    HDR-005 (falta de especificação de produto suficiente para a forma final — o recorte mínimo
-    honesto de Hoje NÃO estava bloqueado, e foi executado; o recorte completo continua).
-  - Fechamento formal (merge) das Fases 1, 3, 4 e agora também da Hoje Foundation (PR #4):
-    HDR-001 (aprovação de merge — decisão humana real, mesmo tipo já registrado, não um novo
-    gate).
+    HDR-005.
+  - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4) e Context Panel (PR #5):
+    HDR-001.
 
 HUMAN GATES (inalterados nesta sessão):
-  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4)
+  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5)
   - HDR-011 (provedor de Auth)
 
 TECHNICAL BLOCKERS:
-  - Nenhum bloqueio técnico real ativo. Antigravity (`agy`) segue inalcançável nesta sessão
-    (BLOCKERS.md → BLOCK-001), sem impacto — fallback Claude funcionando.
+  - `npm audit` bloqueado pelo classificador de modo automático do ambiente (real, verificado,
+    não contornado) — compensado por auditoria manual de dependências/segredos (E-027).
+  - Antigravity (`agy`) segue inalcançável nesta sessão (BLOCKERS.md → BLOCK-001), sem impacto.
+  - IA/Google Workspace/Stitch como features de produto: BLOCK-009 (pré-requisitos de
+    infraestrutura ausentes, não Human Gates de escolha).
 
 NEXT EXECUTABLE TASK (real, não hipotética):
-  Auditoria de qualidade de Educação/Study Mode (preservar comportamentos aprovados, corrigir
-  problemas reais encontrados) — não depende de nenhum HDR, escopo claramente definido, evidência
-  de código já parcialmente levantada nesta sessão (`.study-stage-enter` e classes irmãs lidas em
-  `globals.css`). Candidata natural para a próxima rodada de execução autônoma.
+  Auditoria de qualidade de Educação/Study Mode — não depende de nenhum HDR nem de BLOCK-009,
+  escopo claramente definido, evidência de código já parcialmente levantada em sessão anterior
+  (`.study-stage-enter` e classes irmãs em `globals.css`). Continua sendo a candidata mais óbvia
+  para a próxima rodada.
 ```
 
 **Decisões que desbloqueariam trabalho além disso, cada uma com o que ela libera:**
-- **HDR-001** (aprovação de merge) → libera o fechamento formal das Fases 1, 3, 4 e da Hoje
-  Foundation (PR #4).
-- **HDR-011** (escolher provedor de Auth) → libera o início real da Fase 2.
+- **HDR-001** (aprovação de merge) → libera o fechamento formal das Fases 1, 3, 4, Hoje
+  Foundation (PR #4) e Context Panel (PR #5).
+- **HDR-011** (escolher provedor de Auth) → libera o início real da Fase 2 E o wiring do projeto
+  Supabase já existente como persistência real.
+- Provisionar uma chave de API de IA (Gemini ou OpenRouter, decisão humana de custo/provider) →
+  libera qualquer feature que dependa de IA (ex.: um "Prompt Lab" ou assistente).
+- Registrar um app OAuth do Medusa no Google Cloud Console → libera integração real de Google
+  Calendar/Gmail/Drive como features de produto (não apenas o acesso desta sessão).
 - Uma rodada de definição de contrato/design para o layout final de Hoje/Corpo/Finanças/
-  Progresso/Guardian/Buscar → libera a decomposição completa das Fases 5-13 (o recorte mínimo
-  honesto de Hoje já não depende mais disso).
+  Progresso/Guardian/Buscar → libera a decomposição completa das Fases 5-13.
