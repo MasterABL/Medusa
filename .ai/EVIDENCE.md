@@ -903,6 +903,190 @@ técnicos, não substitui a decisão humana (`AGENT_RULES.md` → seção 11). C
 
 ---
 
+## E-031 — TASK-SHELL-SIDEBAR-RECOVERY-001: recuperação real da Sidebar em modo Compacto, PR #11
+
+**Contexto:** o usuário relatou que a Sidebar "fica presa" sem forma visível de reabrir. Auditoria
+de código (`Sidebar.tsx`, `ShellContext.tsx`) antes de codar, branch `fix/shell-sidebar-recovery`
+criada a partir de `fix/context-panel-geometry`/PR #5 (não de `main`, por `D-012`).
+
+**2 bugs reais confirmados** (não apenas "adicionar um botão cosmético"):
+1. Já existia um controle de expandir, mas vivia dentro do wrapper `.sidebar-label-out`
+   (`pointer-events: none`, `max-w-0` quando colapsado) — clicável apenas por acidente de
+   hit-testing do navegador, não de forma confiável. Corrigido movendo-o para um elemento sempre
+   renderizado, fora desse wrapper, com `aria-label`/`title` próprios.
+2. **Bug geométrico real, achado por stash-and-retest antes de corrigir**: o wrapper interno da
+   Sidebar tinha `className="... w-[240px]"` fixo, independente do estado de colapso — em modo
+   Compacto, os ícones centralizados por `mx-auto` caíam em x≈98-142px, fora da faixa visível
+   (0-68px) que `overflow:hidden` recortava. Corrigido fazendo o `width` do wrapper acompanhar
+   `geometry.sidebarWidth` (a mesma fonte única de verdade de `calculateShellGeometry()` corrigida
+   em PR #5) via `style`, em vez de uma classe Tailwind fixa.
+3. Confirmado que o caminho de recuperação em modo Foco (hambúrguer do Header) já funcionava
+   corretamente — não precisou de nenhuma mudança.
+
+**Evidência real:**
+```
+$ npx tsc --noEmit                        → 0 erros
+$ npm run build                           → sucesso
+$ node scripts/qa-shell-sidebar-recovery.js → 26/26 aprovados
+```
+Cobertura: largura da Sidebar amostrada em plena transição (180ms — o momento em que a transição
+realmente começa a se mover neste ambiente, determinado empiricamente amostrando a cada 50ms),
+clicabilidade e posição do botão dentro da faixa real da Sidebar, `paddingLeft` real de
+`#content-layout` mudando após reabrir (reflow real de layout, não apenas uma camada visual
+deslocada), regressão do hambúrguer em modo Foco, 390/820/1024/1440 (confirmando os limites reais
+de breakpoint: mobile <768, tablet 768-1023, desktop ≥1024 — `820` é o caso tablet correto, não
+`1024`), `prefers-reduced-motion: reduce`, navegação por teclado e `:focus-visible`.
+
+**PR:** https://github.com/MasterABL/Medusa/pull/11 (draft), a partir de
+`fix/context-panel-geometry`/PR #5 (mesma relação de `D-012`).
+
+**Status: PROVADO** — Gates 1-10. Gate 11 (Human Experience Gate): pendente.
+
+---
+
+## E-032 — TASK-AGENDA-CONFLICTS-EXPERIENCE-001: conflitos N-a-N, prioridade, sugestões, recorrência "Personalizado", PR #12
+
+**Contexto:** rodada de refinamento explicitamente solicitada pelo usuário para a Agenda, cobrindo
+6 frentes distintas do prompt original (conflito visual, prioridade/contexto, sugestão de horário
+compatível, deslocamento/tempo de viagem, recorrência "Personalizado", exclusão de recorrência).
+Branch `feat/agenda-conflicts-experience`, criada a partir de `feat/agenda-experience-complete`/
+PR #9 (`D-012`).
+
+**1. Renderização de conflito (2/3/4+ eventos concorrentes):** `DayView.tsx` tinha lógica binária
+de `leftOffset` (só tratava 2 eventos) e `WeekView.tsx` não tinha nenhum deslocamento para
+concorrência — ambos confirmados quebrados visualmente com os cenários fornecidos pelo usuário
+(08:00-17:00 Trabalho + 16:00-18:00 Estudo + 16:30-17:30 Inglês). Corrigido com
+`layoutConflictColumns()`, um algoritmo real de clustering de intervalos + column-packing guloso
+(a técnica padrão de calendários mainstream) em `agendaHelpers.ts`: a largura de coluna é reduzida
+para todo o span do cluster conectado, não por fatia de tempo, com colunas percentuais, largura
+mínima, e modo `compact` do `EventBlock` quando `colCount >= 3` (título/horário/badge priorizados,
+nunca apenas fonte menor).
+
+**2. Prioridade/contexto:** `DOMAIN_PRIORITY_ORDER`/`getDomainPriorityRank()` — Trabalho ordena
+antes de Estudo/Inglês nas colunas de conflito. Documentado explicitamente no código como
+heurística de UX de Fase A, não regra de negócio definitiva (não apaga nem esconde os outros
+eventos).
+
+**3. Painel "Conflito encontrado" + sugestões de horário compatível:** `EventDetailPanel.tsx`
+ganhou um toggle "Ver horários compatíveis" que chama `findCompatibleTimeSlots()` (novo, em
+`agendaHelpers.ts`) — reaproveita o motor JÁ EXISTENTE `calculateFreeTimeSlots()` (gap-finding
+real sobre os itens do dia/dias seguintes), não uma otimização inventada. Contrato modelado como
+`CompatibleTimeSlotSuggestion[]` para que um motor real possa alimentar `suggestions[]` no futuro.
+Ação "Usar" ligada de ponta a ponta a `createOrUpdateItem` — não é só uma sugestão estática, o
+fluxo aceitar/cancelar/editar manualmente funciona de verdade.
+
+**4. Deslocamento/tempo de viagem:** **deliberadamente NÃO implementado.** Nenhuma chamada ao
+Google Maps Platform/Routes API foi feita ou simulada com IA generativa — o prompt do usuário foi
+explícito que "Google AI Studio não deve ser usado como justificativa para colocar IA onde uma API
+de rota é a ferramenta apropriada". Registrado em `TASK_QUEUE.md` como ponto de integração futuro
+(campos origem/destino/modo de transporte/duração/margem), sem código especulativo no contrato
+atual de `AgendaItem`.
+
+**5. Recorrência "Personalizado":** `EventFormDrawer.tsx` ganhou intervalo ("a cada N"), chips de
+dia da semana, e término (nunca/em uma data/após X ocorrências). **Bug funcional real e severo
+achado durante a auditoria** (não listado explicitamente pelo usuário, mas achado por ler o
+código antes de codar): o estado `isRecurring` nunca era setado por nenhum controle de UI, então
+nenhuma rotina criada pelo formulário jamais salvava um objeto `recurrence` — rotinas "recorrentes"
+nunca se repetiam de fato. Corrigido ligando a construção de `recurrence` diretamente a
+`kind === 'routine'`. `expandRecurringItems()` reescrito para respeitar `interval`/`until`/
+`count`/`recurrenceExceptions` (campos que já existiam no tipo mas nunca eram usados na expansão).
+
+**6. Exclusão de recorrência por escopo:** `EventDetailPanel.tsx` ganhou 3 opções (somente este /
+este e os próximos / toda a série). Modelado inteiramente com Local State: "toda a série" remove o
+item base; "este e os próximos" usa o campo já existente `recurrence.until`; "somente este" usa o
+novo campo `recurrenceExceptions?: string[]` (datas excluídas). Reagendar uma única ocorrência
+para outro horário (mantendo as demais) **não foi implementado** — exigiria estender o modelo de
+exceção para carregar um horário substituto, registrado como limitação explícita para Fase B/
+trabalho futuro, não fingido como resolvido.
+
+**Evidência real:**
+```
+$ npx tsc --noEmit                              → 0 erros
+$ npm run build                                 → sucesso
+$ node scripts/qa-agenda-conflicts-recurrence.js → 20/20 aprovados
+```
+Cobertura: os dois cenários de conflito exatos do prompt do usuário (3 eventos parcialmente
+sobrepostos; 09:00-11:00/10:00-11:00) renderizados em colunas reais sem clipping quebrado, ordem
+de prioridade Trabalho-primeiro, fluxo completo do painel de sugestões (abrir → ver opções → Usar
+→ evento criado no novo horário), criação de rotina "Personalizado" persistindo `recurrence`
+corretamente (regressão do bug achado), exclusão nos 3 escopos com o modelo de dados correto
+resultante, 390/820/1024/1440, `prefers-reduced-motion: reduce`, regressão da suíte de Shell
+(`qa-agenda-shell-integration.js`, ver E-028, confirmada sem quebra).
+
+**PR:** https://github.com/MasterABL/Medusa/pull/12 (draft), a partir de
+`feat/agenda-experience-complete`/PR #9 (mesma relação de `D-012`, agora estendida a esta branch).
+
+**Status conforme `QA_GATE.md` → Gate 11**: itens 1-10 **PROVADO**. Item 11 (Human Experience
+Gate) **não concedido**. Classificação: `EXPERIENCE EM REFINAMENTO`.
+
+---
+
+## E-033 — TASK-EDUCATION-TRACKS-EXPERIENCE-001: nomenclatura ENEM + altura do player, PR #13
+
+**Contexto:** o prompt do usuário tratou a "arquitetura de 3 trilhas dentro de Educação" como um
+dos pontos mais importantes da rodada, supondo possível regressão arquitetural. Auditoria ao vivo
+(leitura de código + navegador) em `feat/education-tracks-experience`, criada a partir de
+`feat/education-multitrack`/PR #7 (`D-012`), antes de qualquer mudança.
+
+**Achado da auditoria: a arquitetura já estava correta, não era o defeito real.**
+`EducationContainer.tsx` já implementa um único state machine compartilhado
+(`Educação → Track → Contexto → Sessão → Conteúdo → Resultado → Próxima Ação`) consumido pelas 3
+trilhas via adapters de conteúdo — não 3 implementações separadas. As 3 trilhas já são sub-abas
+DENTRO de Educação (seletor de trilha no dashboard e dentro do Study Mode), a Sidebar principal
+mantém só 1 item "Educação" (não 3). Nenhuma reescrita arquitetural foi feita, por não haver
+defeito confirmado — reescrever uma arquitetura já correta seria risco sem benefício.
+
+**Defeito real e mais estreito**: o rótulo exibido para a trilha de vestibular dizia "Vestibular"
+em vez de "ENEM" (pedido explícito do usuário) em 2 lugares que duplicavam o mesmo array de
+trilhas (`EducationDashboard.tsx` e `StudyModeView.tsx`) e na fonte canônica
+`educationFixtures.ts` (`trackDef.name`, usado em headers/rótulos de sessão em toda a árvore de
+componentes). Corrigido nos 3 pontos.
+
+**Player de aula (seção 14 do prompt)**: medido em 1440×960/1440×1200 que a área do palco não
+preenchia telas altas. Extensão cirúrgica via CSS `max()` —
+`xl:min-h-[max(640px,calc(100vh-320px))]` no lugar de `xl:min-h-[640px]` fixo — em vez de um
+refactor completo da cadeia flex do Study Mode (avaliado e descartado: um refactor amplo arriscava
+quebrar as asserções de `qa-study-mode-motion.js`, que dependem da estrutura DOM atual, para um
+ganho que a extensão pontual já entrega). Validado que outros breakpoints (390/820/1024) não
+tiveram a altura alterada.
+
+**Tutor ↔ Dynamic Island (seção 15 do prompt) e Context Panel/Foco (seção 16)**: o prompt
+descrevia ambos como bugs "encontrados manualmente". Testados ao vivo com a mesma metodologia de
+amostragem em plena transição usada no resto desta sessão:
+- Tutor→Falar: Island genuinamente reage — encolhe de 129px para 46px, mostra ícone de microfone,
+  a animação `voiceListeningPulse` está de fato rodando (confirmado por 2 amostras de `transform`
+  550ms de distância mostrando valores diferentes), clique encerra e retorna a 129px. **Nenhum
+  defeito encontrado** — mecanismo já funcionando (trabalho de PR #7/E-029).
+- Educação→Study Mode→Foco: Context Panel não permanece ocupando espaço fixo quando o modo diz que
+  não faz parte da composição — geometria/DOM confirmados, não apenas escondido visualmente.
+  **Nenhum defeito encontrado** — mecanismo já funcionando (trabalho de PR #5/E-027).
+
+Nenhuma mudança foi feita em `TutorDrawer.tsx`, `DynamicIsland.tsx` ou no mecanismo de Foco — por
+princípio de não modificar especulativamente um mecanismo já ajustado sem um defeito confirmado.
+Isso é registrado explicitamente aqui em vez de silenciosamente concordar com a premissa do
+relato original ou mexer em algo que já funciona.
+
+**Evidência real:**
+```
+$ npx tsc --noEmit                              → 0 erros
+$ npm run build                                 → sucesso
+$ node scripts/qa-education-tracks-experience.js → 11/11 aprovados
+```
+Cobertura: rótulo "ENEM" presente e "Vestibular" ausente no dashboard e no Study Mode, ciclo
+ENEM→Inglês→Faculdade→ENEM preservando contexto, altura do palco da aula medida em
+390×844/820×1180/1024×900/1440×960/1440×1200 (confirmando o ganho só nos viewports altos e
+nenhuma regressão nos demais), regressão do ciclo de voz do Tutor/Island (mesmas 5 amostras de
+E-029), regressão de Foco/Context Panel.
+
+**PR:** https://github.com/MasterABL/Medusa/pull/13 (draft), a partir de
+`feat/education-multitrack`/PR #7 (mesma relação de `D-012`).
+
+**Status conforme `QA_GATE.md` → Gate 11**: itens 1-10 **PROVADO**. Item 11 (Human Experience
+Gate) **não concedido**. Classificação: `EXPERIENCE EM REFINAMENTO` (inalterada — este PR refina,
+não fecha a Experience de Educação sozinho).
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |
@@ -919,3 +1103,6 @@ técnicos, não substitui a decisão humana (`AGENT_RULES.md` → seção 11). C
 | TASK-STUDY-MODE-REFINEMENT-001 (multi-trilha portada + motion/espaço/Island voz, PR #7) | Contract, Implementation, Test, Build, Browser QA com amostragem em plena transição (41/41) (E-029) | Merge Gate (depende de PR #5) | **PROVADO** (todos os itens do checklist do usuário verificados com evidência real) — Merge: BLOQUEADO |
 | TASK-HOJE-FOUNDATION-001 (Hoje Foundation v1 + honestidade em rotas pendentes) | Contract (E-025, HUMAN GATE ANALYSIS), Implementation, Test, Build, Browser QA 4 breakpoints, reduced-motion, regressão (E-026) — PR #4 | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os 7 ACCEPTANCE CRITERIA) — Merge: BLOQUEADO (aprovação humana pendente) |
 | TASK-AGENDA-EXPERIENCE-001 (motion/Island/UX + bug de exclusão de rotina corrigido, PR #9) | Contract (D-013, QA_GATE.md → Gate 11), Implementation, Test, Build, Browser QA com amostragem em plena transição (27/27) + regressão (11/11 + 29/30) (E-030) | Human Experience Gate (Gate 11, item 11) + Merge Gate | Gates 1-10: **PROVADO** — Gate 11 (Human Experience Gate): **BLOQUEADO** (decisão humana pendente) — Classificação: `EXPERIENCE EM REFINAMENTO` |
+| TASK-SHELL-SIDEBAR-RECOVERY-001 (botão inalcançável + geometria de ícones corrigidos, PR #11) | Contract (D-012), Implementation, Test, Build, Browser QA com largura amostrada em plena transição (26/26) (E-031) | Human Experience Gate + Merge Gate | Gates 1-10: **PROVADO** — Gate 11: **BLOQUEADO** (decisão humana pendente) |
+| TASK-AGENDA-CONFLICTS-EXPERIENCE-001 (conflitos N-a-N, prioridade, sugestões, recorrência "Personalizado", bug de recorrência nunca salva corrigido, PR #12) | Contract (D-013), Implementation, Test, Build, Browser QA (20/20) + regressão de Shell (E-032) | Human Experience Gate + Merge Gate | Gates 1-10: **PROVADO** — Gate 11: **BLOQUEADO** (decisão humana pendente) — Classificação: `EXPERIENCE EM REFINAMENTO` |
+| TASK-EDUCATION-TRACKS-EXPERIENCE-001 (rótulo ENEM, altura do player, Tutor/Island e Foco auditados sem defeito, PR #13) | Contract (D-013), Implementation, Test, Build, Browser QA (11/11) (E-033) | Human Experience Gate + Merge Gate | Gates 1-10: **PROVADO** — Gate 11: **BLOQUEADO** (decisão humana pendente) — Classificação: `EXPERIENCE EM REFINAMENTO` |

@@ -381,16 +381,129 @@ suposição. O que existe hoje para cada uma:
 
 ---
 
+### TASK-SHELL-SIDEBAR-RECOVERY-001 — Corrigir recuperação real da Sidebar em modo Compacto
+
+- **FASE:** Shell (transversal, não é uma das 8 abas de Fase A) — infraestrutura consumida por
+  todas as abas.
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — correção de UI/geometria/motion; nenhuma persistência).
+- **ORIGEM:** Relato do usuário ("Sidebar fica presa sem forma visível de reabrir"), seção 3 da
+  "RODADA DE REFINAMENTO DE EXPERIÊNCIA". Auditoria de código (não suposição) achou 2 bugs reais —
+  ver `EVIDENCE.md` → E-031.
+- **DO NOT TOUCH:** `calculateShellGeometry()`/`SHELL_DIMENSIONS` como fonte única de verdade
+  (consumida, não redefinida); caminho de recuperação em modo Foco (hambúrguer do Header), já
+  confirmado correto.
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-031)
+  1. Botão de recuperação clicável de fato em modo Compacto (fora do wrapper `pointer-events:none`).
+  2. Ícones da Sidebar geometricamente dentro da faixa visível em modo Compacto (bug de `width`
+     fixo corrigido).
+  3. Reabertura causa reflow real de layout (`paddingLeft` de `#content-layout` muda de verdade).
+  4. Comportamento definido e testado em 390/820/1024/1440.
+  5. `npx tsc --noEmit` e `npm run build` sem erro.
+  6. Browser QA real com largura amostrada EM PLENA TRANSIÇÃO — 26/26 checks.
+  7. `prefers-reduced-motion: reduce` real testado.
+  8. Navegação por teclado e `:focus-visible` funcionais.
+  9. Nenhuma regressão no modo Foco (hambúrguer do Header).
+- **STATUS:** Gates 1-10 **PROVADO**. Gate 11 (Human Experience Gate) **BLOQUEADO** — decisão
+  humana pendente. PR https://github.com/MasterABL/Medusa/pull/11 (draft). Depende de PR #5
+  (`D-012`). Merge Gate: BLOQUEADO (aprovação humana, mesma natureza de HDR-001).
+
+---
+
+### TASK-AGENDA-CONFLICTS-EXPERIENCE-001 — Conflitos N-a-N, prioridade, sugestões de horário, recorrência "Personalizado"
+
+- **FASE:** Agenda — terceira rodada de refinamento sobre a mesma aba (Fase A, D-013).
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — UI/UX/motion/estados; sugestões usam gap-finding local
+  já existente, não uma integração ou motor de otimização real).
+- **ORIGEM:** Seções 4-9 da "RODADA DE REFINAMENTO DE EXPERIÊNCIA" do usuário — conflito visual
+  quebrado com 2+ eventos, prioridade de domínio, sugestão de horário compatível, deslocamento/
+  tempo de viagem (explicitamente NÃO implementado nesta rodada), recorrência "Personalizado",
+  exclusão de recorrência por escopo. Auditoria achou e corrigiu 1 bug funcional real e severo não
+  listado explicitamente pelo usuário (rotinas nunca salvavam `recurrence`) — ver
+  `EVIDENCE.md` → E-032.
+- **DO NOT TOUCH:** nenhuma chamada real ou simulada por IA generativa ao Google Maps Platform/
+  Routes API (o prompt do usuário proíbe explicitamente usar IA generativa como substituto de uma
+  API de rota); arquitetura de views/CRUD/categorias já provada em PR #6/#9.
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-032)
+  1. 2/3/4+ eventos concorrentes renderizados em colunas reais (clustering + column-packing), sem
+     apenas reduzir fonte — testado com os 2 cenários exatos do prompt do usuário.
+  2. Trabalho ordena antes de Estudo/Inglês nas colunas de conflito (heurística documentada como
+     não-definitiva no código).
+  3. Painel de sugestões de horário compatível funcional de ponta a ponta (ver → Usar → evento
+     criado no novo horário), reaproveitando `calculateFreeTimeSlots()` já existente.
+  4. Nenhuma chamada real ou simulada a serviço de rota/deslocamento; contrato de dados futuro
+     apenas registrado em texto, não implementado em código.
+  5. Recorrência "Personalizado" (intervalo, dias da semana, término) funcional e persistindo
+     `recurrence` de fato (bug de `isRecurring` nunca setado corrigido).
+  6. Exclusão de recorrência com 3 escopos (esta/esta e as próximas/série) produzindo o modelo de
+     dados local correto para cada caso.
+  7. `npx tsc --noEmit` e `npm run build` sem erro.
+  8. Browser QA real — 20/20 checks novos.
+  9. Regressão da suíte de Shell/Context Panel (`qa-agenda-shell-integration.js`) sem quebra.
+  10. 390/820/1024/1440 e `prefers-reduced-motion: reduce` validados.
+- **STATUS:** Gates 1-10 **PROVADO**. Gate 11 (Human Experience Gate) **BLOQUEADO**. Classificação:
+  `EXPERIENCE EM REFINAMENTO`. PR https://github.com/MasterABL/Medusa/pull/12 (draft). Depende de
+  PR #9 (que depende de PR #6, que depende de PR #5 — `D-012`). Merge Gate: BLOQUEADO (aprovação
+  humana, mesma natureza de HDR-001).
+- **FORA DE ESCOPO / TRABALHO FUTURO explicitamente registrado** (não implementado, não fingido
+  como resolvido):
+  - Integração real de tempo de deslocamento (Google Maps Platform/Routes API) — Fase B, exige
+    decisão humana de provedor/custo, fora do escopo de Fase A por instrução direta do usuário.
+  - Reagendar uma única ocorrência de rotina recorrente para outro horário mantendo as demais —
+    exigiria estender `recurrenceExceptions` para carregar um horário substituto, não apenas a
+    data excluída.
+
+---
+
+### TASK-EDUCATION-TRACKS-EXPERIENCE-001 — Nomenclatura ENEM, altura do player, auditoria de Tutor/Island e Foco
+
+- **FASE:** Educação — segunda rodada de refinamento sobre a mesma aba (Fase A, D-013).
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — nomenclatura/layout; nenhuma persistência).
+- **ORIGEM:** Seções 11-16 da "RODADA DE REFINAMENTO DE EXPERIÊNCIA" do usuário, que supunha uma
+  possível regressão arquitetural (3 trilhas como itens de Sidebar) e 2 bugs "encontrados
+  manualmente" (Tutor↔Island, Context Panel/Foco). Auditoria ao vivo confirmou a arquitetura já
+  correta e os 2 supostos bugs já funcionando — o defeito real era mais estreito (nomenclatura +
+  altura do player) — ver `EVIDENCE.md` → E-033.
+- **DO NOT TOUCH:** `TutorDrawer.tsx`/`DynamicIsland.tsx` (mecanismo de voz confirmado
+  funcionando, não modificado); mecanismo de Foco/Context Panel (confirmado funcionando, não
+  modificado); catálogo fechado de estados do Island; arquitetura de state machine compartilhado
+  em `EducationContainer.tsx` (confirmada correta, não reescrita).
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-033)
+  1. Rótulo "ENEM" (não "Vestibular") em todos os pontos de exibição da trilha.
+  2. Ciclo ENEM→Inglês→Faculdade→ENEM preserva contexto, testado ao vivo.
+  3. Palco da aula preenche melhor a altura útil em telas altas (1440×960, 1440×1200), sem alterar
+     a altura medida em 390×844/820×1180/1024×900.
+  4. Confirmação (não suposição) de que a arquitetura de 3 sub-abas dentro de Educação (não itens
+     da Sidebar) já está correta.
+  5. Confirmação (não suposição) de que o Tutor reage visualmente ao Island durante o ciclo de voz.
+  6. Confirmação (não suposição) de que o Context Panel não ocupa espaço fixo em modo Foco.
+  7. `npx tsc --noEmit` e `npm run build` sem erro.
+  8. Browser QA real — 11/11 checks.
+- **STATUS:** Gates 1-10 **PROVADO**. Gate 11 (Human Experience Gate) **BLOQUEADO**. Classificação:
+  `EXPERIENCE EM REFINAMENTO` (inalterada — refina, não fecha a Experience de Educação sozinho).
+  PR https://github.com/MasterABL/Medusa/pull/13 (draft). Depende de PR #7 (que depende de PR #5
+  — `D-012`). Merge Gate: BLOQUEADO (aprovação humana, mesma natureza de HDR-001).
+- **NOTA EXPLÍCITA:** nenhuma mudança foi feita em Tutor/Island ou Foco/Context Panel — a
+  auditoria não confirmou os defeitos supostos pelo relato original, e por princípio desta sessão
+  (`AGENT_RULES.md`) não se modifica especulativamente um mecanismo já ajustado sem defeito
+  confirmado. Isso não é a tarefa "incompleta" — é o resultado real da investigação.
+
+---
+
 ## QUEUE AUDIT (Execution Sprint — Capability Audit + Maximum Product Expansion, sessão atual)
 
-**Nota de processo:** esta sessão teve quatro rodadas (mais uma rodada de continuação de governança
+**Nota de processo:** esta sessão teve seis rodadas (mais uma rodada de continuação de governança
 registrando D-013 entre a 3ª e a 4ª, sem código de produto). A 1ª ampliou o escopo para um
 Capability Audit completo e resolveu de fato o P0 do Context Panel (PR #5). A 2ª priorizou Agenda
 sobre a auditoria de Educação (PR #6). A 3ª voltou a Educação — não como auditoria genérica, mas
 como refinamento direcionado de motion/espaço/Dynamic Island sobre a base multi-trilha já portada
-(PR #7). A 4ª (após D-013 ser aprovada humanamente) fechou os gaps de Fase A da Agenda — motion de
-troca de view, integração com o Dynamic Island, feedback de salvar/excluir, e um bug funcional real
-de exclusão de rotina — sobre a base já provada em PR #6 (PR #9).
+(PR #7). A 4ª (após D-013 ser aprovada humanamente) fechou parte dos gaps de Fase A da Agenda —
+motion de troca de view, integração com o Dynamic Island, feedback de salvar/excluir, e um bug
+funcional real de exclusão de rotina — sobre a base já provada em PR #6 (PR #9). A 5ª (a pedido
+explícito do usuário, "RODADA DE REFINAMENTO DE EXPERIÊNCIA") tratou 3 domínios em paralelo, em
+branches separadas por instrução direta ("não misturar Agenda e Educação numa mudança
+não-revisável"): Shell (recuperação real da Sidebar, PR #11), Agenda (conflitos N-a-N, prioridade,
+sugestões de horário, recorrência "Personalizado", PR #12) e Educação (nomenclatura ENEM, altura
+do player, auditoria de Tutor/Island e Foco sem mudança onde não havia defeito, PR #13).
 
 ```
 UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
@@ -411,15 +524,36 @@ UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
     Lista, bug de exclusão de ocorrência de rotina corrigido. 27/27 checks novos + 11/11 + 29/30
     de regressão. Gate 11 (Human Experience Gate) BLOQUEADO — classificação `EXPERIENCE EM
     REFINAMENTO`. PR #9 aberta, depende de PR #6 (que depende de PR #5, `D-012`).
+  - TASK-SHELL-SIDEBAR-RECOVERY-001 → EXECUTADA, Gates 1-10 PROVADO (E-031). 2 bugs reais
+    corrigidos (botão inalcançável + geometria de ícones em modo Compacto). 26/26 checks reais.
+    PR #11 aberta, depende de PR #5 (`D-012`).
+  - TASK-AGENDA-CONFLICTS-EXPERIENCE-001 → EXECUTADA, Gates 1-10 PROVADO (E-032). Layout de
+    conflito N-a-N real, prioridade por domínio, painel de sugestões de horário (gap-finding real,
+    não fake), recorrência "Personalizado" completa (bug real de `recurrence` nunca salva
+    corrigido), exclusão por escopo. Deslocamento/Google Maps deliberadamente NÃO implementado
+    (fora do escopo de Fase A, por instrução direta do usuário). 20/20 checks reais. PR #12
+    aberta, depende de PR #9 (que depende de PR #6/#5, `D-012`).
+  - TASK-EDUCATION-TRACKS-EXPERIENCE-001 → EXECUTADA, Gates 1-10 PROVADO (E-033). Rótulo ENEM
+    corrigido, altura do player estendida em telas altas. Auditoria ao vivo confirmou a
+    arquitetura de 3 sub-abas e o mecanismo Tutor↔Island/Foco já corretos — nenhuma mudança feita
+    onde não havia defeito confirmado. 11/11 checks reais. PR #13 aberta, depende de PR #7 (que
+    depende de PR #5, `D-012`).
 
 QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (registrado para não
 fingir conclusão):
   - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
-    além do que as suítes de Context Panel + Agenda + Study Mode já cobrem.
+    além do que as suítes de Context Panel + Sidebar recovery + Agenda + Study Mode já cobrem.
   - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão.
   - QA como produto (suíte reutilizável consolidada) — ainda scripts individuais, reais e
     passando, mas não unificados num framework único.
   - Observabilidade (Sentry ou alternativa) — NÃO IMPLEMENTADA, nenhuma conta de terceiro criada.
+  - Reagendar uma única ocorrência de rotina recorrente para outro horário mantendo as demais
+    (exigiria estender `recurrenceExceptions` para carregar um horário substituto).
+  - Integração real de tempo de deslocamento na Agenda (Google Maps Platform/Routes API) —
+    aguarda decisão humana de provedor/custo, é trabalho de Fase B por definição.
+  - Animação de saída de drawers/modais (`EventFormDrawer`, `CategoryModal`, `TutorDrawer`) — hoje
+    desmontam instantaneamente; um padrão já existente em todo o app, não uma regressão desta
+    rodada, registrado como possível refinamento futuro.
 
 BLOCKED TASKS (Human Gate real, não escopo inteiro):
   - Fase 2 (Auth): HDR-011. Bloqueia também o wiring de Supabase como persistência real.
@@ -428,17 +562,19 @@ BLOCKED TASKS (Human Gate real, não escopo inteiro):
   - Fases 6-13 / layout final completo de Hoje / Corpo / Finanças / Progresso / Guardian / Buscar:
     HDR-005.
   - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4), Context Panel (PR #5),
-    Agenda (PR #6), Study Mode Refinement (PR #7) e Agenda Experience (PR #9): HDR-001.
-  - Human Experience Gate (`QA_GATE.md` → Gate 11) para Hoje, Agenda e Educação — distinto do
-    Merge Gate, ainda não concedido para nenhuma aba.
+    Agenda (PR #6), Study Mode Refinement (PR #7), Agenda Experience (PR #9), Sidebar Recovery
+    (PR #11), Agenda Conflicts (PR #12) e Education Tracks (PR #13): HDR-001.
+  - Human Experience Gate (`QA_GATE.md` → Gate 11) para Hoje, Agenda, Educação e para a
+    infraestrutura de Shell — distinto do Merge Gate, ainda não concedido para nenhuma aba.
 
 HUMAN GATES (atualizado nesta rodada):
   - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5 → PR #6 → PR #7 →
-    PR #9, com PR #6/#7/#9 tecnicamente dependentes de PR #5 — `D-012`)
+    PR #9 → PR #11 → PR #12 → PR #13, todas tecnicamente dependentes de PR #5 — `D-012`)
   - HDR-011 (provedor de Auth)
-  - Human Experience Gate por aba (`QA_GATE.md` → Gate 11) — Hoje/Agenda/Educação com Gates 1-10
-    `PROVADO`, aguardando esta decisão especificamente (D-013 já aprovada não concede isto
-    automaticamente — são decisões distintas)
+  - Human Experience Gate por aba (`QA_GATE.md` → Gate 11) — Hoje/Agenda/Educação/Shell com
+    Gates 1-10 `PROVADO`, aguardando esta decisão especificamente (D-013 já aprovada não concede
+    isto automaticamente — são decisões distintas). Ver a seção "NEXT HUMAN GATE" do relatório de
+    evidência desta rodada para o roteiro exato de teste manual por domínio.
 
 TECHNICAL BLOCKERS:
   - `npm audit` bloqueado pelo classificador de modo automático do ambiente (real, verificado).
@@ -446,12 +582,14 @@ TECHNICAL BLOCKERS:
   - IA/Google Workspace/Stitch como features de produto: BLOCK-009.
 
 NEXT EXECUTABLE TASK (real, não hipotética):
-  Educação/Study Mode é a próxima aba na ordem oficial de Fase A (`Hoje → Agenda → Educação →
-  Corpo → Finanças → Progresso → Guardian → Buscar`) que ainda não tem uma rodada de fechamento
-  de Experience dedicada (Hoje e Agenda já tiveram; Educação teve refinamento de motion/espaço/
-  Island em PR #7, mas não uma auditoria de fechamento completo dos 11 itens do Gate de
-  Experience-Complete). TRACK: DESIGN/EXPERIENCE (Fase A) — consistente com D-013, já que nenhuma
-  tarefa ENGINEERING/INTEGRATION pode ser "next executable" com Fase A ainda aberta nas 8 abas.
+  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
+  do que Context Panel + Sidebar recovery + Agenda + Study Mode já cobrem individualmente — não
+  depende de nenhum HDR nem de BLOCK-009. Alternativa igualmente válida (e talvez preferível
+  agora): não abrir mais rodadas de refinamento em Hoje/Agenda/Educação/Shell até o Human
+  Experience Gate ser concedido para o que já está provado tecnicamente, para evitar acumular
+  Experience-em-refinamento sem fechamento. TRACK: DESIGN/EXPERIENCE (Fase A) — consistente com
+  D-013, já que nenhuma tarefa ENGINEERING/INTEGRATION pode ser "next executable" com Fase A ainda
+  aberta nas 8 abas.
 ```
 
 **Nota D-013 sobre esta seção**: nenhum item de `BLOCKED TASKS`/`HUMAN GATES` acima que seja
