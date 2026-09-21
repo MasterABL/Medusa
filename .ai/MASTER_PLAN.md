@@ -11,6 +11,14 @@ decisões explícitas já tomadas, 3) contrato do produto, 4) arquitetura existe
 QA, 6) documentação histórica. Onde há divergência entre eles, ela é registrada em `DECISIONS.md`
 ou `BLOCKERS.md`, nunca silenciosamente resolvida a favor da fonte mais antiga.
 
+**Modelo Fase A / Fase B (`DECISIONS.md` → D-013, `AGENT_RULES.md` → seção 0, `ROADMAP.md` →
+"Modelo FASE A / FASE B")**: cada fase numerada abaixo (CONTRACT→FOUNDATION→UI→LOCAL STATE→
+PERSISTENCE SLICE→INTEGRATION→QA→GATE) se divide num corte transversal — CONTRACT/FOUNDATION/UI/
+LOCAL STATE são Fase A (Experience); PERSISTENCE SLICE/INTEGRATION são Fase B (Engineering). D-013
+acrescenta que nenhum domínio entra em Fase B antes das 8 abas fecharem Fase A globalmente — isso
+não substitui o `D-006` (Auth só bloqueia Persistence Slice) nem reordena as fases abaixo, apenas
+adiciona essa trava adicional sobre quando a Fase B de qualquer uma delas pode começar.
+
 ## Visão do produto
 
 Medusa é um **Personal Life OS + Learning OS**. A arquitetura conceitual central, que todo domínio

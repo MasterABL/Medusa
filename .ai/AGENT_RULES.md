@@ -4,6 +4,89 @@ Este documento é normativo. Qualquer agente (Claude, Antigravity, ou humano ope
 protocolo) deve segui-lo. Em caso de conflito entre uma instrução de tarefa e este documento,
 este documento prevalece — a exceção precisa ser justificada explicitamente em `DECISIONS.md`.
 
+## 0. Modelo de Desenvolvimento Medusa — FASE A (Experience) precede FASE B (Engineering)
+
+**Decisão formal registrada em `DECISIONS.md` → D-013 — STATUS: APROVADA HUMANAMENTE (2026-09-21).
+Governança oficial vigente do Medusa, não uma proposta. Leia esta seção antes de qualquer outra.**
+
+```
+FASE A — DESIGN / EXPERIENCE
+        ↓
+DESIGN SYSTEM CONSOLIDADO
+        ↓
+BROWSER / VISUAL QA
+        ↓
+HUMAN EXPERIENCE GATE
+        ↓
+FASE B — PRODUTO / ENGENHARIA
+        ↓
+INTEGRAÇÃO
+        ↓
+END-TO-END QA
+```
+
+**Regra principal**: Fase B (dados reais, persistência definitiva, APIs, Supabase, Google,
+Gemini/OpenRouter, automações, regras de negócio) não começa, para nenhum domínio, antes de a
+Fase A (estrutura, UI, UX, motion, loading, responsive, accessibility, microinterações, browser
+QA) estar fechada para **todas** as 8 abas, nesta ordem oficial:
+
+```
+Hoje → Agenda → Educação → Corpo → Finanças → Progresso → Guardian → Buscar
+```
+
+Ver `ROADMAP.md` → "Fase A / Fase B" para o checklist vivo e `CURRENT_STATE.md` para a
+classificação atual de cada aba.
+
+**Uma aba não está pronta só porque existe uma implementação funcional.** Uma implementação
+inicial pode servir de `BASE IMPLEMENTADA` para validar a experiência, mas o fechamento exige o
+contrato de experiência completo e provado. Vocabulário obrigatório para o estágio de uma aba
+(não confundir com o vocabulário de resultado PROVADO/PARCIAL/BLOQUEADO/NÃO IMPLEMENTADO — são
+eixos diferentes, ver seção 10):
+
+```
+BASE IMPLEMENTADA          → implementação funcional existe, serve de fundamento.
+EXPERIENCE EM REFINAMENTO  → em QA de UI/UX/motion/responsive/accessibility, sem Human Gate ainda.
+EXPERIENCE COMPLETE        → contrato de experiência fechado, provado, e com Human Experience Gate.
+ENGINEERING COMPLETE       → etapa posterior: dados/integrações/lógica real implementados.
+```
+
+**"Implementado" ≠ "Design encerrado". "Funciona" ≠ "Experience complete".**
+
+**O que É a Fase A** (para cada aba): Shell (Sidebar/Main/Context Panel/Dynamic Island), UI
+(layout, hierarquia, tipografia, espaçamento, densidade, componentes, responsive), UX (ação →
+resposta → transição → estado intermediário → novo estado → feedback, incluindo clique, seleção,
+navegação, abrir/fechar, editar, confirmar, cancelar, sucesso, erro, loading, retry, disabled,
+persistência visual de contexto), Motion (estado A → ação → transição → estado intermediário →
+estado B, com duração/easing/stagger/entrada/saída/morph/recede-reveal documentados, e
+**continuidade espacial e Dynamic Island fazem parte disso, não são decoração isolada**), Loading
+(initial → skeleton/loading → content ready → reveal, preferindo estrutura persistente que
+transforma a um swap abrupto quando os dois estados são partes da mesma experiência), Responsive
+(390/820/1024/1440 — avaliando composição/densidade/hierarquia/espaço útil, não só "não quebra"),
+Accessibility (keyboard, focus/focus-visible, contraste, reduced motion, labels, não depender só
+de cor), estados obrigatórios quando fizer sentido (initial/loading/populated/empty/error/saving/
+success/disabled), e microinterações (hover/active/press/focus/feedback).
+
+**O que NÃO entra na Fase A** (lista fechada — expansível só por nova decisão em
+`DECISIONS.md`): Google Calendar OAuth ou qualquer integração externa real, persistência
+definitiva, schemas finais de produção, Gemini, OpenRouter, APIs reais, automações de produção,
+regras de negócio definitivas, sincronizações externas, pipelines reais de dados. **Modelar** o
+ponto de integração futuro é permitido (ex.: "Agenda → evento sincronizado externamente" como
+conceito); **implementá-lo agora não é.** Fixtures/Local State são o padrão aceito na Fase A,
+desde que nunca representados como dado real/persistido (seção 5 abaixo).
+
+**Motion precisa de evidência em plena transição, não apenas antes/depois** — um valor real
+(opacidade/largura/transform) amostrado durante a animação, provando que ela está de fato
+correndo. Comparar apenas dois screenshots estáticos não é evidência de motion. Ver
+`QA_GATE.md` → "Experience-Complete Gate".
+
+**Dynamic Island e Context Panel são parte do contrato de experiência do Shell**, não elementos
+decorativos isolados — qualquer refinamento de aba deve considerar como ela usa esses dois
+elementos (ver `ARCHITECTURE.md`).
+
+**Este modelo não autoriza reescrever ou descartar trabalho de engenharia já existente** (ex.: a
+correção de geometria do Shell, PR #5) — infraestrutura de Shell/Context Panel/Dynamic Island é
+parte do escopo da própria Fase A, não uma antecipação de Fase B.
+
 ## 1. Git
 
 - **Nunca editar `main` diretamente.** Toda alteração nasce em uma branch nova (`feature/*`,
@@ -227,3 +310,28 @@ PARTIAL
 
 Os dois vocabulários não são a mesma coisa: o primeiro descreve o **resultado verificado** de um
 artefato; o segundo descreve o **estado operacional** de uma tarefa na fila.
+
+Um terceiro vocabulário, específico do estágio de experiência de uma aba/domínio (ortogonal aos
+dois acima — ver seção 0): `BASE IMPLEMENTADA / EXPERIENCE EM REFINAMENTO / EXPERIENCE COMPLETE /
+ENGINEERING COMPLETE`.
+
+## 11. Human Gate — Aprovação Humana Obrigatória
+
+Consolida num só lugar quando a aprovação humana é obrigatória (os gates individuais já existiam
+espalhados em `QA_GATE.md`/`DECISIONS.md`; esta seção só os reúne, não cria regra nova exceto onde
+citado como D-013). Aprovação humana é sempre necessária para:
+
+- **Qualidade visual e experiência**: nenhuma aba é declarada `EXPERIENCE COMPLETE` só com base em
+  testes automatizados — automação prova critérios técnicos (motion correndo, sem overflow, sem
+  regressão), não substitui a decisão humana sobre a experiência final (`DECISIONS.md` → D-013).
+- **Decisão de produto**: qualquer ambiguidade que exigir escolha entre alternativas de produto
+  vira `HUMAN DECISION REQUIRED` em `DECISIONS.md` (seção 2 acima) — nunca inventada pelo executor.
+- **Aceitação de motion**: um refinamento de motion pode estar tecnicamente `PROVADO` (evidência em
+  plena transição, reduced motion coberto) e ainda depender de aceitação humana antes de fechar a
+  experiência daquela aba.
+- **Merge/fechamento**: merge para `main` nunca é automático (seção 1 acima, `QA_GATE.md` → Merge
+  Gate) — mesmo com todos os gates técnicos `PROVADO`.
+
+**O que automação NÃO decide sozinha**: se uma aba está pronta o suficiente para avançar de
+`EXPERIENCE EM REFINAMENTO` para `EXPERIENCE COMPLETE`, e se a Fase A como um todo (as 8 abas)
+está fechada o suficiente para autorizar o início da Fase B em qualquer domínio.

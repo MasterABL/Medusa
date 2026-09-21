@@ -116,6 +116,14 @@ aqui exigem atualização deste arquivo no mesmo PR.
   isso não impede o pipeline de build/preview. Status: **CONFIGURADO E FUNCIONAL** (apenas o
   pipeline de build/preview — nenhuma evidência de Supabase ou persistência real em produção).
 
+## Nota de Governança (D-013 — Modelo Fase A / Fase B)
+
+Dynamic Island (`DynamicIsland.tsx`/`MobileIsland.tsx`) e Context Panel (`ContextPanel.tsx`) são
+elementos de contrato de experiência, não decoração — fazem parte do que `AGENT_RULES.md` → seção 0
+e `QA_GATE.md` → seção 11 exigem para uma aba ser `EXPERIENCE COMPLETE` (reação a navegação/estado/
+loading, não apenas estado idle). Ver `DECISIONS.md` → D-013 para o modelo completo. Esta nota é só
+um ponteiro — a especificação normativa vive em `AGENT_RULES.md`/`QA_GATE.md`, não duplicada aqui.
+
 ## Áreas Congeladas
 
 Nenhuma alteração nos arquivos abaixo sem decisão humana explícita registrada em `DECISIONS.md`:

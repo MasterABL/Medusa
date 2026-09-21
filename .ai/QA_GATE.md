@@ -66,13 +66,50 @@ outra branch não mesclada (ver `git merge-base --is-ancestor`), a base mescla p
 tarefa pode legitimamente estar com Implementation/Test/Build/Browser QA todos `PROVADO` e o Merge
 Gate ainda `BLOQUEADO` — isso não é uma contradição, é a distinção Merge Gate ≠ Implementation Gate.
 
-## 11. Closed Gate — Classificação final
+## 11. Experience-Complete Gate (FASE A — ver `AGENT_RULES.md` → seção 0, `DECISIONS.md` → D-013)
+
+Aplicável a qualquer tarefa de UI/UX/motion numa das 8 abas (`Hoje/Agenda/Educação/Corpo/
+Finanças/Progresso/Guardian/Buscar`). Distinto e anterior ao Engineering-Complete (dados reais,
+persistência, integrações — Fase B). Uma aba só é `EXPERIENCE COMPLETE` quando:
+
+1. **Estrutura**: Shell (Sidebar/Main/Context Panel/Dynamic Island) respeitada, sem literais de
+   geometria fora de `SHELL_DIMENSIONS`.
+2. **UI**: layout, hierarquia, tipografia, espaçamento, densidade e responsive cobertos.
+3. **UX**: ciclo ação→resposta→transição→estado intermediário→novo estado→feedback documentado
+   para clique/seleção/navegação/abrir-fechar/editar/confirmar/cancelar/sucesso/erro/loading/
+   retry/disabled.
+4. **Motion**: cada fluxo relevante com estado A → ação → transição → estado intermediário →
+   estado B. **Evidência exigida em plena transição** — um valor real (opacidade/largura/
+   transform) amostrado durante a animação (não apenas um screenshot antes e outro depois).
+   Quando dois estados são conceitualmente a mesma experiência, preferir estrutura persistente que
+   transforma a um `unmount`/`remount` abrupto.
+5. **Loading**: `initial → loading/skeleton → content ready → reveal`, skeleton respeitando a
+   geometria real do conteúdo final.
+6. **Responsive**: 390/820/1024/1440 avaliados por composição/densidade/hierarquia/espaço útil —
+   não apenas ausência de overflow.
+7. **Accessibility**: keyboard, focus/focus-visible, contraste, reduced motion (preservando estado
+   ativo/feedback/troca de contexto, reduzindo apenas deslocamento/pulso decorativo), labels.
+8. **Estados obrigatórios** cobertos quando fizerem sentido: initial/loading/populated/empty/
+   error/saving/success/disabled.
+9. **Microinterações**: hover/active/press/focus/feedback, incluindo reação do Dynamic Island e do
+   Context Panel às ações do usuário.
+10. **Browser QA real** de todo o acima (não leitura de código).
+11. **Human Experience Gate**: aprovação humana explícita de que a experiência está fechada —
+    automação prova os itens 1-10, não substitui esta decisão (`AGENT_RULES.md` → seção 11).
+
+**Fixtures/Local State são aceitos e esperados nesta fase** — nunca representados como dado real/
+persistido (`AGENT_RULES.md` → Honestidade). Nenhuma tarefa de Fase B (Google/Gemini/OpenRouter/
+Supabase real/automações/regras de negócio definitivas) começa para nenhum domínio antes de todas
+as 8 abas atingirem este gate.
+
+## 12. Closed Gate — Classificação final
 
 | Situação | Status correto |
 |---|---|
 | Gates 1–10 passaram com evidência real, incluindo merge em `main` | `PROVADO` (fechado) |
 | Gates 1–9 passaram com evidência real, mas Merge Gate (10) ainda pendente | `PROVADO` (implementação) / `PARCIAL` (fechamento de fase) — nunca descrito como "concluído" sem dizer que não está em `main` |
 | Gates 1–5 passaram, mas Browser QA/Regression não foram feitos ou falharam parcialmente | `PARCIAL` |
+| Tarefa de UI/UX/motion (Fase A) com Gates 1-10 `PROVADO` mas sem Human Experience Gate (11) | `EXPERIENCE EM REFINAMENTO` (ver `AGENT_RULES.md` → seção 0) — nunca `EXPERIENCE COMPLETE` |
 | Qualquer gate anterior bloqueia o andamento (ex.: decisão humana pendente, ambiente sem browser) | `BLOQUEADO` |
 | A tarefa nem chegou a ser implementada | `NÃO IMPLEMENTADO` |
 

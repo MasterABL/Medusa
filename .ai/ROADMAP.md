@@ -21,6 +21,83 @@ CONTRACT        → o que esta fase faz, definido em PRODUCT_CONTRACT.md / MASTE
 
 A numeração de gate abaixo é **idêntica** à numeração de fase em `MASTER_PLAN.md` — Gate N = fase N.
 
+## MEDUSA ROADMAP — Modelo FASE A / FASE B (`DECISIONS.md` → D-013 — APROVADA HUMANAMENTE, `AGENT_RULES.md` → seção 0)
+
+Decisão arquitetural **aprovada humanamente** (ratificação em 2026-09-21) e vigente como governança
+oficial: nenhuma aba entra em Fase B (dados reais/persistência/integrações) antes de **todas** as 8
+abas fecharem Fase A (Experience). Esta grade é global e transversal às fases numeradas abaixo — não
+substitui o grafo de dependências por fase, o restringe.
+
+```
+MEDUSA ROADMAP
+FASE A — DESIGN / EXPERIENCE
+[ ] Hoje
+[ ] Agenda
+[ ] Educação
+[ ] Corpo
+[ ] Finanças
+[ ] Progresso
+[ ] Guardian
+[ ] Buscar
+        ↓
+DESIGN SYSTEM / EXPERIENCE SPEC CONSOLIDADO
+        ↓
+BROWSER / VISUAL QA
+        ↓
+HUMAN EXPERIENCE GATE
+        ↓
+FASE B — PRODUTO / ENGENHARIA
+[ ] dados
+[ ] persistência
+[ ] APIs
+[ ] integrações
+[ ] Supabase
+[ ] Google
+[ ] IA
+[ ] automações
+[ ] regras de negócio
+        ↓
+INTEGRAÇÃO
+        ↓
+END-TO-END QA
+```
+
+**Nenhum checkbox acima é marcado sem evidência em `EVIDENCE.md` + Human Experience Gate
+(`QA_GATE.md` → seção 11) para aquela aba especificamente.** Estado real verificado nesta sessão
+(nenhum `[x]` ainda — ver justificativa por aba):
+
+| Aba | Classificação atual (`AGENT_RULES.md` → seção 0) | Por que não é `[x]` ainda |
+|---|---|---|
+| Hoje | BASE IMPLEMENTADA | PR #4, provado tecnicamente (Gates 1-10), sem Human Experience Gate (11) nem merge |
+| Agenda | BASE IMPLEMENTADA | PR #6, provado tecnicamente, sem Human Experience Gate nem merge |
+| Educação | EXPERIENCE EM REFINAMENTO | PR #7 refina motion/espaço/Island sobre base já provada; sem Human Experience Gate nem merge |
+| Corpo | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+| Finanças | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+| Progresso | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+| Guardian | NÃO IMPLEMENTADO | nenhum arquivo/spec existe (Fase 9 pode abrir Contract, não Experience) |
+| Buscar | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+
+**Compatibilidade com o grafo de dependências por fase (abaixo)**: o grafo numerado descreve
+*ordem de dependência entre domínios* (ex.: Fase 8/Progresso deriva de 3/4/6/7). O modelo Fase A/
+Fase B descreve um *corte transversal* por tipo de trabalho (Experience vs Engineering) que se
+aplica a cada fase numerada individualmente — CONTRACT/PLAN/IMPLEMENTATION/UI/Local State de
+`MASTER_PLAN.md` mapeiam para Fase A; Persistence Slice/Integration mapeiam para Fase B. `D-006`
+(Auth só bloqueia Persistence Slice, não UI/Local State) continua válido e é o mecanismo que já
+permitia UI antes de Auth — `D-013` apenas adiciona a trava adicional de que a *entrada em Fase B*
+de qualquer domínio espera as 8 abas fecharem Fase A, não apenas espera Auth.
+
+**Nota de discrepância factual (auditoria desta sessão, não uma correção inventada)**: as tabelas
+de gate por fase abaixo (FASE 1, FASE 3, FASE 4) ainda referenciam apenas PR #1/PR #2 como a
+implementação em análise. Isso é uma descrição correta *daquelas branches especificamente*, mas
+está desatualizado como retrato do estado atual do repositório: a partir desta sessão, PR #5
+(Context Panel geometry), PR #6 (Agenda, base limpa) e PR #7 (Educação multi-trilha, base limpa)
+são as branches independentemente mescláveis que carregam o mesmo conteúdo de produto sem a
+dependência bundled de PR #1→PR #2 (`D-012`). Este arquivo não foi reescrito linha a linha para
+refletir isso (fora do escopo desta tarefa, que é documentação da decisão Fase A/B, não auditoria
+geral do roadmap) — o estado correto e atualizado por branch/PR vive em `CURRENT_STATE.md` →
+"Baseline Git", que deve ser consultado em vez das tabelas de gate abaixo para saber qual PR é a
+candidata real a merge hoje.
+
 ## Grafo de dependências (fases)
 
 ```
