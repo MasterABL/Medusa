@@ -341,13 +341,56 @@ suposição. O que existe hoje para cada uma:
 
 ---
 
+### TASK-AGENDA-EXPERIENCE-001 — Fechar motion/Dynamic Island/UX da Agenda para o Experience-Complete Gate
+
+- **FASE:** Agenda — segunda frente oficial de Fase A (D-013), depois de Hoje, na ordem oficial
+  `Hoje → Agenda → Educação → Corpo → Finanças → Progresso → Guardian → Buscar`.
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — motion/Dynamic Island/UX; nenhuma persistência real).
+- **ORIGEM:** D-013 exige que cada aba feche Experience (não apenas "base implementada") antes de
+  qualquer domínio avançar para Fase B. Auditoria desta rodada sobre a base já provada em PR #6
+  achou 3 gaps reais de Fase A (troca de view sem transição, zero integração com o Dynamic Island,
+  salvar/excluir sem feedback) e 1 bug funcional real (exclusão de ocorrência de rotina
+  silenciosamente no-op, por id virtual não resolvido) — ver `EVIDENCE.md` → E-030.
+- **DO NOT TOUCH:** arquitetura de views/CRUD/categorias já provada em PR #6; catálogo fechado de
+  10 estados do Island (`islandFixtures.ts`) — reação da Agenda usa só pulsos transientes
+  `processing`→`idle` já existentes, nunca um estado persistente novo nem redefinição de texto.
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-030)
+  1. Troca de modo de visualização (Dia/Semana/Mês/Lista) usa a animação de entrada já existente
+     (`.study-stage-enter`), não um swap instantâneo.
+  2. Dynamic Island reage (pulso `processing`→`idle`) a troca de view, salvar e excluir.
+  3. Exclusão rápida na Lista exige confirmação em 2 passos, consistente com o EventDetailPanel.
+  4. Bug de exclusão de ocorrência de rotina corrigido (resolve para o id da série base).
+  5. `npx tsc --noEmit` e `npm run build` sem erro.
+  6. Browser QA real com amostragem EM PLENA TRANSIÇÃO (opacity/transform da view, classes do
+     Island durante o pulso) — 27/27 checks novos.
+  7. Regressão: `qa-agenda-shell-integration.js` (11/11) e `qa-agenda.js` (29/30, falha ambiental
+     já documentada, `BLOCK-005`) continuam passando sem regressão.
+  8. 390/820/1024/1440 validados sem overflow.
+  9. `prefers-reduced-motion: reduce` real testado (troca de view).
+  10. Nenhuma regressão em Context Panel/Shell/navegação.
+- **STATUS:** Gates 1-10 (`QA_GATE.md`) **PROVADO**. Gate 11 (Human Experience Gate) **BLOQUEADO**
+  — decisão humana pendente, não uma lacuna de execução. Classificação conforme `AGENT_RULES.md` →
+  seção 0: **`EXPERIENCE EM REFINAMENTO`** (não `EXPERIENCE COMPLETE` até o Human Experience Gate).
+  PR https://github.com/MasterABL/Medusa/pull/9 (draft). Depende de PR #6 (que depende de PR #5,
+  mesma relação de `D-012`). Merge Gate: BLOQUEADO (aprovação humana, mesma natureza de HDR-001).
+- **FORA DE ESCOPO NESTA RODADA** (registrado, não implementado): exclusão de uma única ocorrência
+  de rotina mantendo as demais (exigiria modelo de exceção por data); animação de saída de
+  drawers/modais (`EventFormDrawer`, `CategoryModal`, e também `TutorDrawer` de Educação — todos
+  desmontam instantaneamente ao fechar, um padrão já existente em todo o app, não uma regressão
+  desta tarefa; corrigir isso tocaria Educação, área congelada, e exigiria decisão prévia).
+
+---
+
 ## QUEUE AUDIT (Execution Sprint — Capability Audit + Maximum Product Expansion, sessão atual)
 
-**Nota de processo:** esta sessão teve três rodadas. A 1ª ampliou o escopo para um Capability
-Audit completo e resolveu de fato o P0 do Context Panel (PR #5). A 2ª priorizou Agenda sobre a
-auditoria de Educação (PR #6). A 3ª voltou a Educação — não como auditoria genérica, mas como
-refinamento direcionado de motion/espaço/Dynamic Island sobre a base multi-trilha já portada
-(PR #7).
+**Nota de processo:** esta sessão teve quatro rodadas (mais uma rodada de continuação de governança
+registrando D-013 entre a 3ª e a 4ª, sem código de produto). A 1ª ampliou o escopo para um
+Capability Audit completo e resolveu de fato o P0 do Context Panel (PR #5). A 2ª priorizou Agenda
+sobre a auditoria de Educação (PR #6). A 3ª voltou a Educação — não como auditoria genérica, mas
+como refinamento direcionado de motion/espaço/Dynamic Island sobre a base multi-trilha já portada
+(PR #7). A 4ª (após D-013 ser aprovada humanamente) fechou os gaps de Fase A da Agenda — motion de
+troca de view, integração com o Dynamic Island, feedback de salvar/excluir, e um bug funcional real
+de exclusão de rotina — sobre a base já provada em PR #6 (PR #9).
 
 ```
 UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
@@ -361,6 +404,13 @@ UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
     cherry-picked para `feat/education-multitrack` (base: PR #5), sem conflitos. Refinado: espaço
     do palco, transição de troca de trilha, timing aula→exercícios, estado de voz real no Island.
     41/41 checks reais com amostragem em plena transição. PR #7 aberta.
+  - D-013 (Modelo Fase A precede Fase B) registrada, documentada em `.ai/` e **aprovada
+    humanamente** — PR #8 mesclado em `chore/agent-os-bootstrap`.
+  - TASK-AGENDA-EXPERIENCE-001 → EXECUTADA. Gates 1-10 PROVADO (E-030): motion de troca de view,
+    Dynamic Island reagindo (pulso `processing`→`idle`), confirmação de exclusão em 2 passos na
+    Lista, bug de exclusão de ocorrência de rotina corrigido. 27/27 checks novos + 11/11 + 29/30
+    de regressão. Gate 11 (Human Experience Gate) BLOQUEADO — classificação `EXPERIENCE EM
+    REFINAMENTO`. PR #9 aberta, depende de PR #6 (que depende de PR #5, `D-012`).
 
 QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (registrado para não
 fingir conclusão):
@@ -378,12 +428,17 @@ BLOCKED TASKS (Human Gate real, não escopo inteiro):
   - Fases 6-13 / layout final completo de Hoje / Corpo / Finanças / Progresso / Guardian / Buscar:
     HDR-005.
   - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4), Context Panel (PR #5),
-    Agenda (PR #6) e Study Mode Refinement (PR #7): HDR-001.
+    Agenda (PR #6), Study Mode Refinement (PR #7) e Agenda Experience (PR #9): HDR-001.
+  - Human Experience Gate (`QA_GATE.md` → Gate 11) para Hoje, Agenda e Educação — distinto do
+    Merge Gate, ainda não concedido para nenhuma aba.
 
-HUMAN GATES (inalterados nesta sessão):
-  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5 → PR #6 → PR #7, com
-    PR #6 e PR #7 tecnicamente dependentes de PR #5 — `D-012`)
+HUMAN GATES (atualizado nesta rodada):
+  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5 → PR #6 → PR #7 →
+    PR #9, com PR #6/#7/#9 tecnicamente dependentes de PR #5 — `D-012`)
   - HDR-011 (provedor de Auth)
+  - Human Experience Gate por aba (`QA_GATE.md` → Gate 11) — Hoje/Agenda/Educação com Gates 1-10
+    `PROVADO`, aguardando esta decisão especificamente (D-013 já aprovada não concede isto
+    automaticamente — são decisões distintas)
 
 TECHNICAL BLOCKERS:
   - `npm audit` bloqueado pelo classificador de modo automático do ambiente (real, verificado).
@@ -391,11 +446,12 @@ TECHNICAL BLOCKERS:
   - IA/Google Workspace/Stitch como features de produto: BLOCK-009.
 
 NEXT EXECUTABLE TASK (real, não hipotética):
-  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
-  do que as suítes de Context Panel + Agenda + Study Mode já cobrem individualmente — não
-  depende de nenhum HDR nem de BLOCK-009. TRACK: DESIGN/EXPERIENCE (Fase A) — consistente com
-  D-013, já que nenhuma tarefa ENGINEERING/INTEGRATION pode ser "next executable" com Fase A
-  ainda aberta nas 8 abas.
+  Educação/Study Mode é a próxima aba na ordem oficial de Fase A (`Hoje → Agenda → Educação →
+  Corpo → Finanças → Progresso → Guardian → Buscar`) que ainda não tem uma rodada de fechamento
+  de Experience dedicada (Hoje e Agenda já tiveram; Educação teve refinamento de motion/espaço/
+  Island em PR #7, mas não uma auditoria de fechamento completo dos 11 itens do Gate de
+  Experience-Complete). TRACK: DESIGN/EXPERIENCE (Fase A) — consistente com D-013, já que nenhuma
+  tarefa ENGINEERING/INTEGRATION pode ser "next executable" com Fase A ainda aberta nas 8 abas.
 ```
 
 **Nota D-013 sobre esta seção**: nenhum item de `BLOCKED TASKS`/`HUMAN GATES` acima que seja

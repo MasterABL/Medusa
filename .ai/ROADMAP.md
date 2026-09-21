@@ -69,7 +69,7 @@ END-TO-END QA
 | Aba | Classificação atual (`AGENT_RULES.md` → seção 0) | Por que não é `[x]` ainda |
 |---|---|---|
 | Hoje | BASE IMPLEMENTADA | PR #4, provado tecnicamente (Gates 1-10), sem Human Experience Gate (11) nem merge |
-| Agenda | BASE IMPLEMENTADA | PR #6, provado tecnicamente, sem Human Experience Gate nem merge |
+| Agenda | EXPERIENCE EM REFINAMENTO | PR #6 (base) + PR #9 (motion/Island/UX fechados), Gates 1-10 provado, sem Human Experience Gate nem merge |
 | Educação | EXPERIENCE EM REFINAMENTO | PR #7 refina motion/espaço/Island sobre base já provada; sem Human Experience Gate nem merge |
 | Corpo | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
 | Finanças | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
