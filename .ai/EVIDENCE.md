@@ -751,6 +751,49 @@ todos os critérios de aceite verificados.
 
 ---
 
+## E-028 — TASK-AGENDA-SHELL-001: Agenda cherry-picked para branch independente, testada de verdade
+
+**Comando (branch `feat/agenda`, criada a partir de `fix/context-panel-geometry`):**
+```
+$ git cherry-pick 758cd8d   # commit original da Agenda em origin/feature/agenda
+CONFLICT (content): Merge conflict in src/components/shell/ContextPanel.tsx
+(único conflito — os outros 23 arquivos aplicaram limpos)
+```
+Conflito reconciliado manualmente: geometria de `fix/context-panel-geometry` (largura via
+`geometry.effectiveContextWidth`, borda zerada quando fechado) + branch de conteúdo
+`activeRoute === 'agenda' ? <AgendaContextSummary/> : (...)` de `758cd8d`.
+
+```
+$ npx tsc --noEmit   → 0 erros
+$ npm run build      → sucesso
+
+$ MEDUSA_BROWSER_PATH=/opt/pw-browsers/chromium node scripts/qa-agenda.js   (script original, portado sem alteração)
+=== QA AGENDA COMPLETO: 29 PASSOU | 1 FALHOU ===
+[FAIL] Zero erros graves no console do navegador (Erros: 2)
+```
+A única falha é `net::ERR_CERT_AUTHORITY_INVALID` do Google Fonts — a mesma limitação ambiental
+de TLS externo já documentada em `BLOCKERS.md` → BLOCK-004/BLOCK-005, não um defeito funcional.
+As outras 29 verificações reais passaram: roteamento, Day/Week/Month/List View, detecção de
+conflito com duração real, tempo livre, navegação temporal, CRUD completo (criar/inspecionar/
+editar/excluir com confirmação em 2 passos), gerenciador de 24 cores, filtro por domínio, síntese
+no Context Panel, 390px/820px/1440px, temas (Sépia/Escuro), não-regressão de Educação.
+
+**Suíte nova, específica desta branch** (`scripts/qa-agenda-shell-integration.js`):
+```
+=== RESULTADO: 11 PASSOU | 0 FALHOU ===
+```
+Cobre o que a suíte original não cobria e que esta sessão exigia explicitamente: regressão da
+geometria do Context Panel **na própria rota Agenda** (abrir/fechar/reabrir com largura real
+amostrada em plena transição, mesma metodologia de E-027), 1024px, navegação
+Hoje→Agenda→Educação sem quebra da Shell, e comportamento do drawer de criação de evento sob
+`prefers-reduced-motion: reduce`.
+
+**PR:** https://github.com/MasterABL/Medusa/pull/6 (draft). Depende de PR #5 (`D-012`).
+
+**Status: PROVADO** — 40/41 checks reais (a única falha é ambiental, já documentada, não do app).
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |
@@ -763,4 +806,5 @@ todos os critérios de aceite verificados.
 | Context Panel — investigação P0 (BLOCK-008), 1ª sessão | Causa raiz lida no código + teste comparativo real `main` vs `feature/agenda` (E-024) | — | **PROVADO** (achado) |
 | TASK-CONTEXT-PANEL-GEOMETRY-001 (correção portada, PR #5) | Contract, Implementation, Test, Build, Browser QA 3 modos × 4 breakpoints, reduced-motion, persistência, regressão (E-027) | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os ACCEPTANCE CRITERIA) — Merge: BLOQUEADO |
 | Capability Audit (IA/Design/Knowledge/Dados/Google/Observabilidade/QA/Segurança) | Verificação real via ListConnectors, ToolSearch, Supabase/Vercel MCP, grep de segredos (E-027) | — | **PROVADO** (auditoria, não implementação de produto) |
+| TASK-AGENDA-SHELL-001 (Agenda cherry-picked, branch própria, PR #6) | Contract (D-012), Implementation, Test, Build, Browser QA original (29/30) + suíte nova de regressão de Shell (11/11) (E-028) | Merge Gate (depende de PR #5, mesma natureza de HDR-001) | **PROVADO** (40/41 checks reais — a única falha é ambiental, já documentada) — Merge: BLOQUEADO |
 | TASK-HOJE-FOUNDATION-001 (Hoje Foundation v1 + honestidade em rotas pendentes) | Contract (E-025, HUMAN GATE ANALYSIS), Implementation, Test, Build, Browser QA 4 breakpoints, reduced-motion, regressão (E-026) — PR #4 | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os 7 ACCEPTANCE CRITERIA) — Merge: BLOQUEADO (aprovação humana pendente) |

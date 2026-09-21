@@ -109,6 +109,31 @@ PODE SER INFERIDO?: SIM, com escopo estritamente limitado a typecheck/build (os 
 incluído por engano no rascunho inicial da tarefa). Configurar ESLint de verdade fica registrado
 como item de backlog de baixa prioridade (`BLOCKERS.md`), não bloqueia nada.
 
+### D-012 — Agenda separada da fila de merge de PR #1/#2: cherry-pick sobre a correção de geometria, não espera por HDR-001
+
+```
+HUMAN GATE ANALYSIS
+QUESTÃO: A Agenda pode ser levada a PROVADO/IMPLEMENTED sem esperar a aprovação de merge de PR #2?
+EVIDÊNCIA NO CÓDIGO: `758cd8d` ("implement complete Medusa Temporal OS...") é um commit
+  autocontido de 24 arquivos que não toca Educação e só depende de `ContextPanel.tsx` já usar
+  `geometry` (a mesma fonte única de verdade que `fix/context-panel-geometry`, PR #5, já trouxe
+  para `main` de forma independente).
+PRECEDENTE: mesma lógica de `D-008` (dependência de topologia Git, não escolha) — só que em vez de
+  esperar `fix/foundation-hardening` (PR #1, que também bundla a expansão de Educação, ainda sob
+  ratificação de merge), a Agenda foi replantada sobre `fix/context-panel-geometry` (PR #5),
+  que já contém a mesma classe de correção sem bundlar Educação.
+PODE SER INFERIDO?: SIM — a instrução explícita desta sessão foi "o Capability Audit não altera o
+  roadmap funcional" e "BLOCKs de infraestrutura não devem bloquear a Agenda". HDR-001 é sobre
+  aprovação humana de merge, não sobre se o código pode existir e ser provado numa branch própria.
+```
+**Decidido e executado nesta sessão**: `758cd8d` foi cherry-picked de `origin/feature/agenda` para
+uma nova branch `feat/agenda`, criada a partir de `fix/context-panel-geometry` (não de `main`
+diretamente — dependência de topologia Git real, mesma natureza de `D-008`). Único conflito real
+foi em `ContextPanel.tsx` (reconciliado: geometria de `fix/context-panel-geometry` + branch de
+conteúdo `activeRoute === 'agenda'` de `758cd8d`). PR #6 aberta. **PR #6 depende de PR #5** —
+mesclar PR #5 primeiro reduz o diff de PR #6 a apenas Agenda; mesclar PR #6 diretamente traz PR #5
+junto (mesmo resultado final, ordem diferente). `HDR-001` agora também cobre esta relação.
+
 ---
 
 ## HUMAN DECISION REQUIRED

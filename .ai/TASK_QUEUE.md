@@ -264,76 +264,92 @@ suposição. O que existe hoje para cada uma:
 
 ---
 
+### TASK-AGENDA-SHELL-001 — Levar Agenda de PENDING (só em `feature/agenda`) para IMPLEMENTED numa branch independente
+
+- **FASE:** Agenda (Fase 3, se numerada pelo MASTER_PLAN) — instrução explícita de continuação de
+  sprint: "Não siga [auditoria de Educação]. O próximo domínio de implementação é: AGENDA."
+- **ORIGEM:** a Agenda já existia, completa e auditada (`TASK-AGENDA-001`, 9/9 ACCEPTANCE
+  CRITERIA), mas só em `feature/agenda` (PR #2), presa atrás de `HDR-001` porque essa branch
+  também bundla Educação e uma versão diferente do hardening do Shell.
+- **ESCOPO:** cherry-pick do commit `758cd8d` (só a Agenda, autocontido) para uma branch nova
+  baseada em `fix/context-panel-geometry` (PR #5) em vez de `fix/foundation-hardening` (PR #1) —
+  evita esperar pela ratificação de Educação. Reconciliação do único conflito real
+  (`ContextPanel.tsx`) preservando a correção de geometria da PR #5.
+- **DO NOT TOUCH:** Educação (não tocada — cherry-pick não trouxe `e616635`); Guardian; nenhuma
+  integração Google/IA (`BLOCK-009` continua registrado como está, não bloqueia a Agenda).
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-028)
+  1. 4 views (Day/Week/Month/List) funcionais com dados de fixture.
+  2. Detecção de conflito e tempo livre reais.
+  3. CRUD completo (criar/inspecionar/editar/excluir com confirmação em 2 passos).
+  4. 24 cores de categoria + gerenciador funcional.
+  5. Filtro por domínio.
+  6. Context Panel mostra síntese temporal da Agenda sem regredir a geometria corrigida em PR #5.
+  7. `npx tsc --noEmit` e `npm run build` sem erro.
+  8. Browser QA real (script original + suíte nova de regressão de Shell) em 390/820/1024/1440.
+  9. `prefers-reduced-motion: reduce` real testado no drawer de criação de evento.
+  10. Nenhuma regressão em Educação/Sidebar/navegação.
+- **STATUS:** **PROVADO.** PR https://github.com/MasterABL/Medusa/pull/6 (draft). Depende de
+  PR #5 (`D-012`). Merge Gate: BLOQUEADO (aprovação humana, mesma natureza de HDR-001).
+
+---
+
 ## QUEUE AUDIT (Execution Sprint — Capability Audit + Maximum Product Expansion, sessão atual)
 
-**Nota de processo:** esta sessão ampliou o escopo do sprint anterior para um Capability Audit
-completo (IA/Design/Knowledge/Dados/Google/Observabilidade/QA/Segurança — ver `EVIDENCE.md` →
-E-027) e para resolver de fato o P0 do Context Panel (antes só investigado, agora corrigido e em
-PR). A fila anterior já havia identificado "auditoria de Educação" como próxima tarefa — ver
-`QUEUE AUDIT PARCIAL` abaixo para por que ela ainda não foi executada nesta rodada.
+**Nota de processo:** esta sessão teve duas rodadas. A 1ª ampliou o escopo para um Capability
+Audit completo e resolveu de fato o P0 do Context Panel (PR #5). A 2ª rodada recebeu instrução
+explícita do usuário para NÃO seguir a "next executable task" anterior (auditoria de Educação) e
+priorizar Agenda — "o Capability Audit não altera o roadmap funcional". Agenda foi levada de
+PENDING (só em `feature/agenda`, presa por `HDR-001`) para PROVADO numa branch própria (PR #6).
 
 ```
 UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
-  - Capability Audit completo → CONCLUÍDO, PROVADO (E-027). Achados principais: nenhum conector
-    de IA (Gemini/AI Studio/OpenRouter/Context7/Sentry) existe neste ambiente; Stitch tem uma
-    chave real no Vercel mas nenhuma via de acesso; Google Workspace conectado só ao escopo desta
-    sessão, não ao produto; Supabase tem um projeto real "Medusa" já criado (vazio, plano free).
+  - Capability Audit completo → CONCLUÍDO, PROVADO (E-027).
   - TASK-CONTEXT-PANEL-GEOMETRY-001 → EXECUTADA, PROVADO (E-027). PR #5 aberta.
-  - `.github/dependabot.yml` criado (achado do audit de segurança, gratuito, zero risco) —
-    incluído na mesma PR #5.
+  - `.github/dependabot.yml` criado — incluído na mesma PR #5.
+  - TASK-AGENDA-SHELL-001 → EXECUTADA, PROVADO (E-028). Agenda cherry-picked de `feature/agenda`
+    para `feat/agenda` (base: PR #5), único conflito (`ContextPanel.tsx`) reconciliado, 40/41
+    checks reais (script original + suíte nova de regressão de Shell). PR #6 aberta.
 
-QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (falta de orçamento de
-execução dentro desta rodada, não falta de tarefa executável — registrado para não fingir
-conclusão; ver seção 31 do prompt do usuário: "quando não puder fazer algo, explique exatamente
-por quê"):
-  - Auditoria de qualidade de Educação/Study Mode (a "next executable task" já identificada na
-    sessão anterior) — NÃO EXECUTADA nesta rodada; o tempo foi para o Capability Audit + Context
-    Panel (P0 explícito). Continua sendo a próxima tarefa executável mais óbvia.
+QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (registrado para não
+fingir conclusão):
+  - Auditoria de qualidade de Educação/Study Mode — explicitamente REPRIORIZADA pelo usuário
+    nesta rodada (não descartada, só não é mais a "next" — ver instrução de continuação).
   - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
-    (seções 20-24 do prompt) — NÃO EXECUTADA além do que a suíte de QA do Context Panel já cobre
-    (motion/reduced-motion/responsive desse componente específico).
-  - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão contrato→legado→Stitch→
-    precedente→gate — NÃO EXECUTADA nesta rodada (além do estado honesto de pendência já aplicado
-    na sessão anterior).
-  - QA como produto (suíte reutilizável unit/integration/e2e/a11y/performance/security) — NÃO
-    ESTRUTURADA; hoje continuam sendo scripts individuais (`scripts/qa-*.js`), reais e passando,
-    mas não consolidados num framework único.
-  - Observabilidade (Sentry ou alternativa) — NÃO IMPLEMENTADA. Nenhuma conta de terceiro foi
-    criada nesta sessão (criar uma conta em nome do usuário sem confirmação não é apropriado);
-    registrado como preparável, não como decisão tomada.
+    além do que as suítes de Context Panel + Agenda já cobrem.
+  - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão.
+  - QA como produto (suíte reutilizável consolidada) — ainda scripts individuais, reais e
+    passando, mas não unificados num framework único.
+  - Observabilidade (Sentry ou alternativa) — NÃO IMPLEMENTADA, nenhuma conta de terceiro criada.
 
 BLOCKED TASKS (Human Gate real, não escopo inteiro):
-  - Fase 2 (Auth): HDR-011 (escolha de provedor externo — decisão humana real). Bloqueia também
-    o wiring de Supabase como persistência real (infraestrutura já existe, ver BLOCK-009).
-  - IA/Gemini/OpenRouter: BLOCK-009 — falta pré-requisito técnico (nenhuma chave de API existe).
-  - Google Workspace como feature de produto: BLOCK-009 — falta pré-requisito de infraestrutura
-    (app OAuth próprio do Medusa no Google Cloud Console, não escolha entre opções).
+  - Fase 2 (Auth): HDR-011. Bloqueia também o wiring de Supabase como persistência real.
+  - IA/Gemini/OpenRouter e Google Workspace como feature de produto: BLOCK-009 (pré-requisitos de
+    infraestrutura ausentes, não escolha entre opções) — não bloquearam a Agenda, como instruído.
   - Fases 6-13 / layout final completo de Hoje / Corpo / Finanças / Progresso / Guardian / Buscar:
     HDR-005.
-  - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4) e Context Panel (PR #5):
-    HDR-001.
+  - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4), Context Panel (PR #5) e
+    Agenda (PR #6): HDR-001.
 
 HUMAN GATES (inalterados nesta sessão):
-  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5)
+  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5 → PR #6, com PR #6
+    tecnicamente dependente de PR #5 — `D-012`)
   - HDR-011 (provedor de Auth)
 
 TECHNICAL BLOCKERS:
-  - `npm audit` bloqueado pelo classificador de modo automático do ambiente (real, verificado,
-    não contornado) — compensado por auditoria manual de dependências/segredos (E-027).
+  - `npm audit` bloqueado pelo classificador de modo automático do ambiente (real, verificado).
   - Antigravity (`agy`) segue inalcançável nesta sessão (BLOCKERS.md → BLOCK-001), sem impacto.
-  - IA/Google Workspace/Stitch como features de produto: BLOCK-009 (pré-requisitos de
-    infraestrutura ausentes, não Human Gates de escolha).
+  - IA/Google Workspace/Stitch como features de produto: BLOCK-009.
 
 NEXT EXECUTABLE TASK (real, não hipotética):
-  Auditoria de qualidade de Educação/Study Mode — não depende de nenhum HDR nem de BLOCK-009,
-  escopo claramente definido, evidência de código já parcialmente levantada em sessão anterior
-  (`.study-stage-enter` e classes irmãs em `globals.css`). Continua sendo a candidata mais óbvia
-  para a próxima rodada.
+  Instrução explícita do usuário: Agenda é o domínio corrente. Dentro dele, o que resta não
+  executado é a auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance além do
+  que as suítes já cobrem (ver QUEUE AUDIT PARCIAL). Auditoria de Educação/Study Mode permanece
+  identificada e pronta, mas foi explicitamente reordenada para depois de Agenda.
 ```
 
 **Decisões que desbloqueariam trabalho além disso, cada uma com o que ela libera:**
 - **HDR-001** (aprovação de merge) → libera o fechamento formal das Fases 1, 3, 4, Hoje
-  Foundation (PR #4) e Context Panel (PR #5).
+  Foundation (PR #4), Context Panel (PR #5) e Agenda (PR #6).
 - **HDR-011** (escolher provedor de Auth) → libera o início real da Fase 2 E o wiring do projeto
   Supabase já existente como persistência real.
 - Provisionar uma chave de API de IA (Gemini ou OpenRouter, decisão humana de custo/provider) →
