@@ -1,0 +1,207 @@
+# ROADMAP.md — Roadmap por Fases com Gate Objetivo
+
+Cada fase percorre obrigatoriamente esta esteira, nesta ordem. Uma fase não pode ser marcada
+`PROVADO` sem evidência anexada em `EVIDENCE.md` para cada etapa abaixo. **Merge Gate é distinto de
+Implementation Gate** (ver `DECISIONS.md` → D-007): uma fase pode ter Implementation/Test/Build/
+Browser QA todos `PROVADO` num branch/PR e ainda não estar em `main`.
+
+```
+CONTRACT        → o que esta fase faz, definido em PRODUCT_CONTRACT.md / MASTER_PLAN.md
+  → PLAN        → tarefa(s) concretas em TASK_QUEUE.md com ACCEPTANCE CRITERIA
+  → IMPLEMENTATION → código escrito em branch própria
+  → TEST        → typecheck + (quando existir) testes automatizados
+  → BUILD       → npm run build sem erro
+  → BROWSER QA  → execução real em navegador, com screenshot/asserção, não só leitura de código
+  → REGRESSION  → áreas congeladas reconfirmadas intactas
+  → EVIDENCE    → tudo acima registrado em EVIDENCE.md com comando/arquivo/saída real
+  → REVIEW/AUDIT → Claude (ou humano) audita o diff contra QA_GATE.md e ACCEPTANCE CRITERIA
+  → MERGE       → PR mesclado em main (nunca automático — decisão humana, AGENT_RULES.md → Git)
+  → CLOSED GATE → status final pós-merge: PROVADO / PARCIAL / BLOQUEADO / NÃO IMPLEMENTADO
+```
+
+A numeração de gate abaixo é **idêntica** à numeração de fase em `MASTER_PLAN.md` — Gate N = fase N.
+
+## MEDUSA ROADMAP — Modelo FASE A / FASE B (`DECISIONS.md` → D-013 — APROVADA HUMANAMENTE, `AGENT_RULES.md` → seção 0)
+
+Decisão arquitetural **aprovada humanamente** (ratificação em 2026-09-21) e vigente como governança
+oficial: nenhuma aba entra em Fase B (dados reais/persistência/integrações) antes de **todas** as 8
+abas fecharem Fase A (Experience). Esta grade é global e transversal às fases numeradas abaixo — não
+substitui o grafo de dependências por fase, o restringe.
+
+```
+MEDUSA ROADMAP
+FASE A — DESIGN / EXPERIENCE
+[ ] Hoje
+[ ] Agenda
+[ ] Educação
+[ ] Corpo
+[ ] Finanças
+[ ] Progresso
+[ ] Guardian
+[ ] Buscar
+        ↓
+DESIGN SYSTEM / EXPERIENCE SPEC CONSOLIDADO
+        ↓
+BROWSER / VISUAL QA
+        ↓
+HUMAN EXPERIENCE GATE
+        ↓
+FASE B — PRODUTO / ENGENHARIA
+[ ] dados
+[ ] persistência
+[ ] APIs
+[ ] integrações
+[ ] Supabase
+[ ] Google
+[ ] IA
+[ ] automações
+[ ] regras de negócio
+        ↓
+INTEGRAÇÃO
+        ↓
+END-TO-END QA
+```
+
+**Nenhum checkbox acima é marcado sem evidência em `EVIDENCE.md` + Human Experience Gate
+(`QA_GATE.md` → seção 11) para aquela aba especificamente.** Estado real verificado nesta sessão
+(nenhum `[x]` ainda — ver justificativa por aba):
+
+| Aba | Classificação atual (`AGENT_RULES.md` → seção 0) | Por que não é `[x]` ainda |
+|---|---|---|
+| Hoje | BASE IMPLEMENTADA | PR #4, provado tecnicamente (Gates 1-10), sem Human Experience Gate (11) nem merge |
+| Agenda | BASE IMPLEMENTADA | PR #6, provado tecnicamente, sem Human Experience Gate nem merge |
+| Educação | EXPERIENCE EM REFINAMENTO | PR #7 refina motion/espaço/Island sobre base já provada; sem Human Experience Gate nem merge |
+| Corpo | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+| Finanças | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+| Progresso | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+| Guardian | NÃO IMPLEMENTADO | nenhum arquivo/spec existe (Fase 9 pode abrir Contract, não Experience) |
+| Buscar | NÃO IMPLEMENTADO | nenhum arquivo/spec existe |
+
+**Compatibilidade com o grafo de dependências por fase (abaixo)**: o grafo numerado descreve
+*ordem de dependência entre domínios* (ex.: Fase 8/Progresso deriva de 3/4/6/7). O modelo Fase A/
+Fase B descreve um *corte transversal* por tipo de trabalho (Experience vs Engineering) que se
+aplica a cada fase numerada individualmente — CONTRACT/PLAN/IMPLEMENTATION/UI/Local State de
+`MASTER_PLAN.md` mapeiam para Fase A; Persistence Slice/Integration mapeiam para Fase B. `D-006`
+(Auth só bloqueia Persistence Slice, não UI/Local State) continua válido e é o mecanismo que já
+permitia UI antes de Auth — `D-013` apenas adiciona a trava adicional de que a *entrada em Fase B*
+de qualquer domínio espera as 8 abas fecharem Fase A, não apenas espera Auth.
+
+**Nota de discrepância factual (auditoria desta sessão, não uma correção inventada)**: as tabelas
+de gate por fase abaixo (FASE 1, FASE 3, FASE 4) ainda referenciam apenas PR #1/PR #2 como a
+implementação em análise. Isso é uma descrição correta *daquelas branches especificamente*, mas
+está desatualizado como retrato do estado atual do repositório: a partir desta sessão, PR #5
+(Context Panel geometry), PR #6 (Agenda, base limpa) e PR #7 (Educação multi-trilha, base limpa)
+são as branches independentemente mescláveis que carregam o mesmo conteúdo de produto sem a
+dependência bundled de PR #1→PR #2 (`D-012`). Este arquivo não foi reescrito linha a linha para
+refletir isso (fora do escopo desta tarefa, que é documentação da decisão Fase A/B, não auditoria
+geral do roadmap) — o estado correto e atualizado por branch/PR vive em `CURRENT_STATE.md` →
+"Baseline Git", que deve ser consultado em vez das tabelas de gate abaixo para saber qual PR é a
+candidata real a merge hoje.
+
+## Grafo de dependências (fases)
+
+```
+FASE 0 (Agent OS)
+  ↓
+FASE 1 (Foundation/Shell Closure)
+  ├──→ FASE 2 (Auth/Identity)
+  │      ↓ (só bloqueia Persistence Slice, não UI/Local State — ver MASTER_PLAN.md)
+  ├──→ FASE 3 (Agenda) ─────────────┐
+  ├──→ FASE 4 (Educação)            │
+  ├──→ FASE 5a (Hoje Foundation)    │
+  ├──→ FASE 9 (Guardian) [independente da cadeia de domínios abaixo]
+  │                                  ↓
+  │                          FASE 5b (Hoje Integration) — consome 3, 4, 6, 7, 8
+  ├──→ FASE 6 (Corpo) ──┐
+  ├──→ FASE 7 (Finanças) ┤ (6 e 7 são paralelizáveis entre si)
+  │                       ↓
+  │                  FASE 8 (Progresso) — deriva de 3/4/6/7
+  │                       ↓
+  │                  FASE 10 (Buscar) — indexa 3/4/6/7/8
+  │                       ↓
+  │                  FASE 11 (Cross-Domain Integration)
+  │                       ↓
+  │                  FASE 12 (Persistence/Data Hardening global)
+  │                       ↓
+  │                  FASE 13 (Intelligence/Automation)
+  │                       ↓
+  └──────────────────FASE 14 (Final QA/Production Gate)
+```
+
+**Qual tarefa está desbloqueada agora?** Uma tarefa está desbloqueada quando todas as fases na
+coluna "Depende de" do `MASTER_PLAN.md` estão com Contract+Foundation resolvidos E nenhum
+`HUMAN DECISION REQUIRED` relacionado segue pendente. Ver `TASK_QUEUE.md` para o cálculo atual.
+
+## FASE 0 — Agent Operating System
+
+| Etapa | Status |
+|---|---|
+| CONTRACT → EVIDENCE | PROVADO — `.ai/` completo, `scripts/agent-orchestrator.cjs` testado |
+| REVIEW/AUDIT | PROVADO — autoauditado neste mesmo processo |
+| MERGE | BLOQUEADO — PR #3 (draft) aberto, não mesclado |
+| **GATE** | **PROVADO** (protocolo funcional) — Merge pendente não impede uso do protocolo |
+
+## FASE 1 — Foundation / Shell Closure
+
+| Etapa | Status |
+|---|---|
+| CONTRACT | PROVADO — `ARCHITECTURE.md` |
+| PLAN | PROVADO — PR #1 cobre o plano |
+| IMPLEMENTATION | PROVADO — código em `fix/foundation-hardening` |
+| TEST | **PROVADO — reexecutado de verdade nesta sessão** (`npx tsc --noEmit`, 0 erros) |
+| BUILD | **PROVADO — reexecutado de verdade** (`npm run build`, verde) |
+| BROWSER QA | **PROVADO — reexecutado de verdade** (`test-foundation-hardening.js` 13/13; `qa-browser.js` 23/23 asserções, 0 falha real) |
+| REGRESSION | PROVADO — asserções de Educação incluídas em `qa-browser.js` passaram |
+| EVIDENCE | PROVADO — `EVIDENCE.md` → E-014, E-015, E-016 |
+| REVIEW/AUDIT | PARCIAL — Claude auditou tecnicamente; falta ratificação humana de HDR-010 (Educação bundled) |
+| MERGE | **BLOQUEADO** — não mesclado, aguardando HDR-001 |
+| **GATE** | **PROVADO tecnicamente, BLOQUEADO para fechamento** (merge pendente) |
+
+## FASE 2 — Auth / Identity
+
+Todas as etapas: **NÃO IMPLEMENTADO**. Bloqueado por HDR-011 (escolha de provedor).
+
+## FASE 3 — Agenda / Temporal OS
+
+| Etapa | Status |
+|---|---|
+| CONTRACT | PROVADO — `PRODUCT_CONTRACT.md` + auditoria do protótipo Figma Make |
+| PLAN | PROVADO — `TASK-AGENDA-001` |
+| IMPLEMENTATION | PROVADO — PR #2 (`feature/agenda`) |
+| TEST | **PROVADO — reexecutado** (0 erros de typecheck) |
+| BUILD | **PROVADO — reexecutado** (build verde) |
+| BROWSER QA | **PROVADO — reexecutado** (`qa-agenda.js` 29/30; a 1 falha é ambiental, não funcional — `BLOCKERS.md` → BLOCK-005) |
+| REGRESSION | PROVADO — Educação confirmada intacta pelo mesmo `qa-agenda.js`/`qa-browser.js` |
+| EVIDENCE | PROVADO — `EVIDENCE.md` → E-014, E-017, E-018 |
+| REVIEW/AUDIT | PARCIAL — falta ratificação humana de HDR-003 (agrupamento da List View) |
+| MERGE | **BLOQUEADO** — depende de Fase 1 mesclar primeiro (D-008) |
+| **GATE** | **PROVADO tecnicamente, BLOQUEADO para fechamento** (merge + ratificação pendentes) |
+
+## FASE 4 — Education Stabilization / Integration Contract
+
+| Etapa | Status |
+|---|---|
+| CONTRACT | PARCIAL — expansão multi-trilha implementada sem contrato prévio registrado |
+| IMPLEMENTATION | PROVADO — commit `e616635`, dentro de PR #1/#2 |
+| TEST/BUILD/BROWSER QA | PROVADO — cobertos pela mesma reexecução de `qa-browser.js` |
+| REVIEW/AUDIT | **BLOQUEADO** — tocou área congelada sem decisão prévia (HDR-010) |
+| MERGE | BLOQUEADO — mesma dependência de Fase 1 |
+| **GATE** | **PROVADO tecnicamente, BLOQUEADO na governança** (HDR-010 precisa ser resolvido antes do merge) |
+
+## FASE 5 — Hoje (Foundation + Integration)
+
+Todas as etapas: **NÃO IMPLEMENTADO**. 5a (Foundation) desbloqueada assim que Fase 1 mesclar; 5b
+(Integration) parcialmente bloqueada por HDR-006 (shape do contrato de consumo).
+
+## FASES 6-13 — Corpo, Finanças, Progresso, Guardian, Buscar, Integração, Persistência, Intelligence
+
+Todas as etapas de todas essas fases: **NÃO IMPLEMENTADO**. Cada uma tem pelo menos um
+`HUMAN DECISION REQUIRED` registrado em `DECISIONS.md` antes de poder sair de CONTRACT. Guardian
+(Fase 9) é a exceção de dependência — pode iniciar seu CONTRACT assim que Fase 1 mesclar, sem
+esperar Corpo/Finanças/Progresso/Buscar.
+
+## FASE 14 — Final QA / Production Gate
+
+Todas as etapas: **NÃO IMPLEMENTADO** como processo global agregado — mas os gates individuais por
+tarefa (`QA_GATE.md`) já são aplicados a cada fase acima, então parte do trabalho de Fase 14 já
+está sendo feito continuamente, não é um esforço do zero no fim.
