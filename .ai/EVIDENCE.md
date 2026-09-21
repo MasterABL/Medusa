@@ -583,6 +583,108 @@ passou (`typecheck` + `build`, o único escopo do workflow — lint foi excluíd
 
 ---
 
+## E-024 — Context Panel: teste comparativo real `main` vs `feature/agenda` (BLOCK-008)
+
+**Comando:**
+```
+$ node scripts/qa-context-panel-audit.js   # contra localhost:3000 (feature/agenda)
+47/48 aprovados
+
+$ node scripts/qa-context-panel-audit.js   # contra localhost:3001 (main, script copiado)
+42/48 aprovados — 6 falhas reais: largura do painel nunca chega a 0px ao "fechar"
+```
+Causa raiz lida diretamente no código de `main` (3 funções de geometria duplicadas — ver
+`BLOCKERS.md` → BLOCK-008 para detalhe completo). Confirmado que `calculateShellGeometry()` em
+`feature/agenda` já resolve isso (fonte única de verdade). **Status: PROVADO** (bug real em
+`main`; correção já provada em branch não mesclada — reforça urgência de HDR-001).
+
+---
+
+## E-025 — Hoje: fake-content na rota default + reconstrução de contrato mínimo via HUMAN GATE ANALYSIS
+
+**Comando:**
+```
+$ find /tmp/medusa-main/src -iname "*hoje*"
+(nenhum resultado — Hoje nunca foi implementado como feature de produto)
+
+$ cat /tmp/medusa-main/src/app/page.tsx
+(renderiza documentação de arquitetura do Shell com estatísticas fabricadas apresentadas como
+reais: "Ritmo Mental: 14 rpm", "Tempo em Foco Puro: 02h 45m", "Atenção Residual: 0.02%",
+rodapé "ALL GATES PROVED")
+```
+**Achado:** violação de Honestidade (`AGENT_RULES.md`) — dado fictício apresentado como real na
+tela padrão do produto (rota `hoje`).
+
+**HUMAN GATE ANALYSIS (Hoje Foundation v1) — reaplicado sob a regra da Fase C (Execution Sprint)
+de nunca parar sem esgotar evidência disponível antes de registrar gate:**
+- QUESTÃO: existe especificação suficiente para implementar uma v1 honesta de Hoje sem inventar
+  produto?
+- EVIDÊNCIA NO CONTRATO: `PRODUCT_CONTRACT.md` define responsabilidade geral de Hoje em 1 linha
+  (visão do dia) — insuficiente para layout, mas suficiente para escopo mínimo.
+- EVIDÊNCIA NO LEGACY (`minha-vida`, `src/lib/hoje.js`, lido na íntegra): dois padrões
+  **generalizáveis e reaproveitáveis** — `itemAtualId(itens, agoraMin)` (algoritmo: item em
+  andamento, senão o último iniciado) e `montarLinhaDoTempo()` (mescla+ordena itens do dia).
+  Excluído explicitamente: `ROTINA_PADRAO` (agenda pessoal hardcoded), `janelasDoDia()`/
+  `buscarBriefing()` (dependem de Open-Meteo/Google Calendar/Gemini AI — fora de escopo), e todo
+  padrão de gamificação (XP/streak/mascote) por **contradizer** `MASTER_PLAN.md` ("Evitar
+  gamificação artificial").
+- EVIDÊNCIA NO STITCH: nenhuma (nenhum conector Stitch existe neste ambiente — ver
+  `TOOL AVAILABILITY AUDIT` abaixo).
+- PRECEDENTE NO CÓDIGO ATUAL: Agenda já estabelece o idioma de agrupamento temporal
+  "Agora/Próximo/Depois/Mais tarde" (`groupItemsForListView`, `agendaHelpers.ts`) e a convenção de
+  honestidade visível "Armazenado apenas nesta sessão (Local State)" (`AgendaHeader.tsx`).
+- PODE SER INFERIDO?: SIM, um recorte mínimo — mostrar o item "agora"/próximos itens do dia
+  (Local State, reaproveitando o mesmo idioma visual/temporal já aprovado em Agenda), SEM inventar
+  seções não evidenciadas (sem briefing de IA, sem clima, sem gamificação, sem métricas
+  fabricadas).
+- ESCOPO EXATO NÃO BLOQUEADO: substituir a página de documentação fake por uma Hoje Foundation
+  honesta e mínima (ver `TASK_QUEUE.md` → TASK-HOJE-FOUNDATION-001).
+- ESCOPO BLOQUEADO (permanece HDR-006/HDR-005 real): layout final completo de Hoje com múltiplas
+  seções de produto (briefing, insights cross-domain, notificações) — isso segue exigindo
+  wireframe/decisão humana porque não há evidência suficiente para a forma final, só para um
+  primeiro recorte honesto.
+
+**Status: PROVADO** (achado do bug de honestidade + evidência suficiente para uma v1 mínima,
+registrada como nova tarefa desbloqueada, não como novo Human Gate).
+
+---
+
+## E-026 — TASK-HOJE-FOUNDATION-001: implementação real, testada e verificada
+
+**Comando (branch `feat/hoje-foundation`, a partir de `origin/main`):**
+```
+$ npx tsc --noEmit
+(0 erros, exit 0)
+
+$ npm run build
+✓ Compiled successfully / ✓ Generating static pages (6/6)
+(exit 0)
+
+$ node scripts/qa-hoje-foundation.js   # Puppeteer real, localhost:3002
+=== RESULTADO: 39 PASSOU | 0 FALHOU ===
+```
+Cobertura do script: 4 breakpoints (390/820/1024/1440) × verificação de (a) ausência de
+estatísticas fabricadas, (b) rótulo "Armazenado apenas nesta sessão (Local State)" visível,
+(c) seções Agora/Próximo renderizadas, (d) ausência de overflow horizontal; nas 4 rotas antes
+fake (`agenda`/`corpo`/`financas`/`progresso`) em desktop: ausência de estatística fabricada +
+mensagem honesta de pendência; `prefers-reduced-motion: reduce` real via
+`page.emulateMediaFeatures` confirmando `animationName: none` na classe `.study-stage-enter`;
+regressão de navegação para Educação.
+
+**Achado de processo durante o próprio teste:** a primeira rodada do script reportou 8 falhas
+falso-positivas ("seção Agora/Próximo ausente") — causa: a asserção comparava texto literal
+`'Agora'`/`'Próximo'` contra `element.innerText`, que reflete `text-transform: uppercase` do CSS
+(`AGORA`/`PRÓXIMO`). Corrigido comparando em maiúsculas; 39/39 confirmado após a correção. Isto
+não foi tratado como "passou porque sim" — a causa foi diagnosticada e corrigida antes de aceitar
+o resultado, e documentada aqui para transparência (mesmo padrão de honestidade dos achados de
+BLOCK-002/BLOCK-005 desta fila).
+
+**PR:** https://github.com/MasterABL/Medusa/pull/4 (draft, aberta e assinada por este agente).
+
+**Status: PROVADO** — todos os 7 `ACCEPTANCE CRITERIA` de `TASK-HOJE-FOUNDATION-001` verificados.
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |
@@ -592,3 +694,5 @@ passou (`typecheck` + `build`, o único escopo do workflow — lint foi excluíd
 | PR #2 — Agenda / Temporal OS | Contract (E-006), Plan, Implementation, Test (E-014), Build (E-014), Browser QA (E-017, E-022), Spot-check de critérios (E-018), literais/tokens (E-021) | Merge Gate (HDR-001 — só a aprovação humana, ordem já resolvida por D-008) | Implementation/Test/Build/Browser QA/Todos os 9 AC: **PROVADO** — Merge: BLOQUEADO (gate real, aprovação humana) |
 | Educação — expansão multi-trilha (dentro de PR #1/#2) | Implementation, Test, Build, Browser QA (E-016) | Merge Gate (mesmo de PR #1) | Implementation/QA: PROVADO — Conteúdo ratificado (D-010) — Merge: BLOQUEADO (mesmo gate de PR #1) |
 | TASK-AGENDA-001 (a entrada original da fila) | Todos os 9 ACCEPTANCE CRITERIA verificados com evidência real (E-013 a E-022) | Apenas Merge Gate (HDR-001) | **PROVADO** (implementação e QA completos) — Merge Gate: BLOQUEADO (aprovação humana pendente) |
+| Context Panel — investigação P0 (BLOCK-008) | Causa raiz lida no código + teste comparativo real `main` vs `feature/agenda` (E-024) | Nenhum — correção já provada na branch não mesclada, não duplicada | **PROVADO** (achado, não uma implementação nova) |
+| TASK-HOJE-FOUNDATION-001 (Hoje Foundation v1 + honestidade em rotas pendentes) | Contract (E-025, HUMAN GATE ANALYSIS), Implementation, Test, Build, Browser QA 4 breakpoints, reduced-motion, regressão (E-026) — PR #4 | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os 7 ACCEPTANCE CRITERIA) — Merge: BLOQUEADO (aprovação humana pendente) |

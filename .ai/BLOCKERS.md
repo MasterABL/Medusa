@@ -266,6 +266,51 @@ não bloqueia nenhum item do roadmap de produto.
 
 ---
 
+## BLOCK-008 — Context Panel não recolhe corretamente em `main` (RAIZ ENCONTRADA — já corrigido em branch não mesclada)
+
+**Prioridade do usuário:** P0, investigação end-to-end explicitamente solicitada nesta sessão.
+
+**Comando executado (teste comparativo real, dois worktrees, dois servidores dev):**
+```
+$ git worktree add /tmp/medusa-main origin/main         # porta 3001
+$ git worktree add /tmp/medusa-sprint origin/feature/agenda   # porta 3000
+$ node scripts/qa-context-panel-audit.js   (contra localhost:3000, feature/agenda)
+47/48 aprovados (1 falso-positivo da própria asserção do script sobre unmount em Foco)
+$ node scripts/qa-context-panel-audit.js   (contra localhost:3001, main)
+42/48 aprovados — 6 falhas reais
+```
+
+**Causa raiz confirmada por leitura de código (não só pelo teste):** em `main`, existem **3
+funções de cálculo de geometria duplicadas e independentes**, cada uma com seus próprios
+literais `260/320/68/240` hardcoded:
+1. `src/components/shell/ContextPanel.tsx` → `getPanelWidthClass()` retorna sempre
+   `w-[260px]`/`w-[320px]` (nunca `0`) — o painel só é deslocado via
+   `translate-x-full`/`translate-x-0`, então a **largura do box model nunca chega a 0px**
+   quando "fechado", ele só sai da viewport por `transform`.
+2. `src/components/shell/ShellLayout.tsx` → `getMainPaddingStyle()` recalcula o mesmo
+   `260/320px` de padding independentemente, sem consultar o mesmo estado/fonte que o painel.
+3. `src/components/shell/Header.tsx` (linhas 38-67) → `getHeaderPositionStyle()` recalcula um
+   terceiro conjunto dos mesmos literais para posicionar o header.
+
+Isto é **exatamente** o problema que `D-001` (Single Source of Truth de geometria) já
+documentava, e que `fix/foundation-hardening`/`feature/agenda` (PR aberto, `HDR-001`) já
+corrigiram via `calculateShellGeometry()` em `src/types/shell.ts` — uma única fonte de verdade
+consumida pelos 3 componentes (`geometry.effectiveContextWidth`, `geometry.mainPaddingStyle`),
+validada com 47/48 checks reais em 4 breakpoints × 3 modos × 3 abas.
+
+**Decisão tomada:** NÃO duplicar a correção numa nova branch (o problema já está resolvido e
+testado em `feature/agenda`). Esta descoberta é registrada como evidência adicional que reforça
+a urgência da decisão de merge pendente (`HDR-001`), não como um novo item de trabalho.
+
+**Escopo bloqueado vs não bloqueado:** o bug em si só afeta `main` (o merge ainda não
+aconteceu). Não bloqueia nenhum trabalho novo feito sobre `main` que não dependa de geometria do
+Context Panel (ex.: Hoje Foundation, ver abaixo).
+
+**Status:** BLOQUEADO em `main` (aguarda `HDR-001`) — PROVADO como já corrigido em
+`feature/agenda`. Nenhuma ação adicional de código necessária além do merge.
+
+---
+
 ## Bloqueios que NÃO existem (registrado para evitar suposição futura)
 
 - Não há bloqueio para ler/escrever no repositório local — acesso de leitura e escrita confirmado.

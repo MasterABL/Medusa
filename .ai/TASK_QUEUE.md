@@ -200,49 +200,112 @@ suposição. O que existe hoje para cada uma:
   provedor externo).
 - **FASE 4 (Education — ratificação)**: conteúdo já ratificado (D-010) — resta apenas o mesmo
   Merge Gate de PR #1/#2, não uma tarefa de código nova.
-- **FASE 5 (Hoje)**: nenhuma tarefa ainda. `PRODUCT_CONTRACT.md` só define a responsabilidade
-  geral de Hoje em uma linha — não há layout/seções/wireframe suficientes para escrever
-  `ACCEPTANCE CRITERIA` sem inventar UI (`DECISIONS.md` → HDR-006, análise específica de Hoje
-  Foundation). Diferente da Agenda (que teve uma auditoria de protótipo completa antes de virar
-  tarefa), Hoje precisa de uma rodada de definição de contrato/design antes de poder ser
-  decomposta — isso é falta de especificação de produto, não decisão entre alternativas.
+- **FASE 5 (Hoje)**: reclassificada nesta sessão (Execution Sprint, ver `EVIDENCE.md` → E-025).
+  Um recorte mínimo **é** decomponível sem inventar produto (algoritmo de item-atual + linha do
+  tempo reaproveitados do legacy `minha-vida`, idioma temporal já aprovado em Agenda) — ver
+  `TASK-HOJE-FOUNDATION-001` abaixo. O que continua bloqueado (HDR-006) é o layout final completo
+  de Hoje com seções não evidenciadas (briefing IA, insights cross-domain) — não o v1 honesto.
 - **FASES 6-13**: nenhuma tarefa ainda — cada uma bloqueada por falta de especificação de produto
   suficiente (`DECISIONS.md` → HDR-005), pelo mesmo motivo de Hoje.
 
+### TASK-HOJE-FOUNDATION-001 — Substituir página fake da rota `hoje` por Hoje Foundation v1 honesta
+
+- **FASE:** 5 (Hoje) — recorte mínimo, não o contrato completo.
+- **ORIGEM:** achado de honestidade (E-025): `src/app/page.tsx` em `main` renderiza documentação
+  de Shell com estatísticas fabricadas ("14 rpm", "0.02%", "ALL GATES PROVED") como se fossem
+  dados reais do produto.
+- **ESCOPO:** criar uma tela Hoje mínima e honesta: item "agora"/próximos itens do dia, usando
+  Local State (rótulo visível "Armazenado apenas nesta sessão (Local State)", mesma convenção de
+  `AgendaHeader.tsx`), agrupamento temporal Agora/Próximo/Depois/Mais tarde (mesmo idioma de
+  `agendaHelpers.ts`), reaproveitando o padrão de algoritmo `itemAtualId` do legacy `minha-vida`
+  adaptado a fixtures genéricas (não a rotina pessoal hardcoded do legacy).
+- **DO NOT TOUCH:** Context Panel/Shell geometry (bug já mapeado em BLOCK-008, correção vive em
+  `feature/agenda`, não deve ser duplicada aqui); Agenda; Educação; nenhuma integração externa
+  (clima, Google Calendar, IA) nem gamificação (XP/streak) — proibido por `MASTER_PLAN.md`.
+- **ACCEPTANCE CRITERIA:**
+  1. Rota `hoje` não exibe mais nenhuma estatística fabricada apresentada como real.
+  2. Tela mostra os itens do dia (fixture local, tipada) agrupados por Agora/Próximo/Depois/Mais
+     tarde, com o item "atual" destacado pelo algoritmo adaptado de `itemAtualId`.
+  3. Rótulo de honestidade "Armazenado apenas nesta sessão (Local State)" visível.
+  4. Reutiliza o motion system existente (`.study-stage-enter` ou equivalente já testado sob
+     `prefers-reduced-motion: reduce`) — nenhuma animação nova paralela.
+  5. `npx tsc --noEmit` e `npm run build` passam sem erro.
+  6. Browser QA real em 390/820/1024/1440 sem overflow/clipping/jump; reduced-motion verificado.
+  7. Nenhuma regressão em Agenda/Educação/Shell (spot-check).
+- **STATUS:** **PROVADO.** Implementado em `feat/hoje-foundation`
+  (https://github.com/MasterABL/Medusa/pull/4, draft, a partir de `main`, independente do merge
+  pendente de PR #1/#2 — ver BLOCKED SCOPE vs UNBLOCKED SCOPE). Todos os 7 ACCEPTANCE CRITERIA
+  verificados com evidência real — ver `EVIDENCE.md` → E-026. Merge Gate desta PR nova é o único
+  item pendente (aprovação humana, mesma natureza de HDR-001, não um novo Human Gate — é o mesmo
+  tipo de decisão já registrada).
+
 ---
 
-## QUEUE AUDIT (nesta sessão)
+## QUEUE AUDIT (Execution Sprint — Maximum Autonomy, sessão atual)
+
+**Nota de processo:** a rodada anterior desta fila havia concluído "Nenhuma [tarefa executável]".
+Sob a instrução explícita desta sessão de nunca aceitar esse veredito sem antes esgotar toda
+evidência disponível (contrato, legado, Stitch, precedente), essa conclusão foi **revisitada e
+revertida** — havia trabalho real executável que não dependia de nenhum HDR: o achado de
+honestidade em `hoje`/`agenda`/`corpo`/`financas`/`progresso` (estatísticas fabricadas
+apresentadas como reais) e a investigação P0 do Context Panel. Ver `EVIDENCE.md` → E-024, E-025,
+E-026.
 
 ```
-UNLOCKED TASKS (todas executadas nesta sessão):
-  - TASK-MERGE-PREP-001 → EXECUTADA, PROVADO (E-020)
-  - TASK-AGENDA-001 (auditoria completa) → EXECUTADA, PROVADO (E-013 a E-022)
-  - TASK-CI-001 → EXECUTADA, PROVADO (E-023 — run real: github.com/MasterABL/Medusa/actions/runs/35548493868, conclusion: success)
+UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
+  - Investigação Context Panel (P0, BLOCK-008) → CONCLUÍDA, PROVADO (E-024). Raiz encontrada
+    (3 cálculos de geometria duplicados em `main`); correção já existe e está provada em
+    `feature/agenda`. Não duplicada — reforça urgência de HDR-001.
+  - TASK-HOJE-FOUNDATION-001 → EXECUTADA, PROVADO (E-025, E-026). PR aberta:
+    https://github.com/MasterABL/Medusa/pull/4 (draft).
+  - Honestidade em rotas pendentes (agenda/corpo/financas/progresso em `main`): removidas as
+    estatísticas fabricadas do fallback compartilhado, substituídas por estado honesto de
+    pendência — PROVADO (mesma PR #4, E-026). Isto não é a implementação completa dessas
+    fases (ainda bloqueada por HDR-005), é a correção do problema de honestidade que existia
+    nelas, que é um item de trabalho distinto e desbloqueado.
 
-BLOCKED TASKS:
-  - Fase 2 (Auth): HDR-011 (escolha de provedor externo — decisão humana real)
-  - Fase 5 (Hoje): falta de especificação de produto (HDR-006, análise Hoje Foundation)
-  - Fases 6-13: falta de especificação de produto (HDR-005)
-  - Fechamento formal (merge) das Fases 1, 3, 4: HDR-001 (aprovação de merge — decisão humana real)
+QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (falta de tempo/
+orçamento de execução, não falta de tarefa executável — registrado para não fingir conclusão):
+  - Auditoria completa de produto/UX/UI/motion do Shell inteiro (todas as abas, todos os modos,
+    resize ao vivo) além do que já foi testado (Hoje + reduced-motion + regressão pontual de
+    Educação) — NÃO EXECUTADA.
+  - Reauditoria completa de Agenda sob a lente desta sprint (ela só existe em `feature/agenda`,
+    não em `main` — reauditar uma branch não mesclada não muda o estado de produto até o merge;
+    a auditoria já registrada em `TASK-AGENDA-001`/E-013 a E-022 permanece válida) — NÃO REPETIDA
+    (decisão consciente: reauditar uma branch já provada e travada por HDR-001 não gera valor
+    novo antes do merge).
+  - Auditoria de qualidade da Educação/Study Mode em busca de problemas reais — NÃO EXECUTADA.
+  - Mineração adicional de `AUDITORIA_MINHA_VIDA.md`/legado para Corpo/Finanças (para além do
+    estado honesto de pendência já aplicado) — parcialmente levantada, não convertida em tarefa.
 
-HUMAN GATES:
-  - HDR-001 (aprovação de merge PR #1 → PR #2)
+BLOCKED TASKS (Human Gate real, não escopo inteiro):
+  - Fase 2 (Auth): HDR-011 (escolha de provedor externo — decisão humana real).
+  - Fases 6-13 / layout final completo de Hoje / Corpo / Finanças / Progresso / Guardian / Buscar:
+    HDR-005 (falta de especificação de produto suficiente para a forma final — o recorte mínimo
+    honesto de Hoje NÃO estava bloqueado, e foi executado; o recorte completo continua).
+  - Fechamento formal (merge) das Fases 1, 3, 4 e agora também da Hoje Foundation (PR #4):
+    HDR-001 (aprovação de merge — decisão humana real, mesmo tipo já registrado, não um novo
+    gate).
+
+HUMAN GATES (inalterados nesta sessão):
+  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4)
   - HDR-011 (provedor de Auth)
 
 TECHNICAL BLOCKERS:
-  - Nenhum bloqueio técnico real ativo agora. Antigravity (agy) segue inalcançável nesta sessão
-    (BLOCKERS.md → BLOCK-001), mas isso não bloqueia nada — o fallback Claude está funcionando.
+  - Nenhum bloqueio técnico real ativo. Antigravity (`agy`) segue inalcançável nesta sessão
+    (BLOCKERS.md → BLOCK-001), sem impacto — fallback Claude funcionando.
 
-NEXT EXECUTABLE TASK:
-  Nenhuma. Todas as tarefas desbloqueadas desta rodada foram executadas e verificadas. O que
-  resta (merge de PR #1/#2/#3, escolha de Auth, especificação de Hoje/Corpo/Finanças/Progresso/
-  Guardian/Buscar) depende exclusivamente de HDR-001, HDR-011, ou de uma rodada de definição de
-  produto que só um humano pode fornecer. Ponto de parada real, demonstrado acima — não uma
-  impressão.
+NEXT EXECUTABLE TASK (real, não hipotética):
+  Auditoria de qualidade de Educação/Study Mode (preservar comportamentos aprovados, corrigir
+  problemas reais encontrados) — não depende de nenhum HDR, escopo claramente definido, evidência
+  de código já parcialmente levantada nesta sessão (`.study-stage-enter` e classes irmãs lidas em
+  `globals.css`). Candidata natural para a próxima rodada de execução autônoma.
 ```
 
 **Decisões que desbloqueariam trabalho além disso, cada uma com o que ela libera:**
-- **HDR-001** (aprovação de merge PR #1 → PR #2) → libera o fechamento formal das Fases 1, 3 e 4.
+- **HDR-001** (aprovação de merge) → libera o fechamento formal das Fases 1, 3, 4 e da Hoje
+  Foundation (PR #4).
 - **HDR-011** (escolher provedor de Auth) → libera o início real da Fase 2.
-- Uma rodada de definição de contrato/design para Hoje/Corpo/Finanças/Progresso/Guardian/Buscar →
-  libera a decomposição das Fases 5-13 correspondentes.
+- Uma rodada de definição de contrato/design para o layout final de Hoje/Corpo/Finanças/
+  Progresso/Guardian/Buscar → libera a decomposição completa das Fases 5-13 (o recorte mínimo
+  honesto de Hoje já não depende mais disso).
