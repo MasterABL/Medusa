@@ -26,18 +26,57 @@ novos + 11/11 + 29/30 de regressão, PR #9 (`EVIDENCE.md` → E-030). Gates 1-10
 (Human Experience Gate) ainda não concedido — classificação `EXPERIENCE EM REFINAMENTO`, não
 `EXPERIENCE COMPLETE`. Nenhuma implementação de Fase B foi antecipada.
 
+**Rodada 6 (mesma sessão de continuação — "RODADA DE REFINAMENTO DE EXPERIÊNCIA" solicitada
+explicitamente pelo usuário)**: três frentes paralelas em branches separadas (Shell, Agenda,
+Educação — nenhuma mistura de domínios numa mesma PR, por instrução explícita do usuário), todas
+com Baseline Gate/Auditoria feitos antes de codar, nenhuma trabalhando direto em `main`:
+- **Shell — Sidebar recovery** (PR #11, a partir de `fix/context-panel-geometry`/PR #5): a
+  reclamação "Sidebar fica presa" revelou 2 bugs reais (botão de recuperação existia mas ficava
+  dentro de um wrapper `pointer-events:none`; ícones do modo Compacto geometricamente fora da
+  faixa visível por causa de um `width` fixo em `240px` que não acompanhava o colapso). Ambos
+  corrigidos. 26/26 checks reais — `EVIDENCE.md` → E-031.
+- **Agenda — conflitos/prioridade/sugestões/recorrência** (PR #12, a partir de
+  `feat/agenda-experience-complete`/PR #9): renderização de N eventos concorrentes reescrita com
+  clustering + column-packing real (não apenas reduzir fonte); heurística de prioridade por
+  domínio explicitamente rotulada como não-definitiva; painel "Conflito encontrado" com sugestões
+  de horário reaproveitando `calculateFreeTimeSlots()` (motor real de gap-finding, não fake);
+  recorrência "Personalizado" (intervalo/dias da semana/término) implementada de fato — achado e
+  corrigido um bug real e severo: rotinas criadas pelo formulário nunca salvavam `recurrence`
+  (`isRecurring` nunca era setado por nenhum controle de UI); exclusão de ocorrência recorrente com
+  3 escopos (esta/esta e as próximas/toda a série) usando só campos já existentes + 1 campo novo
+  (`recurrenceExceptions`, Local State). 20/20 checks reais — `EVIDENCE.md` → E-032.
+- **Educação — nomenclatura + altura do player** (PR #13, a partir de
+  `feat/education-multitrack`/PR #7): auditoria ao vivo confirmou que a arquitetura de 3 trilhas
+  como sub-abas DENTRO de Educação (não itens da Sidebar) e o Study Mode compartilhado já estavam
+  corretos — não uma regressão a corrigir. Defeito real e mais estreito: rótulo "Vestibular"
+  inconsistente com "ENEM" pedido pelo usuário (corrigido em `educationFixtures.ts` e nos 2 lugares
+  que duplicavam o array de trilhas). Altura do player em telas altas estendida com `max()` CSS
+  (não um refactor de toda a cadeia flex). Tutor↔Dynamic Island (reação de voz) e Context
+  Panel/Foco foram testados ao vivo com amostragem em plena transição e confirmados **já
+  funcionando corretamente** (de PR #5/#7 anteriores) — nenhuma mudança feita neles, por não haver
+  defeito confirmado. 11/11 checks reais — `EVIDENCE.md` → E-033.
+
+Nenhum dos três domínios é declarado `EXPERIENCE COMPLETE` por esta rodada — Gates 1-10 `PROVADO`
+tecnicamente, Gate 11 (Human Experience Gate) permanece uma decisão humana pendente e distinta,
+conforme `QA_GATE.md` → seção 11.
+
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```
-STATUS:        PARCIAL — 5 PRs abertos e provados tecnicamente (PR #4 Hoje Foundation, PR #5
+STATUS:        PARCIAL — 8 PRs abertos e provados tecnicamente (PR #4 Hoje Foundation, PR #5
                Context Panel geometry, PR #6 Agenda base, PR #7 Study Mode Refinement, PR #9
-               Agenda Experience), mais PR #1/#2/#3/#8(mesclado) do histórico. D-013 aprovada
-               humanamente e oficial. Sprint não esgotado: ver TASK_QUEUE.md → QUEUE AUDIT.
-FASE ATUAL:    D-013 (Fase A precede Fase B) oficializada e aprovada. Agenda avançou de BASE
-               IMPLEMENTADA para EXPERIENCE EM REFINAMENTO (PR #9, Gates 1-10 PROVADO, Gate 11
-               ainda pendente). Educação multi-trilha refinada (PR #7) e P0 do Shell (PR #5)
-               inalterados desde a rodada anterior. Fase 5 (Hoje) com recorte mínimo provado
-               (PR #4). Fases 1/3/4 inalteradas.
+               Agenda Experience, PR #11 Shell Sidebar recovery, PR #12 Agenda
+               conflitos/recorrência/sugestões, PR #13 Educação ENEM/player), mais
+               PR #1/#2/#3/#8(mesclado)/#10(docs) do histórico. D-013 aprovada humanamente e
+               oficial. Sprint não esgotado: ver TASK_QUEUE.md → QUEUE AUDIT.
+FASE ATUAL:    D-013 (Fase A precede Fase B) oficializada e aprovada. Agenda recebeu uma segunda
+               rodada de refinamento (PR #12: conflitos N-a-N, prioridade, sugestões de horário,
+               recorrência "Personalizado", exclusão por escopo) sobre PR #9/#6. Educação recebeu
+               correção de nomenclatura (ENEM) e altura do player (PR #13) sobre PR #7. Shell
+               ganhou correção real de recuperação da Sidebar em modo Compacto (PR #11) sobre
+               PR #5. Todos permanecem EXPERIENCE EM REFINAMENTO — nenhum Human Experience Gate
+               concedido. Fase 5 (Hoje) com recorte mínimo provado (PR #4), inalterada. Fases
+               1/3/4 inalteradas.
 CONCLUÍDO NESTA SESSÃO:
   - Capability Audit real e completo (IA/Design/Knowledge/Dados/Google Workspace/Observabilidade/
     QA/Segurança) — ver EVIDENCE.md → E-027. Achados principais: nenhum conector de IA (Gemini/
@@ -62,39 +101,63 @@ CONCLUÍDO NESTA SESSÃO:
   - TASK-AGENDA-EXPERIENCE-001 (PR #9): motion de troca de view, Dynamic Island reagindo,
     confirmação de exclusão em 2 passos na Lista, bug real de exclusão de rotina corrigido — ver
     EVIDENCE.md → E-030. Gates 1-10 PROVADO, Gate 11 (Human Experience Gate) pendente.
+  - TASK-SHELL-SIDEBAR-RECOVERY-001 (PR #11): 2 bugs reais corrigidos (botão de recuperação
+    inalcançável + ícones do modo Compacto geometricamente fora da faixa visível) — ver
+    EVIDENCE.md → E-031. 26/26 checks reais.
+  - TASK-AGENDA-CONFLICTS-EXPERIENCE-001 (PR #12): layout de conflito N-a-N real (clustering +
+    column-packing), heurística de prioridade por domínio, painel de sugestões de horário
+    compatível (motor real de gap-finding), recorrência "Personalizado" completa, exclusão de
+    ocorrência recorrente por escopo, bug real de recorrência nunca salva corrigido — ver
+    EVIDENCE.md → E-032. 20/20 checks reais.
+  - TASK-EDUCATION-TRACKS-EXPERIENCE-001 (PR #13): rótulo ENEM corrigido, altura do player em
+    telas altas estendida, arquitetura de 3 trilhas e Tutor↔Island/Context Panel auditados e
+    confirmados já corretos (nenhuma mudança onde não havia defeito) — ver EVIDENCE.md → E-033.
+    11/11 checks reais.
 RESTANTE — identificado mas NÃO executado nesta sessão (ver QUEUE AUDIT para detalhe honesto):
   - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
-    além do que Context Panel + Agenda + Study Mode já cobrem individualmente.
+    além do que Context Panel + Agenda + Study Mode + Sidebar recovery já cobrem individualmente.
   - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão.
   - QA consolidado como suíte reutilizável (hoje são scripts individuais, reais e passando).
   - Observabilidade (Sentry ou alternativa) — nenhuma conta de terceiro criada sem confirmação.
+  - Reagendamento real de uma única ocorrência de rotina recorrente (hoje só marca exceção/corta a
+    série — mover só aquela ocorrência para outro horário exigiria estender o modelo de exceção
+    para carregar um horário substituto, registrado como trabalho futuro em `TASK_QUEUE.md`).
+  - Integração real de tempo de deslocamento (Google Maps Platform/Routes API) na Agenda —
+    deliberadamente NÃO implementada nesta rodada (fora do escopo de Fase A); apenas o contrato de
+    dados futuro foi registrado em `TASK_QUEUE.md`, sem nenhuma chamada real a serviço externo.
 RESTANTE (decisões humanas reais / pré-requisitos de infraestrutura — nada executável por Claude
 hoje):
   - HDR-001: aprovação humana de merge (agora PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 →
-    PR #7 → PR #9; PR #8 já mesclado).
+    PR #7 → PR #9 → PR #11 → PR #12 → PR #13; PR #8 já mesclado).
   - HDR-011: escolha de provedor de Auth (bloqueia Fase 2 E o wiring do Supabase já existente) —
     e, por D-013, mesmo resolvido, a implementação real de Fase B ainda esperaria as 8 abas.
   - BLOCK-009: IA (falta chave de API), Google Workspace como feature de produto (falta app OAuth
     próprio do Medusa) — pré-requisitos de infraestrutura ausentes, não escolhas entre opções.
   - Layout final completo de Hoje/Corpo/Finanças/Progresso/Guardian/Buscar (HDR-005/HDR-006).
-  - Human Experience Gate (`QA_GATE.md` → Gate 11) para Hoje, Agenda e Educação — decisão humana
-    distinta do Merge Gate, ainda não concedida para nenhuma aba.
+  - Human Experience Gate (`QA_GATE.md` → Gate 11) para Hoje, Agenda, Educação e para a
+    infraestrutura de Shell — decisão humana distinta do Merge Gate, ainda não concedida para
+    nenhuma aba. Ver a seção "NEXT HUMAN GATE" no relatório de evidência desta rodada para o que
+    testar manualmente.
 ÚLTIMO TESTE:
-  node scripts/qa-agenda-experience.js (novo, real, Puppeteer) → 27 PASSOU | 0 FALHOU.
-  node scripts/qa-agenda-shell-integration.js (regressão) → 11 PASSOU | 0 FALHOU.
-  MEDUSA_BROWSER_PATH=... node scripts/qa-agenda.js (regressão) → 29 PASSOU | 1 FALHOU (BLOCK-005,
-  ambiental, já documentada, confirmada não-regressão).
-  npx tsc --noEmit / npm run build em `feat/agenda-experience-complete` → ambos limpos.
+  node scripts/qa-shell-sidebar-recovery.js (novo, real, Puppeteer) → 26 PASSOU | 0 FALHOU.
+  node scripts/qa-agenda-conflicts-recurrence.js (novo, real, Puppeteer) → 20 PASSOU | 0 FALHOU.
+  node scripts/qa-education-tracks-experience.js (novo, real, Puppeteer) → 11 PASSOU | 0 FALHOU.
+  npx tsc --noEmit / npm run build em `fix/shell-sidebar-recovery`,
+  `feat/agenda-conflicts-experience` e `feat/education-tracks-experience` → todos limpos.
 FALHAS:
-  Nenhuma falha residual real. Durante o desenvolvimento desta rodada, 2 falhas de asserção do
-  script novo eram bugs do PRÓPRIO SCRIPT de teste (contava o botão de excluir, que muda de forma
-  ao entrar em confirmação, em vez de contar linhas estáveis) — corrigidas antes de reportar
-  PROVADO; e 1 falha real de PRODUTO foi achada e corrigida (exclusão de ocorrência de rotina
-  silenciosamente no-op) — ver EVIDENCE.md → E-030 para o relato completo.
+  Nenhuma falha residual real nos 3 domínios. Bugs reais achados e corrigidos durante a auditoria
+  (não bugs de teste): Sidebar (botão inalcançável + geometria de ícones), Agenda (renderização de
+  conflito N-a-N quebrada, rotinas recorrentes nunca salvando `recurrence`). Um único bug real de
+  produto foi introduzido e corrigido na própria rodada antes de reportar PROVADO (rótulo do botão
+  de exclusão de `EventDetailPanel` quebrando a suíte antiga `qa-agenda.js` — corrigido tornando o
+  rótulo condicional). Tutor↔Island e Context Panel/Foco: testados, SEM defeito confirmado, SEM
+  mudança feita.
 PRÓXIMO PASSO:
-  Educação/Study Mode é a próxima aba na ordem oficial de Fase A sem uma rodada de fechamento de
-  Experience dedicada (teve refinamento de motion/espaço/Island em PR #7, mas não uma auditoria
-  completa dos 11 itens do Experience-Complete Gate). Ver TASK_QUEUE.md → QUEUE AUDIT.
+  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
+  do que Context Panel + Sidebar recovery + Agenda + Study Mode já cobrem individualmente — não
+  depende de nenhum HDR nem de BLOCK-009. Alternativa igualmente válida: aguardar o Human
+  Experience Gate ser concedido para Hoje/Agenda/Educação antes de abrir mais rodadas de
+  refinamento nessas abas. Ver TASK_QUEUE.md → QUEUE AUDIT.
 BLOCKERS:
   Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-006 (next@14.2.24 CVE), BLOCK-007 (ESLint não
   configurado), BLOCK-008 (Context Panel — RESOLVIDO, PR #5, aguarda só Merge Gate), BLOCK-009
@@ -112,9 +175,9 @@ Classificação atual por domínio (vocabulário `AGENT_RULES.md` → seção 0)
 | Domínio | Classificação | Evidência |
 |---|---|---|
 | Hoje | BASE IMPLEMENTADA | PR #4, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-026), sem Human Experience Gate nem merge |
-| Agenda | EXPERIENCE EM REFINAMENTO | PR #6 (base) + PR #9 fechou gaps de motion/Dynamic Island/UX e corrigiu um bug real de exclusão de rotina, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-030), sem Human Experience Gate nem merge |
-| Educação / Study Mode | EXPERIENCE EM REFINAMENTO | PR #7 refinou motion/espaço/Dynamic Island sobre a base multi-trilha já provada (`EVIDENCE.md` → E-029); sem Human Experience Gate nem merge |
-| Shell / Context Panel (transversal, não é uma das 8 abas) | BASE IMPLEMENTADA | PR #5, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-027); é infraestrutura de Fase A consumida por todas as abas, não uma aba em si |
+| Agenda | EXPERIENCE EM REFINAMENTO | PR #6 (base) + PR #9 (motion/Island/UX) + PR #12 (conflitos N-a-N, prioridade, sugestões, recorrência "Personalizado", exclusão por escopo), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-030, E-032), sem Human Experience Gate nem merge |
+| Educação / Study Mode | EXPERIENCE EM REFINAMENTO | PR #7 (motion/espaço/Dynamic Island) + PR #13 (rótulo ENEM, altura do player), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-029, E-033); sem Human Experience Gate nem merge |
+| Shell / Context Panel / Sidebar (transversal, não é uma das 8 abas) | BASE IMPLEMENTADA | PR #5 (geometria) + PR #11 (recuperação da Sidebar em modo Compacto), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-027, E-031); é infraestrutura de Fase A consumida por todas as abas, não uma aba em si |
 | Corpo | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
 | Finanças | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
 | Progresso | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
@@ -203,6 +266,22 @@ branch de trabalho atual = chore/agent-os-bootstrap (PR #3, draft, aberta contra
   exclusão em 2 passos na Lista, correção do bug de exclusão de rotina). **PR #9 também contém os
   commits de PR #5 e PR #6** (mesma relação de `D-012`, agora estendida a esta branch). Gates 1-10
   PROVADO (`EVIDENCE.md` → E-030); Gate 11 (Human Experience Gate) pendente.
+- `origin/docs/agenda-experience-evidence` (**PR #10**, draft, aberta contra
+  `chore/agent-os-bootstrap`) — registro de evidência de PR #9 (E-030), documentação apenas, sem
+  código de produto.
+- `origin/fix/shell-sidebar-recovery` (**PR #11**, draft, aberta contra `main`) =
+  `fix/context-panel-geometry` + 1 commit próprio (recuperação da Sidebar em modo Compacto + fix
+  de geometria dos ícones). **PR #11 também contém o commit de PR #5** (mesma relação de
+  `D-012`). PROVADO (`EVIDENCE.md` → E-031).
+- `origin/feat/agenda-conflicts-experience` (**PR #12**, draft, aberta contra `main`) =
+  `feat/agenda-experience-complete` + 1 commit próprio (layout de conflito N-a-N,
+  prioridade/contexto, sugestões de horário compatível, recorrência "Personalizado", exclusão por
+  escopo). **PR #12 também contém os commits de PR #5, PR #6 e PR #9** (mesma relação de
+  `D-012`, agora estendida a esta branch). PROVADO (`EVIDENCE.md` → E-032).
+- `origin/feat/education-tracks-experience` (**PR #13**, draft, aberta contra `main`) =
+  `feat/education-multitrack` + 1 commit próprio (rótulo ENEM, altura do player em telas altas).
+  **PR #13 também contém o commit de PR #5** (mesma relação de `D-012`). PROVADO
+  (`EVIDENCE.md` → E-033).
 - Vercel builda preview automaticamente para todas as PRs (confirmado real — `EVIDENCE.md` →
   E-009, E-013).
 
