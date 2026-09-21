@@ -21,11 +21,12 @@ CONTRACT        → o que esta fase faz, definido em PRODUCT_CONTRACT.md / MASTE
 
 A numeração de gate abaixo é **idêntica** à numeração de fase em `MASTER_PLAN.md` — Gate N = fase N.
 
-## MEDUSA ROADMAP — Modelo FASE A / FASE B (`DECISIONS.md` → D-013, `AGENT_RULES.md` → seção 0)
+## MEDUSA ROADMAP — Modelo FASE A / FASE B (`DECISIONS.md` → D-013 — APROVADA HUMANAMENTE, `AGENT_RULES.md` → seção 0)
 
-Decisão arquitetural registrada nesta sessão: nenhuma aba entra em Fase B (dados reais/persistência/
-integrações) antes de **todas** as 8 abas fecharem Fase A (Experience). Esta grade é global e
-transversal às fases numeradas abaixo — não substitui o grafo de dependências por fase, o restringe.
+Decisão arquitetural **aprovada humanamente** (ratificação em 2026-09-21) e vigente como governança
+oficial: nenhuma aba entra em Fase B (dados reais/persistência/integrações) antes de **todas** as 8
+abas fecharem Fase A (Experience). Esta grade é global e transversal às fases numeradas abaixo — não
+substitui o grafo de dependências por fase, o restringe.
 
 ```
 MEDUSA ROADMAP

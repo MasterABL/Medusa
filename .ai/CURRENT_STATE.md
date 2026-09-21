@@ -11,6 +11,13 @@ estado de voz real no Dynamic Island) — PROVADO com 41/41 checks reais, PR #7
 honestidade dos placeholders e executaram `TASK-HOJE-FOUNDATION-001` (PR #4). **Não afirme nada
 aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluído.
 
+**Rodada 4 (sessão de continuação, 2026-09-21)**: `D-013` (modelo Fase A precede Fase B,
+globalmente, nas 8 abas) foi registrada, documentada em `.ai/` via PR #8 (`chore/agent-os-
+bootstrap` ← `claude/adoring-mccarthy-bq0bsb`) e **aprovada humanamente** — ver `DECISIONS.md` →
+D-013 (STATUS: APROVADA HUMANAMENTE). A partir desta rodada, D-013 é governança oficial vigente,
+não mais uma proposta. Próxima frente de trabalho oficial: fechar a Experience da Agenda (Fase A,
+segunda aba na ordem oficial após Hoje) sobre a base já provada em PR #6 — sem iniciar Fase B.
+
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```

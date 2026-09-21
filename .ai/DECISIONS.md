@@ -136,6 +136,13 @@ junto (mesmo resultado final, ordem diferente). `HDR-001` agora também cobre es
 
 ### D-013 — Modelo de Desenvolvimento Medusa: FASE A (Experience) precede FASE B (Engineering), globalmente
 
+**STATUS: APROVADA HUMANAMENTE.** Ratificação explícita registrada em sessão de continuação
+(2026-09-21): "A D-013 foi APROVADA HUMANAMENTE. A partir deste momento, trate o modelo Fase A /
+Fase B registrado nos `.ai/` como governança oficial do Medusa." A partir desta ratificação, D-013
+deixa de ser apenas uma decisão documentada e passa a ser **governança oficial vigente**,
+vinculante para toda execução futura neste repositório — não uma proposta sujeita a nova
+aprovação.
+
 **Decisão explícita do usuário, registrada diretamente aqui (não é uma HUMAN GATE ANALYSIS — o
 humano já decidiu; isto documenta a decisão tomada).**
 

@@ -6,7 +6,8 @@ este documento prevalece — a exceção precisa ser justificada explicitamente 
 
 ## 0. Modelo de Desenvolvimento Medusa — FASE A (Experience) precede FASE B (Engineering)
 
-**Decisão formal registrada em `DECISIONS.md` → D-013. Leia esta seção antes de qualquer outra.**
+**Decisão formal registrada em `DECISIONS.md` → D-013 — STATUS: APROVADA HUMANAMENTE (2026-09-21).
+Governança oficial vigente do Medusa, não uma proposta. Leia esta seção antes de qualquer outra.**
 
 ```
 FASE A — DESIGN / EXPERIENCE
