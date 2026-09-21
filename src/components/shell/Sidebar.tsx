@@ -34,12 +34,29 @@ export function Sidebar() {
   ];
 
   // Conteúdo dos links de navegação compartilhado entre Sidebar e Drawer
+  //
+  // Achado de auditoria (real, pré-existente, não introduzido nesta rodada): este wrapper
+  // ficava com `w-[240px]` FIXO mesmo em Modo Compacto (68px). Os ícones de navegação usam
+  // `mx-auto` para centralizar quando colapsados — mas `mx-auto` centraliza contra a largura
+  // REAL do próprio contêiner, então contra um contêiner de 240px eles ficavam centralizados
+  // por volta de x≈98-142px, fora da faixa de 0-68px que o `<aside>` pai (com
+  // `overflow-hidden`) de fato exibe. Resultado visual real (confirmado por screenshot antes
+  // desta correção, com e sem o restante desta rodada): os ícones ficavam clipados/invisíveis
+  // em Modo Compacto, sobrando só fragmentos de texto de rótulo vazando para fora da faixa
+  // visível. A correção é fazer este wrapper acompanhar a largura real do `<aside>`
+  // (`geometry.sidebarWidth`) em vez de um valor fixo — assim `mx-auto`/`items-center` centralizam
+  // contra a largura verdadeira, e a transição de largura (`panel-transition`, mesmo token
+  // `--duration-layout` já usado pelo `<aside>`) produz refluxo real da composição interna,
+  // não apenas um clip estático de uma camada que não se move.
   const renderNavContent = (isDrawerContext = false) => {
     const isVisuallyCompact = isCompact || (isTablet && !isDrawerContext);
     const showLabels = !isVisuallyCompact || isDrawerContext;
 
     return (
-      <div className="flex flex-col justify-between h-full pt-5 pb-5 overflow-hidden w-[240px]">
+      <div
+        style={{ width: isDrawerContext ? '240px' : `${geometry.sidebarWidth}px` }}
+        className="flex flex-col justify-between h-full pt-5 pb-5 overflow-hidden panel-transition"
+      >
         <div className="flex flex-col gap-5 overflow-hidden">
           {/* Header da Sidebar */}
           <div className="flex items-center justify-between px-3 h-8 overflow-hidden">
@@ -81,6 +98,28 @@ export function Sidebar() {
               )}
             </div>
           </div>
+
+          {/* Recuperação da Sidebar em Modo Compacto (Desktop) — achado de auditoria: o botão de
+              expandir dentro do header ficava dentro de `.sidebar-label-out`, que tem
+              `pointer-events: none` quando recolhido, tornando-o inclicável e fora da faixa
+              visível de 68px. Este botão dedicado fica sempre clicável, dentro da largura
+              compacta, com o mesmo estilo dos ícones de navegação. Tablet fica de fora
+              deliberadamente: lá a largura compacta é uma regra de breakpoint, não uma escolha
+              reversível do usuário (calculateShellGeometry() ignora `mode` no tablet). */}
+          {isCompact && !isTablet && !isDrawerContext && (
+            <div className="flex justify-center px-2.5">
+              <button
+                type="button"
+                id="btn-sidebar-expand-compact"
+                onClick={() => setMode('amplo')}
+                aria-label="Expandir Sidebar"
+                title="Expandir Sidebar"
+                className="btn-interactive w-9 h-9 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-surface transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+              >
+                <span className="material-symbols-outlined text-[18px]">last_page</span>
+              </button>
+            </div>
+          )}
 
           {/* Navegação Primária */}
           <nav aria-label="Rotas Operacionais" className="flex flex-col gap-1 px-2.5">
