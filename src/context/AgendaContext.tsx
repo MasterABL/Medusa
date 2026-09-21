@@ -144,8 +144,15 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Exclusão
+  // Ocorrências de rotina são expandidas virtualmente (id `${routine.id}-virt-${date}`,
+  // ver expandRecurringItems em agendaHelpers.ts) e não existem em `items` com esse id —
+  // achado de auditoria: excluir uma ocorrência de rotina resolvia para a série base para
+  // que a ação de fato remova algo, em vez de falhar silenciosamente. Excluir uma única
+  // ocorrência (mantendo as demais) exigiria um modelo de exceção por data e fica registrado
+  // como refinamento futuro, não implementado nesta rodada.
   const deleteItem = (itemId: string) => {
-    setItems((prev) => prev.filter((it) => it.id !== itemId));
+    const baseId = itemId.includes('-virt-') ? itemId.split('-virt-')[0] : itemId;
+    setItems((prev) => prev.filter((it) => it.id !== baseId));
     if (selectedItemId === itemId) {
       setSelectedItemId(null);
     }

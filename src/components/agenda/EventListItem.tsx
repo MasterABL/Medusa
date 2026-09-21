@@ -7,7 +7,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AgendaCategory, AgendaItem, TimeConflict } from '@/types/agenda';
 import { useShell } from '@/context/ShellContext';
 import { getPastelThemeStyle } from './palette';
@@ -33,6 +33,16 @@ export function EventListItem({
 }: EventListItemProps) {
   const { theme } = useShell();
   const colorStyle = getPastelThemeStyle(item.colorId, theme);
+  const [pendingDelete, setPendingDelete] = useState(false);
+
+  // Confirmação de exclusão em 2 passos, consistente com EventDetailPanel — evita que a
+  // ação rápida de exclusão na Lista seja irreversível e instantânea (achado de auditoria:
+  // antes desta mudança, este botão excluía sem nenhuma confirmação).
+  useEffect(() => {
+    if (!pendingDelete) return;
+    const timeout = window.setTimeout(() => setPendingDelete(false), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [pendingDelete]);
 
   const getDomainIcon = (domain: string) => {
     switch (domain) {
@@ -183,12 +193,12 @@ export function EventListItem({
           </button>
         )}
 
-        {onDelete && (
+        {onDelete && !pendingDelete && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(e);
+              setPendingDelete(true);
             }}
             aria-label={`Excluir ${item.title}`}
             title="Excluir compromisso"
@@ -196,6 +206,35 @@ export function EventListItem({
           >
             <span className="material-symbols-outlined text-[17px]">delete</span>
           </button>
+        )}
+
+        {onDelete && pendingDelete && (
+          <div
+            className="flex items-center gap-1 animate-in fade-in duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPendingDelete(false)}
+              aria-label="Cancelar exclusão"
+              title="Cancelar"
+              className="btn-interactive px-2 py-1 rounded-lg text-[10px] font-mono font-medium text-text-secondary hover:text-text-primary hover:bg-surface border border-border"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                setPendingDelete(false);
+                onDelete(e);
+              }}
+              aria-label={`Confirmar exclusão de ${item.title}`}
+              title="Confirmar exclusão"
+              className="btn-interactive px-2 py-1 rounded-lg text-[10px] font-mono font-medium bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
+            >
+              Confirmar
+            </button>
+          </div>
         )}
       </div>
     </div>

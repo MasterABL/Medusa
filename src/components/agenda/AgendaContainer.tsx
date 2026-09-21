@@ -8,8 +8,9 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useAgenda } from '@/context/AgendaContext';
+import { useShell } from '@/context/ShellContext';
 import { AgendaHeader } from './AgendaHeader';
 import { AgendaFilters } from './AgendaFilters';
 import { DayView } from './DayView';
@@ -54,6 +55,42 @@ export function AgendaContainer() {
     goToNextDate,
     openAddDrawerWithSlot,
   } = useAgenda();
+
+  const { setIslandState } = useShell();
+
+  // Pulso transiente do Dynamic Island (idêntico ao padrão já usado em EducationContainer:
+  // 'processing' por 320ms, retornando a 'idle' — nunca um estado persistente, já que o
+  // catálogo fechado de fixtures do Island tem texto específico de Educação por design,
+  // não deve ser adotado como se fosse conteúdo real da Agenda).
+  const pulseIslandProcessing = useCallback(() => {
+    setIslandState('processing');
+    window.setTimeout(() => setIslandState('idle'), 320);
+  }, [setIslandState]);
+
+  const handleChangeViewMode = useCallback(
+    (mode: typeof viewMode) => {
+      if (mode === viewMode) return;
+      setViewMode(mode);
+      pulseIslandProcessing();
+    },
+    [viewMode, setViewMode, pulseIslandProcessing]
+  );
+
+  const handleSaveItem = useCallback(
+    (itemData: Parameters<typeof createOrUpdateItem>[0]) => {
+      createOrUpdateItem(itemData);
+      pulseIslandProcessing();
+    },
+    [createOrUpdateItem, pulseIslandProcessing]
+  );
+
+  const handleDeleteItem = useCallback(
+    (itemId: string) => {
+      deleteItem(itemId);
+      pulseIslandProcessing();
+    },
+    [deleteItem, pulseIslandProcessing]
+  );
 
   // Expansão virtual de rotinas recorrentes para o horizonte visual atual
   const expandedItems = useMemo(() => {
@@ -116,7 +153,7 @@ export function AgendaContainer() {
       <AgendaHeader
         currentDate={currentDate}
         viewMode={viewMode}
-        onChangeViewMode={setViewMode}
+        onChangeViewMode={handleChangeViewMode}
         onPrevDate={goToPrevDate}
         onNextDate={goToNextDate}
         onToday={goToToday}
@@ -138,8 +175,11 @@ export function AgendaContainer() {
 
       {/* 3. Área Principal de Visualização + Painel Lateral de Detalhes */}
       <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
-        {/* Core View Selecionada */}
-        <div className="flex-1 w-full min-w-0">
+        {/* Core View Selecionada — região com chave por viewMode para retrigerar a
+            animação de entrada já existente (.study-stage-enter) a cada troca de modo,
+            em vez de um swap instantâneo sem transição (mesmo padrão do track-switch
+            de Educação, nenhum token/motion novo). */}
+        <div key={viewMode} className="flex-1 w-full min-w-0 study-stage-enter">
           {viewMode === 'dia' && (
             <DayView
               currentDate={currentDate}
@@ -184,7 +224,7 @@ export function AgendaContainer() {
               selectedItemId={selectedItemId}
               onSelectItem={(it) => setSelectedItemId(it.id)}
               onEditItem={handleOpenEdit}
-              onDeleteItem={deleteItem}
+              onDeleteItem={handleDeleteItem}
             />
           )}
         </div>
@@ -198,7 +238,7 @@ export function AgendaContainer() {
               conflict={selectedItemConflict}
               onClose={() => setSelectedItemId(null)}
               onEdit={handleOpenEdit}
-              onDelete={deleteItem}
+              onDelete={handleDeleteItem}
             />
           </div>
         )}
@@ -211,7 +251,7 @@ export function AgendaContainer() {
           setDrawerOpen(false);
           setEditingItem(null);
         }}
-        onSave={createOrUpdateItem}
+        onSave={handleSaveItem}
         initialItem={editingItem}
         categories={categories}
         defaultDate={formatDateISO(currentDate)}
