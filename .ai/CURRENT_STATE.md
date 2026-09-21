@@ -2,23 +2,26 @@
 
 **Última verificação**: sessão "CAPABILITY AUDIT + MAXIMUM PRODUCT EXPANSION SPRINT", 3ª rodada.
 Rodada 1: Capability Audit real + P0 Context Panel corrigido de fato (PR #5, `EVIDENCE.md` →
-E-027). Rodada 2 (esta): instrução explícita do usuário para reprioritizar Agenda acima da
-auditoria de Educação — Agenda cherry-picked de `feature/agenda` (presa por `HDR-001`) para uma
-branch própria `feat/agenda`, PROVADO com 40/41 checks reais, PR #6 (`EVIDENCE.md` → E-028).
-Sessões anteriores investigaram o Context Panel até a raiz, corrigiram honestidade dos
-placeholders e executaram `TASK-HOJE-FOUNDATION-001` (PR #4). **Não afirme nada aqui sem ter
-verificado.** Este arquivo deve ser atualizado a cada gate concluído.
+E-027). Rodada 2: Agenda cherry-picked de `feature/agenda` (presa por `HDR-001`) para uma branch
+própria `feat/agenda`, PROVADO com 40/41 checks reais, PR #6 (`EVIDENCE.md` → E-028). Rodada 3
+(esta): Study Mode multi-trilha (ENEM/Inglês/Faculdade) cherry-picked da mesma linhagem não
+mesclada e refinado (espaço do palco, transição de troca de trilha, timing aula→exercícios,
+estado de voz real no Dynamic Island) — PROVADO com 41/41 checks reais, PR #7
+(`EVIDENCE.md` → E-029). Sessões anteriores investigaram o Context Panel até a raiz, corrigiram
+honestidade dos placeholders e executaram `TASK-HOJE-FOUNDATION-001` (PR #4). **Não afirme nada
+aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluído.
 
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```
-STATUS:        PARCIAL — 3 PRs abertos e provados (PR #4 Hoje Foundation, PR #5 Context Panel
-               geometry, PR #6 Agenda), mais PR #1/#2/#3 aguardando Merge Gate. Sprint não
-               esgotado: ver TASK_QUEUE.md → QUEUE AUDIT para o que ficou identificado mas não
-               executado.
-FASE ATUAL:    Agenda agora PROVADA numa branch independente (PR #6), não apenas em
-               `feature/agenda`/PR #2. P0 do Shell (Context Panel) RESOLVIDO (PR #5). Fase 5
-               (Hoje) com recorte mínimo provado (PR #4). Fases 1/3/4 inalteradas.
+STATUS:        PARCIAL — 4 PRs abertos e provados (PR #4 Hoje Foundation, PR #5 Context Panel
+               geometry, PR #6 Agenda, PR #7 Study Mode Refinement), mais PR #1/#2/#3 aguardando
+               Merge Gate. Sprint não esgotado: ver TASK_QUEUE.md → QUEUE AUDIT para o que ficou
+               identificado mas não executado.
+FASE ATUAL:    Agenda (PR #6) e Educação multi-trilha refinada (PR #7) agora PROVADAS em branches
+               independentes, não apenas em `feature/agenda`/PR #2. P0 do Shell (Context Panel)
+               RESOLVIDO (PR #5). Fase 5 (Hoje) com recorte mínimo provado (PR #4). Fases 1/3/4
+               inalteradas.
 CONCLUÍDO NESTA SESSÃO:
   - Capability Audit real e completo (IA/Design/Knowledge/Dados/Google Workspace/Observabilidade/
     QA/Segurança) — ver EVIDENCE.md → E-027. Achados principais: nenhum conector de IA (Gemini/
@@ -36,34 +39,32 @@ CONCLUÍDO NESTA SESSÃO:
     só antes/depois) — EVIDENCE.md → E-027.
   - `.github/dependabot.yml` criado (gap real de segurança achado no audit, gratuito, incluído na
     PR #5).
+  - Agenda (TASK-AGENDA-SHELL-001, PR #6) e Study Mode Refinement (TASK-STUDY-MODE-REFINEMENT-001,
+    PR #7) — ver EVIDENCE.md → E-028, E-029.
 RESTANTE — identificado mas NÃO executado nesta sessão (ver QUEUE AUDIT para detalhe honesto):
-  - Auditoria de qualidade de Educação/Study Mode (continua sendo a next executable task mais
-    óbvia, ainda não puxada em 2 sessões seguidas — não por bloqueio, por escolha de priorizar
-    Capability Audit + P0 nesta rodada).
-  - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro.
+  - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
+    além do que Context Panel + Agenda + Study Mode já cobrem individualmente.
   - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão.
   - QA consolidado como suíte reutilizável (hoje são scripts individuais, reais e passando).
   - Observabilidade (Sentry ou alternativa) — nenhuma conta de terceiro criada sem confirmação.
 RESTANTE (decisões humanas reais / pré-requisitos de infraestrutura — nada executável por Claude
 hoje):
-  - HDR-001: aprovação humana de merge (agora PR #1 → PR #2 → PR #3 → PR #4 → PR #5).
+  - HDR-001: aprovação humana de merge (agora PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 →
+    PR #7).
   - HDR-011: escolha de provedor de Auth (bloqueia Fase 2 E o wiring do Supabase já existente).
   - BLOCK-009: IA (falta chave de API), Google Workspace como feature de produto (falta app OAuth
     próprio do Medusa) — pré-requisitos de infraestrutura ausentes, não escolhas entre opções.
   - Layout final completo de Hoje/Corpo/Finanças/Progresso/Guardian/Buscar (HDR-005/HDR-006).
 ÚLTIMO TESTE:
-  node scripts/qa-context-panel-geometry.js (novo, real, Puppeteer) → 39 PASSOU | 0 FALHOU.
-  npx tsc --noEmit / npm run build em `fix/context-panel-geometry` → ambos limpos.
+  node scripts/qa-study-mode-motion.js (novo, real, Puppeteer) → 41 PASSOU | 0 FALHOU.
+  npx tsc --noEmit / npm run build em `feat/education-multitrack` → ambos limpos.
 FALHAS:
-  A primeira rodada do próprio script de QA teve 11 falhas: 9 por comparação de ponto flutuante
-  sem tolerância (subpixel rendering, ex. `68.203125` em vez de `68`) e 2 por um bug real (borda
-  de 1px não zerada com box-sizing:border-box) — diagnosticado, corrigido no código E no teste
-  antes de aceitar o resultado (EVIDENCE.md → E-027).
+  Nenhuma falha residual — 41/41 na primeira rodada com asserções corretas (aproveitando as
+  lições de tolerância/seletores das rodadas anteriores desta sessão).
 PRÓXIMO PASSO:
-  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell (Agenda +
-  Context Panel já cobertos pelas suítes existentes) — Educação segue identificada mas
-  reordenada para depois de Agenda por instrução explícita do usuário. Ver TASK_QUEUE.md → QUEUE
-  AUDIT.
+  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
+  do que Context Panel + Agenda + Study Mode já cobrem individualmente. Ver TASK_QUEUE.md →
+  QUEUE AUDIT.
 BLOCKERS:
   Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-006 (next@14.2.24 CVE), BLOCK-007 (ESLint não
   configurado), BLOCK-008 (Context Panel — RESOLVIDO, PR #5, aguarda só Merge Gate), BLOCK-009
@@ -99,6 +100,10 @@ branch de trabalho atual = chore/agent-os-bootstrap (PR #3, draft, aberta contra
   2 commits próprios (cherry-pick de `758cd8d` reconciliado + suíte de QA nova). **PR #6 contém
   todos os commits de PR #5** — mesma relação estrutural de PR #2/PR #1 (`D-008`), agora
   registrada como `D-012`. PROVADO (`EVIDENCE.md` → E-028).
+- `origin/feat/education-multitrack` (**PR #7**, draft, aberta contra `main`) =
+  `fix/context-panel-geometry` + 2 commits próprios (cherry-pick de `e616635`, sem conflitos, +
+  refinamento de motion/espaço/Island). **PR #7 também contém o commit de PR #5** (mesma relação
+  de `D-012`). PROVADO (`EVIDENCE.md` → E-029).
 - Vercel builda preview automaticamente para todas as PRs (confirmado real — `EVIDENCE.md` →
   E-009, E-013).
 

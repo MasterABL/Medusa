@@ -293,13 +293,42 @@ suposição. O que existe hoje para cada uma:
 
 ---
 
+### TASK-STUDY-MODE-REFINEMENT-001 — Refinar motion/espaço/Dynamic Island do Study Mode existente
+
+- **FASE:** Educação (Study Mode) — instrução explícita: evoluir, não reescrever.
+- **ORIGEM:** a arquitetura multi-trilha (ENEM/Inglês/Faculdade) já existia completa em
+  `feature/agenda`/`e616635`, mas só nessa branch não mesclada. Portada para `main` via branch
+  própria (`feat/education-multitrack`, a partir de `fix/context-panel-geometry`), depois
+  refinada: espaço do palco, transição de troca de trilha, timing aula→exercícios, e um estado
+  de voz real no Dynamic Island.
+- **DO NOT TOUCH:** arquitetura de trilhas (`TrackDefinition`, fixtures); sistema de motion (só
+  reaproveitado, nenhum token/duração/easing novo criado); catálogo canônico de 10 estados do
+  Island (`islandFixtures.ts`) — o modo Voz é um overlay ortogonal, não um 11º estado.
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-029; checklist completo do
+  usuário na seção 26 do prompt original, integralmente coberto)
+  1. Aula ocupa muito mais altura útil do viewport (340px → 745px em 1440×960).
+  2. Entrada e troca de trilha usam a animação de entrada já existente, não um swap instantâneo.
+  3. Aula → Exercícios sem pausa morta (bug de timing real corrigido: 480ms JS vs 320ms CSS).
+  4. Dynamic Island participa de troca de trilha (pulso `processing`) e de voz (encolhe/expande).
+  5. Voz: Island encolhe para 44px, mostra microfone, pulsa perceptivelmente, clique encerra.
+  6. `npx tsc --noEmit` e `npm run build` sem erro.
+  7. Browser QA real com amostragem EM PLENA TRANSIÇÃO (opacidade/largura/transform), não só
+     antes/depois — 41/41 checks.
+  8. `prefers-reduced-motion: reduce` real testado (voz, troca de trilha, aula→exercícios).
+  9. 390/820/1024/1440 validados sem overflow.
+  10. Nenhuma regressão em Shell/Sidebar/navegação.
+- **STATUS:** **PROVADO.** PR https://github.com/MasterABL/Medusa/pull/7 (draft). Depende de
+  PR #5. Merge Gate: BLOQUEADO (aprovação humana, mesma natureza de HDR-001).
+
+---
+
 ## QUEUE AUDIT (Execution Sprint — Capability Audit + Maximum Product Expansion, sessão atual)
 
-**Nota de processo:** esta sessão teve duas rodadas. A 1ª ampliou o escopo para um Capability
-Audit completo e resolveu de fato o P0 do Context Panel (PR #5). A 2ª rodada recebeu instrução
-explícita do usuário para NÃO seguir a "next executable task" anterior (auditoria de Educação) e
-priorizar Agenda — "o Capability Audit não altera o roadmap funcional". Agenda foi levada de
-PENDING (só em `feature/agenda`, presa por `HDR-001`) para PROVADO numa branch própria (PR #6).
+**Nota de processo:** esta sessão teve três rodadas. A 1ª ampliou o escopo para um Capability
+Audit completo e resolveu de fato o P0 do Context Panel (PR #5). A 2ª priorizou Agenda sobre a
+auditoria de Educação (PR #6). A 3ª voltou a Educação — não como auditoria genérica, mas como
+refinamento direcionado de motion/espaço/Dynamic Island sobre a base multi-trilha já portada
+(PR #7).
 
 ```
 UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
@@ -309,13 +338,15 @@ UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
   - TASK-AGENDA-SHELL-001 → EXECUTADA, PROVADO (E-028). Agenda cherry-picked de `feature/agenda`
     para `feat/agenda` (base: PR #5), único conflito (`ContextPanel.tsx`) reconciliado, 40/41
     checks reais (script original + suíte nova de regressão de Shell). PR #6 aberta.
+  - TASK-STUDY-MODE-REFINEMENT-001 → EXECUTADA, PROVADO (E-029). Multi-trilha (`e616635`)
+    cherry-picked para `feat/education-multitrack` (base: PR #5), sem conflitos. Refinado: espaço
+    do palco, transição de troca de trilha, timing aula→exercícios, estado de voz real no Island.
+    41/41 checks reais com amostragem em plena transição. PR #7 aberta.
 
 QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (registrado para não
 fingir conclusão):
-  - Auditoria de qualidade de Educação/Study Mode — explicitamente REPRIORIZADA pelo usuário
-    nesta rodada (não descartada, só não é mais a "next" — ver instrução de continuação).
   - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
-    além do que as suítes de Context Panel + Agenda já cobrem.
+    além do que as suítes de Context Panel + Agenda + Study Mode já cobrem.
   - Corpo/Finanças/Progresso/Guardian/Buscar via árvore de decisão.
   - QA como produto (suíte reutilizável consolidada) — ainda scripts individuais, reais e
     passando, mas não unificados num framework único.
@@ -327,12 +358,12 @@ BLOCKED TASKS (Human Gate real, não escopo inteiro):
     infraestrutura ausentes, não escolha entre opções) — não bloquearam a Agenda, como instruído.
   - Fases 6-13 / layout final completo de Hoje / Corpo / Finanças / Progresso / Guardian / Buscar:
     HDR-005.
-  - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4), Context Panel (PR #5) e
-    Agenda (PR #6): HDR-001.
+  - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4), Context Panel (PR #5),
+    Agenda (PR #6) e Study Mode Refinement (PR #7): HDR-001.
 
 HUMAN GATES (inalterados nesta sessão):
-  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5 → PR #6, com PR #6
-    tecnicamente dependente de PR #5 — `D-012`)
+  - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5 → PR #6 → PR #7, com
+    PR #6 e PR #7 tecnicamente dependentes de PR #5 — `D-012`)
   - HDR-011 (provedor de Auth)
 
 TECHNICAL BLOCKERS:
@@ -341,15 +372,14 @@ TECHNICAL BLOCKERS:
   - IA/Google Workspace/Stitch como features de produto: BLOCK-009.
 
 NEXT EXECUTABLE TASK (real, não hipotética):
-  Instrução explícita do usuário: Agenda é o domínio corrente. Dentro dele, o que resta não
-  executado é a auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance além do
-  que as suítes já cobrem (ver QUEUE AUDIT PARCIAL). Auditoria de Educação/Study Mode permanece
-  identificada e pronta, mas foi explicitamente reordenada para depois de Agenda.
+  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
+  do que as suítes de Context Panel + Agenda + Study Mode já cobrem individualmente — não
+  depende de nenhum HDR nem de BLOCK-009.
 ```
 
 **Decisões que desbloqueariam trabalho além disso, cada uma com o que ela libera:**
 - **HDR-001** (aprovação de merge) → libera o fechamento formal das Fases 1, 3, 4, Hoje
-  Foundation (PR #4), Context Panel (PR #5) e Agenda (PR #6).
+  Foundation (PR #4), Context Panel (PR #5), Agenda (PR #6) e Study Mode Refinement (PR #7).
 - **HDR-011** (escolher provedor de Auth) → libera o início real da Fase 2 E o wiring do projeto
   Supabase já existente como persistência real.
 - Provisionar uma chave de API de IA (Gemini ou OpenRouter, decisão humana de custo/provider) →

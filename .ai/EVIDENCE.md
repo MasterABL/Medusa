@@ -794,6 +794,54 @@ Hoje→Agenda→Educação sem quebra da Shell, e comportamento do drawer de cri
 
 ---
 
+## E-029 — TASK-STUDY-MODE-REFINEMENT-001: Educação multi-trilha portada + motion/espaço/Island refinados
+
+**Comando (branch `feat/education-multitrack`, criada a partir de `fix/context-panel-geometry`):**
+```
+$ git cherry-pick e616635   # commit original multi-trilha em origin/feature/agenda (via fix/foundation-hardening)
+(sem conflitos — 10 arquivos, 1406 inserções, não toca src/components/shell/)
+```
+Confirmado por leitura de código: ENEM/Inglês/Faculdade (`StudyTrack = 'faculdade'|'ingles'|'vestibular'`)
+já existiam como arquitetura completa (`TrackDefinition`, seletor de trilha no dashboard E dentro
+do Study Mode) — não precisaram ser inventados, só portados de uma branch não mesclada.
+
+**Refinamentos aplicados sobre a base portada** (reaproveitando 100% do sistema de motion
+existente — `--duration-*`, `--ease-*`, `.study-stage-enter`/`.study-recede`/`.living-pulse`):
+1. Palco da aula: removido `aspect-video` fixo (deixava vazio grande abaixo em viewports altos),
+   agora `flex-1` preenche a altura disponível — medido: 340px → 745px em 1440×960.
+2. Troca de trilha (dashboard e Study Mode): região de conteúdo remonta via `key={trackDef.id}`
+   retriggando `.study-stage-enter` (já existente) + pulso do Island via os estados canônicos
+   já existentes (`processing` → `active`/`idle`), sem criar um 11º estado no catálogo fechado
+   de `islandFixtures.ts`.
+3. Bug real de timing corrigido: aula→exercícios esperava 480ms em JS contra uma animação CSS de
+   320ms (`study-recede`) — 160ms de pausa morta sem movimento. Alinhado para 320ms exatos.
+4. Dynamic Island — modo Voz: overlay sobre o MESMO elemento persistente da cápsula (não um
+   mount separado — a largura realmente faz transição CSS, não um swap abrupto), encolhe para um
+   círculo de 44px com ícone de microfone + nova animação `voiceListeningPulse` (extensão
+   documentada do sistema existente). Conectado ao protótipo de voz já existente em
+   `TutorDrawer.tsx` via um novo campo `isVoiceActive`/`setVoiceActive` no `ShellContext`.
+
+**Evidência real:**
+```
+$ npx tsc --noEmit   → 0 erros
+$ npm run build      → sucesso
+$ node scripts/qa-study-mode-motion.js   → 41/41 aprovados
+```
+Cobertura: opacidade/largura/transform reais amostrados EM PLENA TRANSIÇÃO (não só antes/depois)
+para troca de trilha (dashboard e Study Mode), entrada da aula, aula→exercícios (opacity=0.126 em
+t~100ms, provando que não há mais pausa morta), ciclo completo de voz (Island 129px→46px,
+pulsação provada por duas amostras de `transform` 550ms apart, clique encerra e retorna a 129px),
+reduced-motion para tudo isso (`animationName: none` confirmado para o pulso de voz),
+390/820/1024/1440 sem overflow, regressão de Shell/Sidebar.
+
+**PR:** https://github.com/MasterABL/Medusa/pull/7 (draft). Depende de PR #5 (mesma relação de
+`D-012`, agora também aplicada a esta branch).
+
+**Status: PROVADO** — todos os itens do checklist de conclusão do usuário verificados com
+evidência real (não apenas "compilou"/"componente existe").
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |
@@ -807,4 +855,5 @@ Hoje→Agenda→Educação sem quebra da Shell, e comportamento do drawer de cri
 | TASK-CONTEXT-PANEL-GEOMETRY-001 (correção portada, PR #5) | Contract, Implementation, Test, Build, Browser QA 3 modos × 4 breakpoints, reduced-motion, persistência, regressão (E-027) | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os ACCEPTANCE CRITERIA) — Merge: BLOQUEADO |
 | Capability Audit (IA/Design/Knowledge/Dados/Google/Observabilidade/QA/Segurança) | Verificação real via ListConnectors, ToolSearch, Supabase/Vercel MCP, grep de segredos (E-027) | — | **PROVADO** (auditoria, não implementação de produto) |
 | TASK-AGENDA-SHELL-001 (Agenda cherry-picked, branch própria, PR #6) | Contract (D-012), Implementation, Test, Build, Browser QA original (29/30) + suíte nova de regressão de Shell (11/11) (E-028) | Merge Gate (depende de PR #5, mesma natureza de HDR-001) | **PROVADO** (40/41 checks reais — a única falha é ambiental, já documentada) — Merge: BLOQUEADO |
+| TASK-STUDY-MODE-REFINEMENT-001 (multi-trilha portada + motion/espaço/Island voz, PR #7) | Contract, Implementation, Test, Build, Browser QA com amostragem em plena transição (41/41) (E-029) | Merge Gate (depende de PR #5) | **PROVADO** (todos os itens do checklist do usuário verificados com evidência real) — Merge: BLOQUEADO |
 | TASK-HOJE-FOUNDATION-001 (Hoje Foundation v1 + honestidade em rotas pendentes) | Contract (E-025, HUMAN GATE ANALYSIS), Implementation, Test, Build, Browser QA 4 breakpoints, reduced-motion, regressão (E-026) — PR #4 | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os 7 ACCEPTANCE CRITERIA) — Merge: BLOQUEADO (aprovação humana pendente) |
