@@ -20,7 +20,7 @@ import { StudyCompletionView } from './StudyCompletionView';
 import { TutorDrawer } from './TutorDrawer';
 
 export function EducationContainer() {
-  const { setIslandState, setMode, mode } = useShell();
+  const { setIslandState, setMode, mode, setVoiceActive } = useShell();
 
   // Trilha ativa no Learning OS (Faculdade, Inglês, Vestibular)
   const [currentTrack, setCurrentTrack] = useState<StudyTrack>('faculdade');
@@ -49,10 +49,23 @@ export function EducationContainer() {
   // Definição da trilha ativa (Derivado de currentTrack + FIXTURE)
   const trackDef = TRACK_DEFINITIONS[currentTrack];
 
-  // Alternância de Trilha sem reload de página
-  const handleSelectTrack = useCallback((track: StudyTrack) => {
-    setCurrentTrack(track);
-  }, []);
+  // Alternância de Trilha sem reload de página. O Island participa da troca com um pulso do
+  // próprio catálogo canônico (processing -> active) — sem inventar um 11º estado — e o
+  // conteúdo dependente da trilha se remonta com a animação de entrada já existente (ver
+  // StudyModeView.tsx), então a troca é percebida como o mesmo Study Mode reorganizando o
+  // contexto, não uma tela nova substituindo a anterior.
+  const handleSelectTrack = useCallback(
+    (track: StudyTrack) => {
+      if (track === currentTrack) return;
+      const restingIslandState = sessionState === 'study' ? 'active' : 'idle';
+      setIslandState('processing');
+      setCurrentTrack(track);
+      window.setTimeout(() => {
+        setIslandState(restingIslandState);
+      }, 320);
+    },
+    [currentTrack, sessionState, setIslandState]
+  );
 
   // 1. Iniciar fluxo de estudo: dashboard -> loading
   const handleStartStudy = useCallback(
@@ -87,12 +100,17 @@ export function EducationContainer() {
   }, [mode, setIslandState, setMode]);
 
   // 5. Concluir aula e transicionar para exercícios: study -> transitioning_to_exercises -> exercises
+  // O tempo do swap (320ms) casa exatamente com a duração real da animação CSS `study-recede`
+  // (globals.css) — antes o timeout era 480ms contra uma animação de 320ms, criando uma pausa
+  // "morta" sem movimento entre o fim do recede e a troca de estado.
   const handleCompleteLesson = useCallback(() => {
     setSessionState('transitioning_to_exercises');
+    setIslandState('processing');
     setTimeout(() => {
       setSessionState('exercises');
-    }, 480);
-  }, []);
+      setIslandState('active');
+    }, 320);
+  }, [setIslandState]);
 
   // 6. Finalizar bateria de exercícios: exercises -> completion
   // Métricas DERIVADAS (Local State + Fixture)
@@ -224,9 +242,8 @@ export function EducationContainer() {
       {/* 5. Study Mode: Palco de Estudo + Coluna Interna (Resumo Vivo + Notas) */}
       {(sessionState === 'study' || sessionState === 'transitioning_to_exercises') && (
         <div
-          className={
-            sessionState === 'transitioning_to_exercises' ? 'study-recede opacity-40' : ''
-          }
+          id="lesson-transition-wrapper"
+          className={sessionState === 'transitioning_to_exercises' ? 'study-recede' : ''}
         >
           <StudyModeView
             trackDef={trackDef}
@@ -264,6 +281,7 @@ export function EducationContainer() {
         trackDef={trackDef}
         contextQuestion={tutorContextQuestion}
         videoTimestamp={currentVideoTimestamp}
+        onVoiceActiveChange={setVoiceActive}
       />
     </main>
   );

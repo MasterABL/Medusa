@@ -14,6 +14,7 @@ interface TutorDrawerProps {
     confusionDiagnosis: string;
   } | null;
   videoTimestamp?: number;
+  onVoiceActiveChange?: (active: boolean) => void;
 }
 
 export function TutorDrawer({
@@ -22,6 +23,7 @@ export function TutorDrawer({
   trackDef,
   contextQuestion,
   videoTimestamp = 0,
+  onVoiceActiveChange,
 }: TutorDrawerProps) {
   const initialGreeting =
     trackDef?.tutorGreeting ||
@@ -60,6 +62,16 @@ export function TutorDrawer({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, voiceStatus]);
 
+  // Encerrar o modo de voz coordenadamente se o drawer for fechado enquanto ativo
+  useEffect(() => {
+    if (!isOpen && isVoiceActive) {
+      setIsVoiceActive(false);
+      setVoiceStatus('idle');
+      setTranscription('');
+      onVoiceActiveChange?.(false);
+    }
+  }, [isOpen]);
+
   // Se o usuário solicitou "Entender meu erro" em uma questão, injetamos o contexto pedagógico
   useEffect(() => {
     if (contextQuestion && isOpen) {
@@ -84,15 +96,20 @@ export function TutorDrawer({
   // PROTÓTIPO DE VOZ: Máquina de estados de frontend para validação de UX.
   // AUDITORIA ANTI-FICÇÃO: Backend Whisper / WebRTC TTS / STT nativo NÃO ESTÁ IMPLEMENTADO.
   // O ciclo demonstra a contenção de estados e anti-autoescuta (STT pausado durante TTS) via flags de interface.
+  const updateVoiceActive = (active: boolean) => {
+    setIsVoiceActive(active);
+    onVoiceActiveChange?.(active);
+  };
+
   const toggleVoiceMode = () => {
     if (isVoiceActive) {
-      setIsVoiceActive(false);
+      updateVoiceActive(false);
       setVoiceStatus('idle');
       setTranscription('');
       return;
     }
 
-    setIsVoiceActive(true);
+    updateVoiceActive(true);
     setVoiceStatus('listening');
     setTranscription(
       trackDef?.id === 'ingles'
@@ -124,7 +141,7 @@ export function TutorDrawer({
         setMessages((prev) => [...prev, simulatedVoiceResponse]);
         setVoiceStatus('idle');
         setTranscription('');
-        setIsVoiceActive(false);
+        updateVoiceActive(false);
       }, 2600);
 
       return () => clearTimeout(speakTimeout);

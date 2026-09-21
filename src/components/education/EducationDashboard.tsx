@@ -108,6 +108,12 @@ export function EducationDashboard({
           </div>
         </div>
 
+        {/*
+          Conteúdo dependente da trilha remonta com a animação de entrada já existente
+          (`study-stage-enter`) quando `currentTrack` muda — mesmo padrão usado em
+          StudyModeView.tsx, sem inventar um segundo sistema de motion.
+        */}
+        <div key={currentTrack} className="study-stage-enter flex flex-col gap-8">
         {/* ================= 2. CARTÃO DE PRÓXIMA AÇÃO OPERACIONAL (HERO DA TRILHA) ================= */}
         <div
           id="education-next-action-card"
@@ -213,10 +219,11 @@ export function EducationDashboard({
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       {/* ================= 3. TRILHA ESTRUTURADA DE CONHECIMENTO ================= */}
-      <section aria-label="Módulos da Trilha" className="flex flex-col gap-4">
+      <section key={currentTrack} aria-label="Módulos da Trilha" className="study-stage-enter flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-text-muted">
