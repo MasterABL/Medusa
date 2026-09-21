@@ -20,59 +20,37 @@ EXPECTED EVIDENCE
 
 ---
 
-## Tarefa ativa
+## Estado atual
 
-```
-TASK ID: TASK-CI-001
+**Nenhuma tarefa está ativa neste momento.** `TASK-CI-001` foi concluída nesta sessão (`PROVADO`
+— run real: `github.com/MasterABL/Medusa/actions/runs/35548493868`, `conclusion: success`; ver
+`EVIDENCE.md` → E-023) e removida do slot ativo.
 
-OBJECTIVE:
-Criar um workflow de GitHub Actions que rode, em cada PR contra main, exatamente os gates já
-mandatados por QA_GATE.md: Test Gate (npm run typecheck) e Build Gate (npm run build).
-
-CONTEXT:
-Ver TASK_QUEUE.md → TASK-CI-001 (contrato completo), DECISIONS.md → D-011 (HUMAN GATE ANALYSIS
-que concluiu que isto é uma escolha técnica normal, não uma decisão humana — automatiza checks já
-obrigatórios, sem custo, sem segredo novo, sem mudança de escopo de produto).
-
-FILES EXPECTED:
-- .github/workflows/ci.yml (novo)
-
-CONSTRAINTS:
-Não tocar src/**. Nenhum segredo/variável de ambiente nova. Nenhum passo de deploy. Nenhuma
-permissão de workflow além do mínimo de leitura do repositório.
-
-ACCEPTANCE CRITERIA:
-1. Workflow roda automaticamente em PRs contra main.
-2. Roda exatamente typecheck + build — nada mais (lint removido do escopo: nunca foi mandatado
-   por QA_GATE.md, e ESLint nem está configurado neste repo — ver BLOCKERS.md → BLOCK-007).
-3. Nenhum segredo novo é necessário.
-4. Nenhum arquivo de produto (src/**) é alterado.
-
-TESTS: o próprio workflow rodando com sucesso é o teste.
-
-BROWSER QA: N/A.
-
-REGRESSION: N/A (não toca src/**).
-
-EXPECTED EVIDENCE:
-Link do workflow run com resultado real, registrado em EVIDENCE.md.
-```
+**Estado da fila**: todas as tarefas desbloqueadas nesta sessão (`TASK-MERGE-PREP-001`,
+`TASK-AGENDA-001`, `TASK-CI-001`) foram executadas e verificadas com evidência real. O que resta
+depende de `HDR-001` (aprovação de merge) ou `HDR-011` (provedor de Auth) — ambas decisões
+humanas reais, ou de uma rodada de definição de produto para Hoje/Corpo/Finanças/Progresso/
+Guardian/Buscar. Ver `TASK_QUEUE.md` → `QUEUE AUDIT` para a análise completa.
 
 ## CHECKPOINT ATUAL
 
 ```
-STATUS:        IN_PROGRESS
-FASE ATUAL:    Fallback Claude direto (agy inalcançável). Handoff preenchido, orquestrador a rodar.
-CONCLUÍDO:     Handoff preenchido.
-RESTANTE:      Criar .github/workflows/ci.yml, commitar, push, verificar run real.
-ÚLTIMO TESTE:  (a rodar)
-PRÓXIMO PASSO: node scripts/agent-orchestrator.cjs, depois criar o workflow.
-BLOCKERS:      Nenhum.
+STATUS:        BLOQUEADO (real — ver TASK_QUEUE.md → QUEUE AUDIT)
+FASE ATUAL:    3 tarefas executadas nesta sessão (TASK-MERGE-PREP-001, auditoria completa de
+               TASK-AGENDA-001, TASK-CI-001), todas PROVADO com evidência real.
+CONCLUÍDO:     Ver CURRENT_STATE.md para o detalhamento completo.
+RESTANTE:      HDR-001 (merge), HDR-011 (Auth), especificação de produto para Fases 5-13.
+ÚLTIMO TESTE:  GitHub Actions run 35548493868 — conclusion: success.
+FALHAS:        Nenhuma (um erro de escopo em TASK-CI-001 — lint incluído indevidamente — foi
+               corrigido antes de commitar, não chegou a falhar em produção).
+PRÓXIMO PASSO: Aguardar decisão humana (HDR-001 ou HDR-011) ou fornecimento de especificação de
+               produto para qualquer domínio futuro.
+BLOCKERS:      Nenhum bloqueio técnico. 2 gates humanos reais (ver acima).
 ```
 
 ---
 
-## Última tarefa executada (arquivada)
+## Últimas tarefas executadas (arquivadas)
 
 ```
 TASK ID: TASK-MERGE-PREP-001 [CONCLUÍDA — PROVADO]

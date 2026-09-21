@@ -1,49 +1,51 @@
 # CURRENT_STATE.md — Estado Real do Repositório
 
-**Última verificação**: sessão de transição para modo de execução autônoma (verificação de `agy`,
-correção do orquestrador, primeiro ciclo real do loop, execução de `TASK-MERGE-PREP-001`). **Não
-afirme nada aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluído.
+**Última verificação**: sessão de execução autônoma orientada por evidência ("autonomia por
+padrão, human gate por exceção"). Reclassificou 3 HDRs indevidos, completou a auditoria de
+`TASK-AGENDA-001`, e executou `TASK-CI-001` (primeiro CI real do repositório). **Não afirme nada
+aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluído.
 
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```
-STATUS:        BLOQUEADO (real, não por indisponibilidade de executor — ver PRÓXIMO PASSO)
-FASE ATUAL:    Loop completo do Agent OS validado com uma tarefa real (TASK-MERGE-PREP-001,
-               PROVADO). Fila agora depende exclusivamente de decisões humanas — nenhuma tarefa
-               remanescente é executável sem inventar escopo ou sem aprovação humana.
+STATUS:        BLOQUEADO (real — 2 gates humanos genuínos, não indisponibilidade de executor)
+FASE ATUAL:    3 tarefas executadas e verificadas nesta sessão. Fases 1, 3 e 4 com
+               Implementation/Test/Build/Browser QA 100% PROVADO — só falta Merge Gate (HDR-001).
 CONCLUÍDO:
-  - `agy` reverificado nesta sessão: ainda ausente NESTE container (não confundir com "ausente em
-    todo lugar" — o usuário reporta `agy` funcional numa máquina Windows separada, mas essa
-    instalação não é alcançável por esta sessão remota; ver BLOCKERS.md → BLOCK-001 atualizado).
-  - Bug real corrigido no orquestrador: ele enviava ACTIVE_TASK.md ao executor; agora envia
-    HANDOFF.md (o contrato correto, por instrução explícita do protocolo).
-  - Primeiro ciclo real do loop completo executado: TASK_QUEUE → ACTIVE_TASK → HANDOFF →
-    orchestrator (exit 2, fallback) → Claude executa diretamente → Claude audita → EVIDENCE →
-    GATE (PROVADO). Ver EVIDENCE.md → E-020.
-  - TASK-MERGE-PREP-001 concluída: descrições de PR #1 e PR #2 corrigidas via GitHub MCP com os
-    números reais (23 asserções + 42 screenshots; 29/30 com causa ambiental explicada).
-RESTANTE:
-  - Decisão humana sobre merge sequencial PR #1 → PR #2 (HDR-001).
-  - Ratificação humana da expansão multi-trilha de Educação (HDR-010).
-  - Ratificação humana do agrupamento da List View da Agenda (HDR-003).
-  - Decisão de provedor de Auth antes de qualquer Persistence Slice (HDR-011).
-  - Uma rodada de definição de contrato/design para Hoje antes que a Fase 5a vire tarefa executável
-    (não é bloqueio de merge — é falta de especificação de produto suficiente).
+  - Reclassificação via HUMAN GATE ANALYSIS: HDR-003 (agrupamento List View) e HDR-010 (expansão
+    multi-trilha de Educação) NÃO eram decisões humanas reais — eram confirmações de requisitos
+    já documentados. Movidos para DECIDIDO (D-009, D-010). HDR-007 (CI) também não era decisão
+    humana — movido para DECIDIDO (D-011) e executado. HDR-001 restrito à aprovação de merge em
+    si (a ordem já era fato técnico, D-008).
+  - TASK-AGENDA-001: os 2 itens de QA que restavam (literais fora dos tokens, prefers-reduced-
+    motion para a Agenda) foram auditados/testados de verdade — TODOS os 9 ACCEPTANCE CRITERIA
+    agora têm evidência real (EVIDENCE.md → E-013 a E-022). Só falta Merge Gate.
+  - TASK-CI-001 executada: .github/workflows/ci.yml criado e RODOU DE VERDADE em PR #3 com
+    sucesso (github.com/MasterABL/Medusa/actions/runs/35548493868, conclusion: success) — primeiro
+    CI real deste repositório. Escopo corrigido durante a execução (lint removido — nunca
+    mandatado por QA_GATE.md e ESLint nem configurado; BLOCKERS.md → BLOCK-007).
+  - `agy` reverificado: ainda inalcançável NESTE container (instalação do usuário está numa
+    máquina Windows separada, sem ponte de rede/filesystem com esta sessão remota).
+RESTANTE (só decisões humanas reais ou especificação de produto — nada executável por Claude hoje):
+  - HDR-001: aprovação humana de merge sequencial PR #1 → PR #2 → PR #3.
+  - HDR-011: escolha de provedor de Auth (bloqueia só a Fase 2 e Persistence Slices futuros).
+  - Especificação de produto para Hoje/Corpo/Finanças/Progresso/Guardian/Buscar (HDR-005/HDR-006).
 ÚLTIMO TESTE:
-  node scripts/agent-orchestrator.cjs com TASK-MERGE-PREP-001 ativa → exit 2, status
-  "FALLBACK: CLAUDE_DIRECT", handoffPath ".ai/HANDOFF.md" confirmado no registro salvo.
-  Após conclusão: node scripts/agent-orchestrator.cjs (ACTIVE_TASK.md arquivado) → exit 1
-  (confirma que o orquestrador volta corretamente ao estado "sem tarefa ativa").
+  GitHub Actions run 35548493868 → conclusion: success (typecheck + build reais em PR #3).
+  scripts/qa-agenda-reduced-motion.js (novo) → PASSOU (animação desativada, navegação intacta).
+  node scripts/agent-orchestrator.cjs (sem tarefa ativa) → exit 1, confirmado.
 FALHAS:
-  Nenhuma. A execução de TASK-MERGE-PREP-001 foi bem-sucedida e auditada.
+  Um erro de escopo (lint incluído em TASK-CI-001 sem checar se era mandatado/utilizável) foi
+  encontrado e corrigido ANTES de commitar — não chegou a quebrar CI real.
 PRÓXIMO PASSO:
-  Nenhuma tarefa autônoma restante — aguardar decisão humana sobre HDR-001, HDR-003, HDR-010 ou
-  HDR-011 (qualquer uma delas desbloqueia a próxima etapa correspondente; ver TASK_QUEUE.md para o
-  mapeamento exato de qual decisão libera qual fase).
+  Nenhuma tarefa autônoma resta. Aguardar HDR-001 ou HDR-011, ou fornecimento de especificação de
+  produto para qualquer domínio das Fases 5-13. Ver TASK_QUEUE.md → QUEUE AUDIT para a análise
+  completa e demonstrada (não uma impressão).
 BLOCKERS:
   Ver BLOCKERS.md → BLOCK-001 (Antigravity — inalcançável desta sessão, não "não instalado"),
-  BLOCK-003 (GitHub Actions ausente), BLOCK-006 (next@14.2.24 CVE, dívida técnica não urgente).
-  BLOCK-002/005 (descrições de PR imprecisas) — RESOLVIDOS nesta sessão.
+  BLOCK-006 (next@14.2.24 CVE, dívida técnica não urgente), BLOCK-007 (ESLint não configurado,
+  backlog não urgente). BLOCK-002/003/005 (descrições de PR imprecisas, GitHub Actions ausente)
+  — RESOLVIDOS nesta e na sessão anterior.
 ```
 
 ## Baseline Git
@@ -62,7 +64,9 @@ branch de trabalho atual = chore/agent-os-bootstrap (PR #3, draft, aberta contra
 - `origin/shell/v2-fixes` — branch vazia, aponta para o mesmo commit de `main`, sem PR, sem
   conteúdo próprio. Não é trabalho pendente, apenas um placeholder não utilizado.
 - `origin/chore/agent-os-bootstrap` (**PR #3**, draft, aberta) — este trabalho de protocolo.
-- Nenhum workflow de GitHub Actions configurado (`0` workflows).
+- `.github/workflows/ci.yml` **criado e funcional** nesta sessão (`TASK-CI-001`, D-011) — rodou
+  de verdade em PR #3 com sucesso (`EVIDENCE.md` → E-023). Escopo: typecheck + build (lint fora,
+  ver `BLOCKERS.md` → BLOCK-007).
 - Vercel builda preview automaticamente para as 3 PRs (confirmado real — `EVIDENCE.md` → E-009,
   E-013).
 
@@ -135,13 +139,16 @@ IMPLEMENTATION = FEITA — existe em PR #2 (feature/agenda), NÃO MESCLADA
 
 ## Antigravity CLI (`agy`)
 
-- **Status**: NÃO DISPONÍVEL neste ambiente. Caminho de instalação legítimo identificado mas não
-  executável nesta sessão (bloqueio de segurança do próprio ambiente + exigência de login
-  interativo). Ver `BLOCKERS.md` → BLOCK-001, `DECISIONS.md` → HDR-009.
+- **Status**: NÃO ALCANÇÁVEL nesta sessão remota. O usuário reporta `agy` instalado e funcional
+  numa máquina Windows separada — mas essa instalação não é acessível por este container isolado
+  (sem ponte de rede/filesystem entre os dois ambientes). Não é um problema de configuração
+  corrigível remotamente. Ver `BLOCKERS.md` → BLOCK-001, `DECISIONS.md` → HDR-009.
 
 ## Infraestrutura de CI/Deploy
 
-- GitHub Actions: **NÃO CONFIGURADO** (0 workflows).
+- GitHub Actions: **CONFIGURADO E FUNCIONAL** desde esta sessão — `.github/workflows/ci.yml`
+  (typecheck + build), primeiro run real com `conclusion: success` em PR #3
+  (`EVIDENCE.md` → E-023).
 - Vercel: **CONFIGURADO E FUNCIONAL** — builda preview automaticamente para `main` e as 3 branches
   abertas (`fix/foundation-hardening`, `feature/agenda`, `chore/agent-os-bootstrap`), todas com
   deploy `Ready`/`success`. Confirma, de forma independente, que o build de produção passa nas

@@ -559,6 +559,30 @@ navegável (troca de view funciona, sem overflow).
 
 ---
 
+## E-023 — Primeiro run real de CI (TASK-CI-001)
+
+**Comando:**
+```
+$ git push origin chore/agent-os-bootstrap
+(commit 131d098, inclui .github/workflows/ci.yml)
+
+$ mcp__github__actions_list(method: list_workflow_runs)
+{
+  "name": "CI",
+  "status": "completed",
+  "conclusion": "success",
+  "head_sha": "131d098d3ac4457d6488c7fc376e52f53cba02a8",
+  "pull_requests": [3],
+  "html_url": "https://github.com/MasterABL/Medusa/actions/runs/35548493868"
+}
+```
+**Conclusão:** primeiro workflow de GitHub Actions deste repositório rodou de verdade em PR #3 e
+passou (`typecheck` + `build`, o único escopo do workflow — lint foi excluído por
+`BLOCKERS.md` → BLOCK-007). Todos os 4 `ACCEPTANCE CRITERIA` de `TASK-CI-001` verificados.
+**Status: PROVADO.**
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |

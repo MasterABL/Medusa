@@ -54,7 +54,7 @@ e a decisão de executor:
    `EVIDENCE.md`, para que qualquer sessão futura possa retomar sem depender de memória de
    conversa.
 
-## Handoff ativo — TASK-CI-001
+## Handoff histórico — TASK-CI-001 (concluída — PROVADO, ver EVIDENCE.md → E-023)
 
 ```
 TASK ID: TASK-CI-001

@@ -214,10 +214,10 @@ suposição. O que existe hoje para cada uma:
 ## QUEUE AUDIT (nesta sessão)
 
 ```
-UNLOCKED TASKS:
+UNLOCKED TASKS (todas executadas nesta sessão):
   - TASK-MERGE-PREP-001 → EXECUTADA, PROVADO (E-020)
   - TASK-AGENDA-001 (auditoria completa) → EXECUTADA, PROVADO (E-013 a E-022)
-  - TASK-CI-001 → READY, ainda não executada nesta sessão (ver próxima ação)
+  - TASK-CI-001 → EXECUTADA, PROVADO (E-023 — run real: github.com/MasterABL/Medusa/actions/runs/35548493868, conclusion: success)
 
 BLOCKED TASKS:
   - Fase 2 (Auth): HDR-011 (escolha de provedor externo — decisão humana real)
@@ -234,7 +234,11 @@ TECHNICAL BLOCKERS:
     (BLOCKERS.md → BLOCK-001), mas isso não bloqueia nada — o fallback Claude está funcionando.
 
 NEXT EXECUTABLE TASK:
-  TASK-CI-001 (sem gate humano, sem bloqueio técnico).
+  Nenhuma. Todas as tarefas desbloqueadas desta rodada foram executadas e verificadas. O que
+  resta (merge de PR #1/#2/#3, escolha de Auth, especificação de Hoje/Corpo/Finanças/Progresso/
+  Guardian/Buscar) depende exclusivamente de HDR-001, HDR-011, ou de uma rodada de definição de
+  produto que só um humano pode fornecer. Ponto de parada real, demonstrado acima — não uma
+  impressão.
 ```
 
 **Decisões que desbloqueariam trabalho além disso, cada uma com o que ela libera:**
