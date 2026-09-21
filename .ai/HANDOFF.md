@@ -54,7 +54,56 @@ e a decisão de executor:
    `EVIDENCE.md`, para que qualquer sessão futura possa retomar sem depender de memória de
    conversa.
 
-## Handoff ativo — TASK-MERGE-PREP-001
+## Handoff ativo — TASK-CI-001
+
+```
+TASK ID: TASK-CI-001
+
+WHY:
+QA_GATE.md já mandata Test Gate (typecheck) e Build Gate (build) em toda tarefa, hoje executados
+manualmente por Claude ou por um humano. Automatizar isso em CI reduz risco de esquecimento e dá
+sinal objetivo em cada PR. Classificado via HUMAN GATE ANALYSIS (DECISIONS.md → D-011) como
+escolha técnica normal, não decisão humana — não há provedor externo, custo, ou mudança de escopo
+de produto envolvidos.
+
+CURRENT STATE:
+Nenhum workflow de GitHub Actions existe (.github/ não existia). package.json tem os scripts
+`typecheck` e `build` prontos para uso direto num workflow. `npm run lint` existe no
+package.json mas NÃO é utilizável em automação hoje — ESLint nunca foi inicializado neste repo
+(pede setup interativo); ver BLOCKERS.md → BLOCK-007. Por isso lint fica fora do escopo.
+
+EXACT SCOPE:
+Criar .github/workflows/ci.yml disparado em pull_request contra main, rodando checkout,
+setup-node, npm ci, npm run typecheck, npm run build. Nada além disso — sem lint.
+
+FILES:
+.github/workflows/ci.yml (novo, único arquivo).
+
+ARCHITECTURAL RULES:
+Nenhuma permissão de workflow além do mínimo de leitura do repositório. Nenhum segredo novo.
+
+DO NOT TOUCH:
+Todo src/**. Nenhum passo de deploy (Vercel já cobre isso). Nenhum segredo/variável de ambiente.
+
+ACCEPTANCE CRITERIA:
+Ver TASK_QUEUE.md → TASK-CI-001 → ACCEPTANCE CRITERIA (4 itens).
+
+TEST COMMANDS:
+O próprio workflow rodando com sucesso numa PR real é o teste.
+
+BROWSER QA: N/A.
+
+EXPECTED OUTPUT:
+.github/workflows/ci.yml criado, commitado, empurrado, e rodando com sucesso em pelo menos uma PR
+real (a própria PR #3 deste protocolo serve). Link do run registrado em EVIDENCE.md.
+```
+
+**Nota de execução**: `agy` inalcançável nesta sessão (mesmo motivo documentado em BLOCKERS.md →
+BLOCK-001). Fallback Claude direto assume esta tarefa por ser pequena e bem definida.
+
+---
+
+## Handoff histórico — TASK-MERGE-PREP-001 (concluída — ver TASK_QUEUE.md)
 
 ```
 TASK ID: TASK-MERGE-PREP-001

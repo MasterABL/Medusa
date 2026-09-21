@@ -61,18 +61,71 @@ commits `e616635` e `a7f988c` como ancestrais), não a partir de `main` diretame
 também trazer todo o conteúdo de PR #1** — não é uma preferência de ordem (como HDR-001 registrava
 antes), é uma dependência estrutural do histórico Git. HDR-001 foi atualizado para refletir isso.
 
+### D-009 — List View da Agenda: agrupamento Agora/Próximo/Depois/Mais tarde (ex-HDR-003)
+```
+HUMAN GATE ANALYSIS
+QUESTÃO: Agrupar por Agora/Próximo/Depois/Mais tarde ou por dia civil?
+EVIDÊNCIA NO CONTRATO: EVIDENCE.md → E-006 já registrava que o contrato (derivado da auditoria do
+  protótipo Figma Make) exige explicitamente os 4 grupos semânticos — o agrupamento por dia era o
+  bug do protótipo, não uma alternativa válida de produto.
+EVIDÊNCIA NO CÓDIGO: PR #2 implementa exatamente Agora/Próximo/Depois/Mais tarde (EVIDENCE.md → E-018).
+PRECEDENTE: única implementação existente; testada e aprovada interativamente (E-017).
+PODE SER INFERIDO?: SIM.
+```
+**Decidido**: o agrupamento semântico é o comportamento correto e definitivo. Não é mais uma
+pendência — era a confirmação de um requisito já documentado (E-006), não uma escolha em aberto.
+
+### D-010 — Educação multi-trilha (Faculdade/Inglês/Vestibular) ratificada (ex-HDR-010)
+```
+HUMAN GATE ANALYSIS
+QUESTÃO: Ratificar a expansão multi-trilha de Educação como conteúdo real da Fase 4?
+EVIDÊNCIA NO CONTRATO: a própria instrução original do usuário (mensagem do Master Plan, seção 9
+  "EDUCAÇÃO") já especifica por escrito "Trilhas: Faculdade; Inglês; Vestibular/ENEM."
+EVIDÊNCIA NO CÓDIGO: commit e616635 implementa exatamente essas 3 trilhas, testado (EVIDENCE.md →
+  E-016), 0 falhas funcionais, Focus Mode/exercícios/tutor/notas preservados.
+PRECEDENTE: nenhuma trilha alternativa cogitada em qualquer artefato.
+PODE SER INFERIDO?: SIM — o humano já pediu essas trilhas por escrito antes do código existir; o
+  código cumpriu o que já estava pedido.
+```
+**Decidido**: conteúdo ratificado. **Nota de processo preservada** (não é mais um bloqueio, é um
+aprendizado registrado): a decisão deveria ter sido registrada aqui **antes** do código tocar uma
+área congelada, não depois — `AGENT_RULES.md` → Código continua exigindo isso para a próxima vez.
+
+### D-011 — GitHub Actions para automatizar checks já mandatados (ex-HDR-007, escopo restrito)
+```
+HUMAN GATE ANALYSIS
+QUESTÃO: Configurar CI para automatizar os gates de QA_GATE.md por PR?
+EVIDÊNCIA NA ARQUITETURA: QA_GATE.md MANDATA apenas Test Gate (typecheck) e Build Gate (build)
+  manualmente em toda tarefa — automatizar é consistência de processo, não mudança de política.
+PRECEDENTE: GitHub Actions é a escolha óbvia (o repo já está no GitHub); nenhuma alternativa paga
+  ou de risco de segurança está envolvida se o workflow só rodar os comandos já obrigatórios.
+PODE SER INFERIDO?: SIM, com escopo estritamente limitado a typecheck/build (os únicos comandos
+  que QA_GATE.md de fato mandata) — nada de deploy, segredos, ou permissões novas.
+```
+**Decidido e executado nesta sessão**: `.github/workflows/ci.yml` criado com typecheck + build.
+**Achado real durante a execução**: `npm run lint` não está de fato configurado neste repo —
+`next lint` pede um setup interativo (nunca rodado), o que travaria/falharia em CI. Lint foi
+**removido do escopo do workflow** (não estava em `QA_GATE.md` para começo de conversa — eu havia
+incluído por engano no rascunho inicial da tarefa). Configurar ESLint de verdade fica registrado
+como item de backlog de baixa prioridade (`BLOCKERS.md`), não bloqueia nada.
+
 ---
 
 ## HUMAN DECISION REQUIRED
 
-### HDR-001 — Ordem de merge: PR #1 antes de PR #2 (ATUALIZADO — agora é dependência técnica, não recomendação)
-**Atualizado nesta sessão com evidência real (ver D-008 e EVIDENCE.md → E-018):** `feature/agenda`
-(PR #2) foi criada a partir de `fix/foundation-hardening` (PR #1), não de `main`. PR #2 **contém**
-os commits de PR #1. Isso não é mais uma recomendação — é uma restrição estrutural do Git: mesclar
-PR #2 sem PR #1 primeiro é impossível de forma limpa (traria o conteúdo de PR #1 junto, sem revisão
-própria). **Decisão que ainda falta**: o humano aprova o conteúdo de PR #1 e PR #2 para merge
-sequencial (PR #1 → PR #2), nessa ordem, depois de revisar os achados desta sessão (ver
-`EVIDENCE.md` → E-013 a E-019)? Ou pede mudanças antes?
+### HDR-001 — Aprovação de merge de PR #1 → PR #2 (RESTRITO — só a aprovação em si, não a ordem)
+```
+HUMAN GATE ANALYSIS
+QUESTÃO: (a) qual ordem de merge? (b) quem aprova o merge em si?
+EVIDÊNCIA: D-008 (git topology) já prova que a ordem não é escolha — é mecânica.
+PODE SER INFERIDO (ordem)?: SIM — resolvido, não é mais parte deste HDR.
+PODE SER INFERIDO (aprovação do merge em si)?: NÃO — bate no critério explícito desta sessão
+  ("exige aprovação explícita para merge/closure conforme a governança definida") e
+  AGENT_RULES.md → Git proíbe Claude de mesclar em main sem essa aprovação.
+```
+**O que resta deste HDR, e só isso**: o humano aprova mesclar PR #1 e depois PR #2 (nessa ordem
+obrigatória) em `main`, tendo em mãos os achados reais desta sessão (`EVIDENCE.md` → E-013 a E-019,
+E-020)? A ordem não é mais uma pergunta — só a aprovação final é.
 
 ### HDR-002 — Reprodução independente das evidências do PR #1 (RESOLVIDO NESTA SESSÃO)
 **Resolvido.** `npx tsc --noEmit` e `npm run build` foram executados de fato (branch `feature/agenda`,
@@ -89,69 +142,70 @@ descrição da PR #1 no GitHub deveria ser corrigida para dizer "23 asserções 
 screenshots capturados" em vez de "42 testes aprovados" — isso é uma correção de texto, não uma
 decisão técnica; fica registrada como a primeira tarefa desbloqueada (ver `TASK_QUEUE.md`).
 
-### HDR-003 — List View da Agenda: agrupamento (RESOLVIDO DE FATO PELA IMPLEMENTAÇÃO, FALTA RATIFICAR)
-**Atualizado nesta sessão:** PR #2 já implementa o agrupamento semântico "Agora/Próximo/Depois/Mais
-tarde" (verificado por leitura de código em `ListView.tsx` e confirmado interativamente pelo
-`qa-agenda.js` real: "Lista organiza itens nos blocos canônicos... PASSED"). Isso resolve a
-pergunta original na prática. **O que falta não é mais escolher entre as duas opções — é o humano
-ratificar que essa é de fato a decisão definitiva do produto** antes do merge, já que foi tomada
-implicitamente durante a implementação (por quem escreveu o código de PR #2), não registrada aqui
-antes de o código existir. Tratado como `DECIDIDO condicionalmente` até essa ratificação.
-
 ### HDR-004 — Persistência real: quando e com o quê?
 Não há Supabase nem nenhum backend configurado no repositório. Antes de qualquer domínio (Agenda,
 Corpo, Finanças...) prometer "salvar" algo além de `localStorage`/sessão, é preciso decidir: qual
 backend, quando integrar, e se isso é um pré-requisito de algum domínio específico ou um projeto
 transversal à parte. Ver `MASTER_PLAN.md` → Persistência.
 
-### HDR-005 — Roadmap de domínios ainda sem especificação
-Corpo, Finanças, Progresso, Guardian e Buscar não têm nenhuma especificação de produto no
-repositório além dos nomes e responsabilidades gerais em `PRODUCT_CONTRACT.md`. Cada um precisa de
-uma rodada de definição de contrato antes de virar tarefa executável. Ver `MASTER_PLAN.md`.
+### HDR-005 — Roadmap de domínios ainda sem especificação suficiente
+```
+HUMAN GATE ANALYSIS
+QUESTÃO: Corpo/Finanças/Progresso/Guardian/Buscar podem virar tarefas executáveis agora?
+EVIDÊNCIA NO CONTRATO: PRODUCT_CONTRACT.md dá apenas uma linha de responsabilidade geral por
+  domínio (ex.: "Corpo: treinos e saúde... Responde 'como está meu corpo?'") — sem telas, campos,
+  fluxos ou interações concretas.
+PRECEDENTE: a Agenda só virou tarefa executável depois de uma auditoria completa de protótipo
+  (EVIDENCE.md → E-006) que deu contrato de UI concreto — nenhum domínio destes teve equivalente.
+PODE SER INFERIDO?: NÃO — escrever ACCEPTANCE CRITERIA verificáveis exigiria inventar telas,
+  campos e fluxos que não estão em nenhum artefato, violando AGENT_RULES.md → Produto
+  ("não inventar funcionalidade").
+```
+**Continua bloqueado** — mas note-se: não é "o humano precisa escolher entre opções", é "o humano
+precisa fornecer especificação suficiente" (uma rodada de definição de contrato/produto, como a
+que já existiu para a Agenda). Efeito prático idêntico (fica fora da fila até isso acontecer).
 
-### HDR-006 — Hoje: contrato de consumo de dados da Agenda (REFINADO — split Foundation/Integration)
+### HDR-006 — Hoje: contrato de consumo de dados + especificação visual própria
 `PRODUCT_CONTRACT.md` já define que Hoje consome fatos temporais da Agenda, mas o formato exato
-desse contrato (que dados, que shape, push ou pull) ainda não foi especificado. **Refinado nesta
-sessão**: `MASTER_PLAN.md` agora separa "Hoje Foundation" (estrutura visual e contratos, pode
-começar mesmo sem os outros domínios prontos) de "Hoje Integration" (consumo progressivo de dados
-reais, domínio por domínio, só depois que cada domínio-fonte existir). A decisão pendente aqui é
-apenas sobre o shape exato do contrato de consumo de cada domínio à medida que cada um fica pronto
-— não bloqueia mais o início da Fase 5 (Hoje Foundation).
+desse contrato (que dados, que shape, push ou pull) ainda não foi especificado — isso é adiável
+(não bloqueia o início de "Hoje Foundation", só "Hoje Integration").
+```
+HUMAN GATE ANALYSIS (Hoje Foundation especificamente)
+QUESTÃO: "Hoje Foundation" (estrutura visual/layout) pode virar tarefa executável agora?
+EVIDÊNCIA NO CONTRATO: PRODUCT_CONTRACT.md dá uma linha ("resumo operacional... o que merece
+  atenção agora") — sem seções, layout, ou wireframe.
+PRECEDENTE: nenhum protótipo ou auditoria de design existe para Hoje (diferente da Agenda).
+PODE SER INFERIDO?: NÃO — decompor em ACCEPTANCE CRITERIA exigiria inventar a estrutura visual
+  (quais seções, que cards, que layout), o que é `AGENT_RULES.md` → Produto proíbe.
+```
+**Continua bloqueado**, mas pela mesma razão de HDR-005 (falta de especificação, não escolha entre
+alternativas) — não pela integração de dados (essa parte, sim, pode esperar naturalmente até os
+domínios existirem).
 
-### HDR-007 — CI de testes (typecheck/build/QA automatizado em PR)
-Não há GitHub Actions no repositório. **Atualizado nesta sessão:** o deploy/preview em si já
-funciona via integração Vercel↔GitHub (confirmado em `EVIDENCE.md` → E-009) — o que falta decidir
-é apenas se/quando configurar GitHub Actions para automatizar os gates de `QA_GATE.md`
-(typecheck, build, QA de browser) em cada PR, já que isso hoje depende de execução manual por
-Claude ou por um humano.
-
-### HDR-008 — Escolha de framework de testes formal
-Hoje a única verificação automatizada é via scripts Puppeteer ad-hoc. Decidir se vale adotar um
-framework formal (Vitest, Playwright Test) ou manter o padrão de scripts próprios já em uso.
-
-### HDR-010 — Ratificação da expansão multi-trilha de Educação (Faculdade/Inglês/Vestibular)
-**Novo, encontrado nesta sessão.** O commit `e616635` ("expand study mode to multi-track
-learning"), presente em `fix/foundation-hardening` (PR #1) e herdado por `feature/agenda` (PR #2),
-modifica 7 arquivos de `src/components/education/**` — a área explicitamente marcada como
-"congelada" em `ARCHITECTURE.md`. Essa mudança adiciona exatamente as 3 trilhas que
-`MASTER_PLAN.md` já esperava para a Fase 4 (Faculdade, Inglês, Vestibular/ENEM), então não parece
-arbitrária — mas **nenhuma decisão foi registrada aqui antes de o código existir**, violando o
-processo (`AGENT_RULES.md` → Código: "nenhum arquivo [congelado] é tocado sem uma decisão humana
-explícita e registrada em `DECISIONS.md`"). Verificado por leitura de código e pelo `qa-browser.js`
-real desta sessão que a mudança parece funcional e não quebra o fluxo de Study Mode existente
-(alternância de trilha funciona nas 3 opções, Focus Mode preservado, exercícios/tutor/notas
-intactos). **Decisão pendente**: o humano ratifica essa expansão como o conteúdo real da Fase 4
-(Education Stabilization), ou pede que seja revertida/refeita dentro do processo formal (com
-ACTIVE_TASK/HANDOFF próprios)?
+### HDR-008 — Escolha de framework de testes formal (BAIXA PRIORIDADE — não bloqueia nada hoje)
+Hoje a única verificação automatizada é via scripts Puppeteer ad-hoc, e eles satisfazem
+`QA_GATE.md` normalmente. Adotar um framework formal (Vitest, Playwright Test) é uma escolha
+técnica sem provedor externo/custo/segurança envolvidos — poderia ser decidida autonomamente
+quando alguma tarefa concreta precisar disso. **Nenhuma tarefa está bloqueada por esta pendência
+hoje** — mantido apenas como nota de backlog, não como gate ativo.
 
 ### HDR-011 — Escolha de provedor de Auth
-`MASTER_PLAN.md` agora tem uma Fase 2 (Auth/Identity) explícita, pré-requisito de qualquer
-Persistence Slice (Supabase RLS/user ownership). Não há nenhum provedor de autenticação configurado
-no repositório hoje. O ambiente de execução já tem um MCP do Supabase conectado (o que sugere
-Supabase Auth como candidato natural, já que ele resolveria Auth+Postgres+RLS de forma unificada),
-mas isso não deve ser assumido como decidido — precisa de confirmação humana explícita antes de
-qualquer tarefa de Auth ser promovida a `READY`. "Usar o que já existir no projeto" (instrução do
-usuário) hoje resulta em: nada existe ainda: `package.json` não tem nenhuma dependência de auth.
+```
+HUMAN GATE ANALYSIS
+QUESTÃO: Qual provedor de Auth usar?
+EVIDÊNCIA NO CONTRATO/ARQUITETURA/DECISÕES: nenhuma menção a provedor específico em nenhum artefato.
+EVIDÊNCIA NO CÓDIGO: nenhuma dependência de auth em package.json em nenhuma branch.
+PRECEDENTE: o MCP do Supabase está disponível neste ambiente de execução — isso é uma ferramenta
+  acessível a mim, não uma decisão de arquitetura de produto já tomada por um humano.
+PODE SER INFERIDO?: NÃO — bate exatamente nos critérios explícitos desta sessão ("exige escolher
+  entre provedores, custos ou serviços externos"; "envolve segurança, autenticação, permissões ou
+  política irreversível").
+IMPACTO: define toda a Fase 2 e é pré-requisito de qualquer Persistence Slice futuro.
+TASKS BLOQUEADAS: início real da Fase 2 (Auth) e, por consequência, todo Persistence Slice.
+```
+**Permanece decisão humana real.** `MASTER_PLAN.md` tem uma Fase 2 (Auth/Identity) explícita.
+"Usar o que já existir no projeto" (instrução do usuário) hoje resulta em: nada existe ainda —
+`package.json` não tem nenhuma dependência de auth em nenhuma branch.
 
 ### HDR-009 — Investimento em acesso persistente e autenticado ao Antigravity CLI
 Existe um caminho de instalação legítimo e verificado para o Antigravity CLI real

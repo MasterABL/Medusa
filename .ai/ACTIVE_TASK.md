@@ -20,12 +20,57 @@ EXPECTED EVIDENCE
 
 ---
 
-## Estado atual
+## Tarefa ativa
 
-**Nenhuma tarefa está ativa neste momento.** `TASK-MERGE-PREP-001` foi concluída nesta sessão
-(`PROVADO` — ver `TASK_QUEUE.md`, `EVIDENCE.md` → E-020) e removida do slot ativo. A fila está
-bloqueada em decisões humanas reais (HDR-001, HDR-003, HDR-010, HDR-011) — ver `TASK_QUEUE.md` →
-"Primeira tarefa desbloqueada" para o que cada decisão libera.
+```
+TASK ID: TASK-CI-001
+
+OBJECTIVE:
+Criar um workflow de GitHub Actions que rode, em cada PR contra main, exatamente os gates já
+mandatados por QA_GATE.md: Test Gate (npm run typecheck) e Build Gate (npm run build).
+
+CONTEXT:
+Ver TASK_QUEUE.md → TASK-CI-001 (contrato completo), DECISIONS.md → D-011 (HUMAN GATE ANALYSIS
+que concluiu que isto é uma escolha técnica normal, não uma decisão humana — automatiza checks já
+obrigatórios, sem custo, sem segredo novo, sem mudança de escopo de produto).
+
+FILES EXPECTED:
+- .github/workflows/ci.yml (novo)
+
+CONSTRAINTS:
+Não tocar src/**. Nenhum segredo/variável de ambiente nova. Nenhum passo de deploy. Nenhuma
+permissão de workflow além do mínimo de leitura do repositório.
+
+ACCEPTANCE CRITERIA:
+1. Workflow roda automaticamente em PRs contra main.
+2. Roda exatamente typecheck + build — nada mais (lint removido do escopo: nunca foi mandatado
+   por QA_GATE.md, e ESLint nem está configurado neste repo — ver BLOCKERS.md → BLOCK-007).
+3. Nenhum segredo novo é necessário.
+4. Nenhum arquivo de produto (src/**) é alterado.
+
+TESTS: o próprio workflow rodando com sucesso é o teste.
+
+BROWSER QA: N/A.
+
+REGRESSION: N/A (não toca src/**).
+
+EXPECTED EVIDENCE:
+Link do workflow run com resultado real, registrado em EVIDENCE.md.
+```
+
+## CHECKPOINT ATUAL
+
+```
+STATUS:        IN_PROGRESS
+FASE ATUAL:    Fallback Claude direto (agy inalcançável). Handoff preenchido, orquestrador a rodar.
+CONCLUÍDO:     Handoff preenchido.
+RESTANTE:      Criar .github/workflows/ci.yml, commitar, push, verificar run real.
+ÚLTIMO TESTE:  (a rodar)
+PRÓXIMO PASSO: node scripts/agent-orchestrator.cjs, depois criar o workflow.
+BLOCKERS:      Nenhum.
+```
+
+---
 
 ## Última tarefa executada (arquivada)
 

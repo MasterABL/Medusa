@@ -247,6 +247,25 @@ esquecido, não para bloquear o roadmap atual.
 
 ---
 
+## BLOCK-007 — ESLint nunca foi configurado neste repo (achado durante TASK-CI-001)
+
+**Comando executado:**
+```
+$ npm run lint
+> next lint
+? How would you like to configure ESLint? ...
+(exit 1 — prompt interativo, sem TTY em CI/automação)
+```
+**Impacto:** `npm run lint` não é utilizável em automação hoje. `.github/workflows/ci.yml`
+(TASK-CI-001) foi deliberadamente restrito a typecheck+build (os únicos gates que `QA_GATE.md`
+de fato mandata) para não incluir um passo que travaria/falharia. Configurar ESLint de verdade
+(rodar o wizard uma vez, commitar a config gerada) é uma tarefa de manutenção de baixa prioridade,
+não bloqueia nenhum item do roadmap de produto.
+
+**Status:** NÃO IMPLEMENTADO (backlog, não urgente).
+
+---
+
 ## Bloqueios que NÃO existem (registrado para evitar suposição futura)
 
 - Não há bloqueio para ler/escrever no repositório local — acesso de leitura e escrita confirmado.
