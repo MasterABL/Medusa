@@ -15,20 +15,29 @@ aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluí
 globalmente, nas 8 abas) foi registrada, documentada em `.ai/` via PR #8 (`chore/agent-os-
 bootstrap` ← `claude/adoring-mccarthy-bq0bsb`) e **aprovada humanamente** — ver `DECISIONS.md` →
 D-013 (STATUS: APROVADA HUMANAMENTE). A partir desta rodada, D-013 é governança oficial vigente,
-não mais uma proposta. Próxima frente de trabalho oficial: fechar a Experience da Agenda (Fase A,
-segunda aba na ordem oficial após Hoje) sobre a base já provada em PR #6 — sem iniciar Fase B.
+não mais uma proposta.
+
+**Rodada 5 (mesma sessão de continuação)**: fechada a Experience da Agenda (segunda aba na ordem
+oficial, depois de Hoje) sobre a base já provada em PR #6. Auditoria achou e corrigiu 3 gaps reais
+de Fase A (troca de view sem transição, zero integração com o Dynamic Island, salvar/excluir sem
+feedback) e 1 bug funcional real (exclusão de ocorrência de rotina recorrente silenciosamente
+no-op, por id virtual não resolvido em `AgendaContext.deleteItem`) — PROVADO com 27/27 checks
+novos + 11/11 + 29/30 de regressão, PR #9 (`EVIDENCE.md` → E-030). Gates 1-10 `PROVADO`; Gate 11
+(Human Experience Gate) ainda não concedido — classificação `EXPERIENCE EM REFINAMENTO`, não
+`EXPERIENCE COMPLETE`. Nenhuma implementação de Fase B foi antecipada.
 
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```
-STATUS:        PARCIAL — 4 PRs abertos e provados (PR #4 Hoje Foundation, PR #5 Context Panel
-               geometry, PR #6 Agenda, PR #7 Study Mode Refinement), mais PR #1/#2/#3 aguardando
-               Merge Gate. Sprint não esgotado: ver TASK_QUEUE.md → QUEUE AUDIT para o que ficou
-               identificado mas não executado.
-FASE ATUAL:    Agenda (PR #6) e Educação multi-trilha refinada (PR #7) agora PROVADAS em branches
-               independentes, não apenas em `feature/agenda`/PR #2. P0 do Shell (Context Panel)
-               RESOLVIDO (PR #5). Fase 5 (Hoje) com recorte mínimo provado (PR #4). Fases 1/3/4
-               inalteradas.
+STATUS:        PARCIAL — 5 PRs abertos e provados tecnicamente (PR #4 Hoje Foundation, PR #5
+               Context Panel geometry, PR #6 Agenda base, PR #7 Study Mode Refinement, PR #9
+               Agenda Experience), mais PR #1/#2/#3/#8(mesclado) do histórico. D-013 aprovada
+               humanamente e oficial. Sprint não esgotado: ver TASK_QUEUE.md → QUEUE AUDIT.
+FASE ATUAL:    D-013 (Fase A precede Fase B) oficializada e aprovada. Agenda avançou de BASE
+               IMPLEMENTADA para EXPERIENCE EM REFINAMENTO (PR #9, Gates 1-10 PROVADO, Gate 11
+               ainda pendente). Educação multi-trilha refinada (PR #7) e P0 do Shell (PR #5)
+               inalterados desde a rodada anterior. Fase 5 (Hoje) com recorte mínimo provado
+               (PR #4). Fases 1/3/4 inalteradas.
 CONCLUÍDO NESTA SESSÃO:
   - Capability Audit real e completo (IA/Design/Knowledge/Dados/Google Workspace/Observabilidade/
     QA/Segurança) — ver EVIDENCE.md → E-027. Achados principais: nenhum conector de IA (Gemini/
@@ -48,6 +57,11 @@ CONCLUÍDO NESTA SESSÃO:
     PR #5).
   - Agenda (TASK-AGENDA-SHELL-001, PR #6) e Study Mode Refinement (TASK-STUDY-MODE-REFINEMENT-001,
     PR #7) — ver EVIDENCE.md → E-028, E-029.
+  - D-013 (Modelo Fase A precede Fase B) registrada, documentada e **aprovada humanamente** — PR #8
+    mesclado em `chore/agent-os-bootstrap`.
+  - TASK-AGENDA-EXPERIENCE-001 (PR #9): motion de troca de view, Dynamic Island reagindo,
+    confirmação de exclusão em 2 passos na Lista, bug real de exclusão de rotina corrigido — ver
+    EVIDENCE.md → E-030. Gates 1-10 PROVADO, Gate 11 (Human Experience Gate) pendente.
 RESTANTE — identificado mas NÃO executado nesta sessão (ver QUEUE AUDIT para detalhe honesto):
   - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
     além do que Context Panel + Agenda + Study Mode já cobrem individualmente.
@@ -57,21 +71,30 @@ RESTANTE — identificado mas NÃO executado nesta sessão (ver QUEUE AUDIT para
 RESTANTE (decisões humanas reais / pré-requisitos de infraestrutura — nada executável por Claude
 hoje):
   - HDR-001: aprovação humana de merge (agora PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 →
-    PR #7).
-  - HDR-011: escolha de provedor de Auth (bloqueia Fase 2 E o wiring do Supabase já existente).
+    PR #7 → PR #9; PR #8 já mesclado).
+  - HDR-011: escolha de provedor de Auth (bloqueia Fase 2 E o wiring do Supabase já existente) —
+    e, por D-013, mesmo resolvido, a implementação real de Fase B ainda esperaria as 8 abas.
   - BLOCK-009: IA (falta chave de API), Google Workspace como feature de produto (falta app OAuth
     próprio do Medusa) — pré-requisitos de infraestrutura ausentes, não escolhas entre opções.
   - Layout final completo de Hoje/Corpo/Finanças/Progresso/Guardian/Buscar (HDR-005/HDR-006).
+  - Human Experience Gate (`QA_GATE.md` → Gate 11) para Hoje, Agenda e Educação — decisão humana
+    distinta do Merge Gate, ainda não concedida para nenhuma aba.
 ÚLTIMO TESTE:
-  node scripts/qa-study-mode-motion.js (novo, real, Puppeteer) → 41 PASSOU | 0 FALHOU.
-  npx tsc --noEmit / npm run build em `feat/education-multitrack` → ambos limpos.
+  node scripts/qa-agenda-experience.js (novo, real, Puppeteer) → 27 PASSOU | 0 FALHOU.
+  node scripts/qa-agenda-shell-integration.js (regressão) → 11 PASSOU | 0 FALHOU.
+  MEDUSA_BROWSER_PATH=... node scripts/qa-agenda.js (regressão) → 29 PASSOU | 1 FALHOU (BLOCK-005,
+  ambiental, já documentada, confirmada não-regressão).
+  npx tsc --noEmit / npm run build em `feat/agenda-experience-complete` → ambos limpos.
 FALHAS:
-  Nenhuma falha residual — 41/41 na primeira rodada com asserções corretas (aproveitando as
-  lições de tolerância/seletores das rodadas anteriores desta sessão).
+  Nenhuma falha residual real. Durante o desenvolvimento desta rodada, 2 falhas de asserção do
+  script novo eram bugs do PRÓPRIO SCRIPT de teste (contava o botão de excluir, que muda de forma
+  ao entrar em confirmação, em vez de contar linhas estáveis) — corrigidas antes de reportar
+  PROVADO; e 1 falha real de PRODUTO foi achada e corrigida (exclusão de ocorrência de rotina
+  silenciosamente no-op) — ver EVIDENCE.md → E-030 para o relato completo.
 PRÓXIMO PASSO:
-  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
-  do que Context Panel + Agenda + Study Mode já cobrem individualmente. Ver TASK_QUEUE.md →
-  QUEUE AUDIT.
+  Educação/Study Mode é a próxima aba na ordem oficial de Fase A sem uma rodada de fechamento de
+  Experience dedicada (teve refinamento de motion/espaço/Island em PR #7, mas não uma auditoria
+  completa dos 11 itens do Experience-Complete Gate). Ver TASK_QUEUE.md → QUEUE AUDIT.
 BLOCKERS:
   Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-006 (next@14.2.24 CVE), BLOCK-007 (ESLint não
   configurado), BLOCK-008 (Context Panel — RESOLVIDO, PR #5, aguarda só Merge Gate), BLOCK-009
@@ -89,7 +112,7 @@ Classificação atual por domínio (vocabulário `AGENT_RULES.md` → seção 0)
 | Domínio | Classificação | Evidência |
 |---|---|---|
 | Hoje | BASE IMPLEMENTADA | PR #4, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-026), sem Human Experience Gate nem merge |
-| Agenda | BASE IMPLEMENTADA | PR #6, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-028), sem Human Experience Gate nem merge |
+| Agenda | EXPERIENCE EM REFINAMENTO | PR #6 (base) + PR #9 fechou gaps de motion/Dynamic Island/UX e corrigiu um bug real de exclusão de rotina, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-030), sem Human Experience Gate nem merge |
 | Educação / Study Mode | EXPERIENCE EM REFINAMENTO | PR #7 refinou motion/espaço/Dynamic Island sobre a base multi-trilha já provada (`EVIDENCE.md` → E-029); sem Human Experience Gate nem merge |
 | Shell / Context Panel (transversal, não é uma das 8 abas) | BASE IMPLEMENTADA | PR #5, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-027); é infraestrutura de Fase A consumida por todas as abas, não uma aba em si |
 | Corpo | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
@@ -173,6 +196,13 @@ branch de trabalho atual = chore/agent-os-bootstrap (PR #3, draft, aberta contra
   `fix/context-panel-geometry` + 2 commits próprios (cherry-pick de `e616635`, sem conflitos, +
   refinamento de motion/espaço/Island). **PR #7 também contém o commit de PR #5** (mesma relação
   de `D-012`). PROVADO (`EVIDENCE.md` → E-029).
+- `origin/chore/agent-os-bootstrap` (**PR #8**, **MESCLADA** — commit `78ebfa8`) — formalizou e
+  registrou a aprovação humana de `D-013` (Modelo Fase A precede Fase B). Não é mais um PR aberto.
+- `origin/feat/agenda-experience-complete` (**PR #9**, draft, aberta contra `main`) =
+  `feat/agenda` + 1 commit próprio (motion de troca de view, Dynamic Island, confirmação de
+  exclusão em 2 passos na Lista, correção do bug de exclusão de rotina). **PR #9 também contém os
+  commits de PR #5 e PR #6** (mesma relação de `D-012`, agora estendida a esta branch). Gates 1-10
+  PROVADO (`EVIDENCE.md` → E-030); Gate 11 (Human Experience Gate) pendente.
 - Vercel builda preview automaticamente para todas as PRs (confirmado real — `EVIDENCE.md` →
   E-009, E-013).
 

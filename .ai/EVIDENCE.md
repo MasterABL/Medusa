@@ -842,6 +842,67 @@ evidência real (não apenas "compilou"/"componente existe").
 
 ---
 
+## E-030 — TASK-AGENDA-EXPERIENCE-001: motion/Dynamic Island/UX da Agenda (Fase A, D-013), PR #9
+
+**Auditoria antes de codar** (leitura de código de `AgendaContainer.tsx`, `EventFormDrawer.tsx`,
+`EventDetailPanel.tsx`, `EventListItem.tsx`, `DynamicIsland.tsx`, `islandFixtures.ts`,
+`AgendaContext.tsx`, branch `feat/agenda-experience-complete`, criada a partir de `feat/agenda`/
+PR #6): confirmou que 4 views/CRUD/24 cores/conflitos/filtros/Context Panel já eram EXISTENTE E
+REUTILIZÁVEL (PR #6), mas achou 3 gaps reais de Fase A e 1 bug funcional:
+1. Troca de modo de visualização (Dia/Semana/Mês/Lista): swap instantâneo, zero transição.
+2. Dynamic Island: zero integração com a Agenda (nenhuma chamada a `setIslandState` em todo
+   `src/components/agenda/**`).
+3. Salvar/excluir: `EventFormDrawer.handleSubmit` chamava `onSave` + `onClose()` na mesma linha,
+   sem nenhum feedback de saving/success; `EventListItem`'s botão de excluir chamava `onDelete`
+   direto no clique, sem confirmação — inconsistente com o 2-passos já implementado em
+   `EventDetailPanel`.
+4. **Bug funcional real** (achado ao instrumentar QA de exclusão, não um bug de teste): rotinas
+   recorrentes são expandidas virtualmente com `id: \`${routine.id}-virt-${date}\`` (ver
+   `expandRecurringItems` em `agendaHelpers.ts`), id que nunca existe no array `items` real —
+   excluir uma ocorrência de rotina não fazia nada, silenciosamente.
+
+**Mudanças** (reaproveitando 100% do sistema de motion/Island já existente, nenhum token novo):
+- Região de view com `key={viewMode}` retriggera `.study-stage-enter` (mesma técnica do
+  track-switch de Educação, E-029).
+- Island pulsa `processing` → `idle` (320ms, mesmo padrão de `EducationContainer`) em: troca de
+  view, salvar, excluir. Decisão deliberada de **não** adotar um estado persistente (`context`/
+  `active`/`attention`) para a Agenda, porque o texto de cada estado no catálogo fechado de
+  `islandFixtures.ts` é tematicamente de Educação por design ("Física Quântica") — um estado
+  persistente mostraria texto errado indefinidamente, um pulso transiente não.
+- `EventListItem`: exclusão rápida agora exige confirmação em 2 passos (Cancelar/Confirmar),
+  auto-reset em 4s — mesmo padrão visual de `EventDetailPanel`.
+- `AgendaContext.deleteItem`: resolve `id` virtual de rotina para o id da série base antes de
+  filtrar — corrige o bug funcional acima. Exclusão de uma única ocorrência (mantendo as demais)
+  ficaria registrada como refinamento futuro (exigiria modelo de exceção por data), não
+  implementada nesta rodada.
+
+**Evidência real:**
+```
+$ npx tsc --noEmit                              → 0 erros
+$ npm run build                                 → sucesso
+$ node scripts/qa-agenda-experience.js          → 27/27 aprovados
+$ node scripts/qa-agenda-shell-integration.js   → 11/11 aprovados (regressão)
+$ MEDUSA_BROWSER_PATH=... node scripts/qa-agenda.js → 29/30 (a 1 falha é BLOCK-005, ambiental,
+                                                    já documentada — confirmada não-regressão)
+```
+Cobertura da suíte nova: opacidade/transform reais amostrados EM PLENA TRANSIÇÃO da troca de view
+(opacity=0.49 em t~90ms de uma animação de 480ms, transform com translateY em curso), classes do
+Island (`island-processing-active` → `living-pulse`) amostradas durante e depois do pulso em 3
+fluxos (troca de view, salvar, excluir), fluxo completo de confirmação em 2 passos na Lista
+(clique único não exclui, Cancelar restaura, Confirmar remove de fato — incluindo a correção do
+bug de rotina), regressão do EventDetailPanel, 4 breakpoints, reduced-motion (transform desativado,
+navegação seguindo funcional), regressão de Context Panel e navegação Agenda→Educação.
+
+**PR:** https://github.com/MasterABL/Medusa/pull/9 (draft), a partir de `feat/agenda-experience-
+complete` (base: `feat/agenda`/PR #6, que carrega PR #5 — mesma relação de `D-012`).
+
+**Status conforme `QA_GATE.md` → Gate 11 (Experience-Complete Gate)**: itens 1-10 **PROVADO** com
+evidência real. Item 11 (Human Experience Gate) **não concedido** — automação prova critérios
+técnicos, não substitui a decisão humana (`AGENT_RULES.md` → seção 11). Classificação correta:
+`EXPERIENCE EM REFINAMENTO`, não `EXPERIENCE COMPLETE` (ver `AGENT_RULES.md` → seção 0).
+
+---
+
 ## Índice de tarefas com evidência
 
 | Tarefa | Gates com evidência real | Gates pendentes | Status conforme `QA_GATE.md` |
@@ -857,3 +918,4 @@ evidência real (não apenas "compilou"/"componente existe").
 | TASK-AGENDA-SHELL-001 (Agenda cherry-picked, branch própria, PR #6) | Contract (D-012), Implementation, Test, Build, Browser QA original (29/30) + suíte nova de regressão de Shell (11/11) (E-028) | Merge Gate (depende de PR #5, mesma natureza de HDR-001) | **PROVADO** (40/41 checks reais — a única falha é ambiental, já documentada) — Merge: BLOQUEADO |
 | TASK-STUDY-MODE-REFINEMENT-001 (multi-trilha portada + motion/espaço/Island voz, PR #7) | Contract, Implementation, Test, Build, Browser QA com amostragem em plena transição (41/41) (E-029) | Merge Gate (depende de PR #5) | **PROVADO** (todos os itens do checklist do usuário verificados com evidência real) — Merge: BLOQUEADO |
 | TASK-HOJE-FOUNDATION-001 (Hoje Foundation v1 + honestidade em rotas pendentes) | Contract (E-025, HUMAN GATE ANALYSIS), Implementation, Test, Build, Browser QA 4 breakpoints, reduced-motion, regressão (E-026) — PR #4 | Merge Gate (mesma natureza de HDR-001) | **PROVADO** (todos os 7 ACCEPTANCE CRITERIA) — Merge: BLOQUEADO (aprovação humana pendente) |
+| TASK-AGENDA-EXPERIENCE-001 (motion/Island/UX + bug de exclusão de rotina corrigido, PR #9) | Contract (D-013, QA_GATE.md → Gate 11), Implementation, Test, Build, Browser QA com amostragem em plena transição (27/27) + regressão (11/11 + 29/30) (E-030) | Human Experience Gate (Gate 11, item 11) + Merge Gate | Gates 1-10: **PROVADO** — Gate 11 (Human Experience Gate): **BLOQUEADO** (decisão humana pendente) — Classificação: `EXPERIENCE EM REFINAMENTO` |
