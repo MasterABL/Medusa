@@ -1,42 +1,49 @@
 # CURRENT_STATE.md — Estado Real do Repositório
 
-**Última verificação**: sessão de consolidação do Master Plan definitivo (2ª rodada, incorporando
-7 correções estruturais + auditoria real de PR #1 e PR #2). **Não afirme nada aqui sem ter
-verificado.** Este arquivo deve ser atualizado a cada gate concluído.
+**Última verificação**: sessão de transição para modo de execução autônoma (verificação de `agy`,
+correção do orquestrador, primeiro ciclo real do loop, execução de `TASK-MERGE-PREP-001`). **Não
+afirme nada aqui sem ter verificado.** Este arquivo deve ser atualizado a cada gate concluído.
 
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```
-STATUS:        PARCIAL (Master Plan consolidado; implementação real de Foundation+Agenda existe
-               em branches não mescladas; Merge Gate pendente de decisão humana)
-FASE ATUAL:    Consolidação do protocolo concluída. Trabalho de implementação já avançou (fora do
-               processo formal do Agent OS) até incluir Foundation Hardening + expansão de
-               Educação + Agenda completa, todos em PRs abertas não mescladas.
+STATUS:        BLOQUEADO (real, não por indisponibilidade de executor — ver PRÓXIMO PASSO)
+FASE ATUAL:    Loop completo do Agent OS validado com uma tarefa real (TASK-MERGE-PREP-001,
+               PROVADO). Fila agora depende exclusivamente de decisões humanas — nenhuma tarefa
+               remanescente é executável sem inventar escopo ou sem aprovação humana.
 CONCLUÍDO:
-  - MASTER_PLAN.md/ROADMAP.md/TASK_QUEUE.md consolidados com estrutura de 15 fases (0-14),
-    Auth como fase explícita, Hoje dividido em Foundation/Integration, Guardian independente.
-  - Auditoria real (não alegada) de PR #1 e PR #2: tsc, build, e os 3 scripts de QA existentes
-    rodaram de verdade em worktree isolado (ver EVIDENCE.md → E-013 a E-019).
-  - Git topology real mapeada: PR #2 (Agenda) está construída sobre PR #1 (Foundation Hardening) —
-    dependência técnica, não preferência (DECISIONS.md → D-008).
+  - `agy` reverificado nesta sessão: ainda ausente NESTE container (não confundir com "ausente em
+    todo lugar" — o usuário reporta `agy` funcional numa máquina Windows separada, mas essa
+    instalação não é alcançável por esta sessão remota; ver BLOCKERS.md → BLOCK-001 atualizado).
+  - Bug real corrigido no orquestrador: ele enviava ACTIVE_TASK.md ao executor; agora envia
+    HANDOFF.md (o contrato correto, por instrução explícita do protocolo).
+  - Primeiro ciclo real do loop completo executado: TASK_QUEUE → ACTIVE_TASK → HANDOFF →
+    orchestrator (exit 2, fallback) → Claude executa diretamente → Claude audita → EVIDENCE →
+    GATE (PROVADO). Ver EVIDENCE.md → E-020.
+  - TASK-MERGE-PREP-001 concluída: descrições de PR #1 e PR #2 corrigidas via GitHub MCP com os
+    números reais (23 asserções + 42 screenshots; 29/30 com causa ambiental explicada).
 RESTANTE:
   - Decisão humana sobre merge sequencial PR #1 → PR #2 (HDR-001).
-  - Ratificação humana da expansão multi-trilha de Educação, feita sem decisão prévia registrada
-    (HDR-010).
+  - Ratificação humana da expansão multi-trilha de Educação (HDR-010).
+  - Ratificação humana do agrupamento da List View da Agenda (HDR-003).
   - Decisão de provedor de Auth antes de qualquer Persistence Slice (HDR-011).
+  - Uma rodada de definição de contrato/design para Hoje antes que a Fase 5a vire tarefa executável
+    (não é bloqueio de merge — é falta de especificação de produto suficiente).
 ÚLTIMO TESTE:
-  npx tsc --noEmit (feature/agenda) → 0 erros; npm run build → sucesso; test-foundation-
-  hardening.js → 13/13; qa-browser.js → 23/23 asserções (30 "erros" = 100% TLS externo, não app);
-  qa-agenda.js → 29/30 (1 falha = mesma causa ambiental).
+  node scripts/agent-orchestrator.cjs com TASK-MERGE-PREP-001 ativa → exit 2, status
+  "FALLBACK: CLAUDE_DIRECT", handoffPath ".ai/HANDOFF.md" confirmado no registro salvo.
+  Após conclusão: node scripts/agent-orchestrator.cjs (ACTIVE_TASK.md arquivado) → exit 1
+  (confirma que o orquestrador volta corretamente ao estado "sem tarefa ativa").
 FALHAS:
-  Nenhuma falha funcional real encontrada na auditoria. Duas descrições de PR (não o código) têm
-  números imprecisos — ver BLOCKERS.md → BLOCK-002, BLOCK-005.
+  Nenhuma. A execução de TASK-MERGE-PREP-001 foi bem-sucedida e auditada.
 PRÓXIMO PASSO:
-  Ver TASK_QUEUE.md → primeira tarefa desbloqueada (correção das descrições de PR + preparação
-  para merge). Human decisions HDR-001/HDR-010/HDR-011 seguem pendentes.
+  Nenhuma tarefa autônoma restante — aguardar decisão humana sobre HDR-001, HDR-003, HDR-010 ou
+  HDR-011 (qualquer uma delas desbloqueia a próxima etapa correspondente; ver TASK_QUEUE.md para o
+  mapeamento exato de qual decisão libera qual fase).
 BLOCKERS:
-  Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-002/005 (descrições de PR imprecisas, não
-  bloqueiam merge tecnicamente), BLOCK-003 (GitHub Actions ausente), BLOCK-006 (next@14.2.24 CVE).
+  Ver BLOCKERS.md → BLOCK-001 (Antigravity — inalcançável desta sessão, não "não instalado"),
+  BLOCK-003 (GitHub Actions ausente), BLOCK-006 (next@14.2.24 CVE, dívida técnica não urgente).
+  BLOCK-002/005 (descrições de PR imprecisas) — RESOLVIDOS nesta sessão.
 ```
 
 ## Baseline Git

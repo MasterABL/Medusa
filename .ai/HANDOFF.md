@@ -54,56 +54,79 @@ e a decisão de executor:
    `EVIDENCE.md`, para que qualquer sessão futura possa retomar sem depender de memória de
    conversa.
 
-## Rascunho de handoff para TASK-AGENDA-001 (não enviado — `agy` indisponível nesta sessão)
+## Handoff ativo — TASK-MERGE-PREP-001
+
+```
+TASK ID: TASK-MERGE-PREP-001
+
+WHY:
+As PRs #1 e #2 já têm implementação real e auditada (EVIDENCE.md → E-013 a E-019), mas suas
+descrições no GitHub contêm números imprecisos ("42 testes"/"30/30") que precisam ser corrigidos
+antes que um humano tome as decisões de merge (HDR-001, HDR-003, HDR-010) com informação precisa.
+
+CURRENT STATE:
+PR #1 (fix/foundation-hardening) e PR #2 (feature/agenda) abertas, não mescladas. PR #2 contém os
+commits de PR #1 (dependência técnica confirmada, DECISIONS.md → D-008). Reexecução real de
+tsc/build/QA feita na sessão anterior em worktree isolado — nenhum código foi alterado por essa
+auditoria.
+
+EXACT SCOPE:
+Editar a descrição de PR #1 e PR #2 no GitHub para refletir os números reais (ver
+TASK_QUEUE.md → TASK-MERGE-PREP-001 → SCOPE na íntegra). Nenhuma mudança de código.
+
+FILES:
+Nenhum arquivo de código-fonte. Apenas texto de descrição das PRs via GitHub.
+
+ARCHITECTURAL RULES:
+N/A — esta tarefa não escreve código.
+
+DO NOT TOUCH:
+Todo src/** (esta tarefa não deve tocar nenhum arquivo de produto). Não mesclar nenhuma PR (merge
+é HDR-001, decisão humana).
+
+ACCEPTANCE CRITERIA:
+Ver TASK_QUEUE.md → TASK-MERGE-PREP-001 → ACCEPTANCE CRITERIA (3 itens).
+
+TEST COMMANDS: N/A.
+
+BROWSER QA: N/A.
+
+EXPECTED OUTPUT:
+Descrições de PR #1 e PR #2 atualizadas com números reais, registrado em EVIDENCE.md.
+```
+
+**Nota de execução**: `agy` está indisponível **nesta sessão** (container remoto isolado; o
+usuário reporta `agy` funcional numa máquina Windows separada, mas essa instalação não é
+alcançável daqui — ver `BLOCKERS.md` → BLOCK-001). Por `AGENT_RULES.md` → seção 7, o executor de
+fallback (Claude direto) assume esta tarefa. `scripts/agent-orchestrator.cjs` foi executado e
+confirmou exit 2 (`FALLBACK: CLAUDE_DIRECT`) antes desta execução direta — ver `EVIDENCE.md`.
+
+---
+
+## Rascunho histórico de handoff para TASK-AGENDA-001 (implementação já existe — ver EVIDENCE.md)
+
+Preservado como referência do contrato original, não como uma tarefa ainda pendente de execução.
 
 ```
 TASK ID: TASK-AGENDA-001
 
 WHY:
-A Agenda é o próximo domínio na ordem arquitetural do Medusa (MASTER_PLAN.md, fase 4), com
-contrato de produto já auditado a partir de um protótipo Figma Make navegável e testado
-interativamente. É o primeiro piloto do protocolo de agentes deste repositório.
+A Agenda é o domínio temporal do Medusa. Já implementada (PR #2), auditada de verdade nesta
+sessão anterior.
 
 CURRENT STATE:
-Nenhum arquivo de Agenda existe em src/components/agenda/ nesta branch. Shell V2 e Educação já
-existem e estão estáveis em main. Um PR de hardening do Shell (Context Panel + tema Claro) está
-aberto e ainda não mesclado (ver CURRENT_STATE.md) — confirmar com o humano se deve ser mesclado
-antes desta tarefa começar.
+Implementação completa existe em feature/agenda (24 arquivos), não mesclada. Ver CURRENT_STATE.md.
 
-EXACT SCOPE:
-Ver TASK_QUEUE.md → TASK-AGENDA-001 → DESCRIPTION e ACCEPTANCE CRITERIA na íntegra. Não resumir
-nem reinterpretar — copiar literalmente.
-
-FILES:
-Ver ACTIVE_TASK.md → FILES EXPECTED.
-
-ARCHITECTURAL RULES:
-Ver AGENT_RULES.md na íntegra, especialmente: reuso de ShellGeometry/tokens existentes, padrão de
-integração de módulo por activeRoute (não rota própria do Next.js), sem magic numbers, sem
-persistência real.
-
-DO NOT TOUCH:
-src/components/education/** (congelado). src/types/shell.ts (ShellGeometry/SHELL_DIMENSIONS —
-só ler, nunca mudar a forma dos dados). src/fixtures/islandFixtures.ts (catálogo fechado de 10
-estados).
-
-ACCEPTANCE CRITERIA:
-Ver TASK_QUEUE.md → TASK-AGENDA-001 → ACCEPTANCE CRITERIA (9 itens, copiar literalmente).
+EXACT SCOPE / FILES / ARCHITECTURAL RULES / DO NOT TOUCH / ACCEPTANCE CRITERIA:
+Ver TASK_QUEUE.md → TASK-AGENDA-001 (status real por critério já preenchido).
 
 TEST COMMANDS:
-npx tsc --noEmit
-npm run build
+npx tsc --noEmit / npm run build — já executados de verdade, ver EVIDENCE.md → E-014.
 
 BROWSER QA:
-node scripts/qa-browser.js (adaptado/estendido para cobrir as rotas da Agenda) nos 4 breakpoints
-390/820/1024/1440, com verificação explícita do valor exato 820px na Week View.
+node scripts/qa-agenda.js — já executado de verdade, ver EVIDENCE.md → E-017.
 
 EXPECTED OUTPUT:
-Diff de código limitado aos FILES declarados, saída real dos TEST COMMANDS, e um relatório de
-Browser QA com screenshot ou asserção programática por breakpoint. Nenhuma alegação de "PROVADO"
-sem esses três anexos.
+Já entregue e auditado — ver EVIDENCE.md → E-013 a E-019. O que falta é merge (HDR-001) e
+ratificação (HDR-003), não implementação.
 ```
-
-**Nota de status**: este rascunho não foi enviado a nenhum executor nesta sessão porque o CLI
-`agy` não está disponível neste ambiente (ver `BLOCKERS.md`). Ele existe para que, no momento em
-que `agy` (ou outro executor) estiver disponível, o handoff já esteja pronto sem reinterpretação.

@@ -22,19 +22,74 @@ EXPECTED EVIDENCE
 
 ## Estado atual
 
-**Nenhuma tarefa está ativa neste momento.**
+**Nenhuma tarefa está ativa neste momento.** `TASK-MERGE-PREP-001` foi concluída nesta sessão
+(`PROVADO` — ver `TASK_QUEUE.md`, `EVIDENCE.md` → E-020) e removida do slot ativo. A fila está
+bloqueada em decisões humanas reais (HDR-001, HDR-003, HDR-010, HDR-011) — ver `TASK_QUEUE.md` →
+"Primeira tarefa desbloqueada" para o que cada decisão libera.
 
-**Atualização importante desta sessão**: `TASK-AGENDA-001` deixou de ser `PENDING`/"a implementar"
-— uma implementação real já existe em PR #2 (`feature/agenda`), criada fora deste protocolo, e foi
-auditada de verdade (ver `EVIDENCE.md` → E-013 a E-019, `TASK_QUEUE.md` → status `PARTIAL`). O
-rascunho abaixo (originalmente escrito para "implementar do zero") **não deve mais ser ativado como
-está** — ficaria pedindo para reimplementar algo que já existe. Ele é preservado como referência
-histórica do contrato original. A tarefa realmente ativável agora é `TASK-MERGE-PREP-001` (ver
-`TASK_QUEUE.md`), que não precisa deste formato de `ACTIVE_TASK` completo por ser uma correção de
-texto, não uma implementação de produto.
+## Última tarefa executada (arquivada)
 
-Rascunho original de `TASK-AGENDA-001` (histórico — não ativar sem revisar primeiro se ainda faz
-sentido, dado que o código já existe):
+```
+TASK ID: TASK-MERGE-PREP-001 [CONCLUÍDA — PROVADO]
+
+OBJECTIVE:
+Corrigir as descrições das PRs #1 (Foundation Hardening) e #2 (Agenda) no GitHub para refletir os
+números reais verificados na auditoria da sessão anterior (EVIDENCE.md → E-013 a E-019), e deixar
+um resumo preciso para as decisões humanas pendentes (HDR-001, HDR-003, HDR-010).
+
+CONTEXT:
+Ver TASK_QUEUE.md → TASK-MERGE-PREP-001 (contrato completo), BLOCKERS.md → BLOCK-002/BLOCK-005,
+EVIDENCE.md → E-013 a E-019. Esta tarefa não implementa nem altera nenhum código de produto — é
+correção de comunicação/evidência sobre PRs já existentes.
+
+FILES EXPECTED:
+- Nenhum arquivo de código. Apenas comentários/edições de descrição nas PRs #1 e #2 via GitHub.
+
+CONSTRAINTS:
+Não alterar nenhum arquivo em src/**. Não mesclar nenhuma PR (isso é HDR-001, decisão humana).
+Não implementar nenhuma funcionalidade de produto.
+
+ACCEPTANCE CRITERIA:
+1. Descrição de PR #1 não afirma mais "42 testes aprovados" sem qualificar a diferença entre
+   asserções (23, todas aprovadas) e screenshots (42).
+2. Descrição de PR #2 não afirma mais "30/30" sem qualificar que a única falha real é causada por
+   uma limitação ambiental de TLS externo, não um defeito funcional.
+3. Nenhum código-fonte foi alterado.
+
+TESTS: N/A (nenhum código novo).
+
+BROWSER QA: N/A (nenhuma UI nova).
+
+REGRESSION: N/A (nenhum código tocado).
+
+EXPECTED EVIDENCE:
+Link/confirmação da edição de cada descrição de PR, registrado em EVIDENCE.md.
+```
+
+## CHECKPOINT ATUAL (AGENT_RULES.md → seção 8)
+
+```
+STATUS:        IN_PROGRESS
+FASE ATUAL:    Executor: fallback Claude direto (agy indisponível nesta sessão — ver BLOCKERS.md →
+               BLOCK-001, nova nota sobre Windows/ambiente remoto). Orquestrador executado, exit 2
+               confirmado, HANDOFF.md consumido corretamente.
+CONCLUÍDO:     Handoff preenchido, orquestrador testado.
+RESTANTE:      Editar as descrições reais das PRs #1 e #2 no GitHub, registrar em EVIDENCE.md.
+ÚLTIMO TESTE:  node scripts/agent-orchestrator.cjs → exit 2, status FALLBACK: CLAUDE_DIRECT.
+FALHAS:        Nenhuma.
+PRÓXIMO PASSO: Claude edita as duas descrições de PR via GitHub MCP.
+BLOCKERS:      Nenhum.
+```
+
+---
+
+## Histórico — rascunho original de `TASK-AGENDA-001` (não ativar; implementação já existe)
+
+`TASK-AGENDA-001` não está mais `PENDING` — uma implementação real já existe em PR #2
+(`feature/agenda`), auditada de verdade na sessão anterior (`EVIDENCE.md` → E-013 a E-019,
+`TASK_QUEUE.md` → status `PARTIAL`). O rascunho abaixo é preservado como referência histórica do
+contrato original, contra o qual a implementação real foi verificada — não deve ser reativado como
+"a implementar do zero".
 
 ```
 TASK ID: TASK-AGENDA-001
@@ -47,52 +102,22 @@ Context Panel, acessibilidade e reduced motion — sem persistência real e sem 
 
 CONTEXT:
 Ver PRODUCT_CONTRACT.md (responsabilidade da Agenda), ARCHITECTURE.md (Shell/ShellGeometry/
-padrão de integração de módulo), CURRENT_STATE.md (Agenda: design auditado, implementação não
-iniciada), e EVIDENCE.md (achados da auditoria do protótipo Figma Make usado como referência de
-contrato, incluindo os desvios já conhecidos: bug de breakpoint em 820px, conflito sem duração,
-categoria sem domínio/edição, List View agrupada por dia em vez de Agora/Próximo/Depois/Mais
-tarde).
+padrão de integração de módulo), CURRENT_STATE.md (Agenda: implementada em PR #2, não mesclada),
+e EVIDENCE.md (achados da auditoria do protótipo Figma Make + auditoria real do código de PR #2).
 
-FILES EXPECTED:
-- src/components/agenda/AgendaContainer.tsx (novo)
-- src/components/agenda/{AgendaHeader,DayView,WeekView,MonthView,ListView,EventDetail,
-  EventDrawer,ContextPanel,agendaFixtures,types}.tsx|ts (novos)
-- src/app/page.tsx (uma condicional a mais para activeRoute === 'agenda', mesmo padrão de
-  Educação — não redesenhar o arquivo)
-- Nenhum arquivo de src/components/education/** ou src/context/ShellContext.tsx deveria precisar
-  mudar; se precisar, isso é um sinal de alerta a reportar antes de prosseguir.
+FILES EXPECTED (já existem em PR #2 — ver EVIDENCE.md → E-013):
+- src/components/agenda/** (24 arquivos), src/context/AgendaContext.tsx, src/types/agenda.ts,
+  scripts/qa-agenda.js, src/app/{layout,page}.tsx, src/components/shell/ContextPanel.tsx.
 
 CONSTRAINTS:
-Ver AGENT_RULES.md na íntegra. Resumo: não tocar Educação; reutilizar tokens/ShellGeometry
-existentes; sem magic numbers; sem persistência real; sem as capacidades da seção "Escopo"
-(sync externo, IA de agendamento, multiusuário); branch própria, nunca commit direto em main.
+Ver AGENT_RULES.md na íntegra.
 
 ACCEPTANCE CRITERIA:
-Ver TASK_QUEUE.md → TASK-AGENDA-001 → ACCEPTANCE CRITERIA (9 itens).
+Ver TASK_QUEUE.md → TASK-AGENDA-001 → ACCEPTANCE CRITERIA (status real por item já preenchido).
 
-TESTS:
-npx tsc --noEmit
-npm run build
-
-BROWSER QA:
-Ver TASK_QUEUE.md → TASK-AGENDA-001 → QA REQUIREMENTS. Obrigatório nos 4 breakpoints
-(390/820/1024/1440), com atenção específica ao valor exato 820px.
-
-REGRESSION:
-Abrir Educação/Study Mode e confirmar visualmente que nada mudou. Confirmar Sidebar/Header/
-Context Panel/Dynamic Island funcionando fora da Agenda.
+TESTS / BROWSER QA / REGRESSION:
+Já executados de verdade na sessão anterior — ver EVIDENCE.md → E-014 a E-018.
 
 EXPECTED EVIDENCE:
-Saída real de tsc/build, screenshots ou asserções programáticas dos 4 breakpoints, screenshot de
-Educação intacta — tudo anexado/registrado em EVIDENCE.md antes de marcar a tarefa como PROVADO.
+Já preenchido em EVIDENCE.md → E-013 a E-019.
 ```
-
-**Nota de execução (ver AGENT_RULES.md → seção 7):** ao promover esta tarefa, rodar
-`node scripts/agent-orchestrator.cjs` primeiro. Se retornar exit 2 (`FALLBACK: CLAUDE_DIRECT`,
-caso esperado hoje — ver `BLOCKERS.md` → BLOCK-001), Claude implementa diretamente usando o
-`HANDOFF.md` já preenchido como especificação exata. Isso não é um desvio do protocolo.
-
-**Nota de checkpoint (ver AGENT_RULES.md → seção 8):** assim que esta tarefa for promovida a
-`IN_PROGRESS`, este arquivo passa a manter também um bloco `CHECKPOINT ATUAL` (mesmo formato usado
-em `CURRENT_STATE.md`) refletindo o progresso real da implementação, atualizado antes de encerrar
-qualquer sessão — para que uma sessão futura possa retomar exatamente de onde esta parou.

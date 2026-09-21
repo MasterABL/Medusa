@@ -5,9 +5,36 @@ um bloqueio hipotético ou "provavelmente".
 
 ---
 
-## BLOCK-001 — Antigravity CLI (`agy`) indisponível (investigado a fundo nesta sessão)
+## BLOCK-001 — Antigravity CLI (`agy`) indisponível nesta sessão (investigado em 3 sessões)
 
-**Comando executado (verificação inicial, repetida em duas sessões):**
+**Atualização mais recente (3ª sessão)**: o usuário informou que `agy` foi instalado e está
+funcional numa máquina Windows. Reverificado nesta sessão de qualquer forma (nunca presumir):
+```
+$ which agy
+(sem saída, exit code 1)
+
+$ agy --version
+/bin/bash: line 1: agy: command not found
+(exit code 127)
+
+$ hostname / uname -a
+vm / Linux ... (container Linux isolado, não a máquina Windows do usuário)
+```
+**Conclusão nova e importante**: isso não é mais "agy não existe em lugar nenhum" — é
+**"agy existe, mas não neste container"**. Esta sessão do Claude Code roda num ambiente de
+execução remoto/nuvem, isolado, efêmero, sem qualquer acesso ao sistema de arquivos ou PATH da
+máquina Windows do usuário. Instalar `agy` no Windows não o torna alcançável por esta sessão —
+são dois ambientes de execução completamente separados, sem ponte de rede ou filesystem entre
+eles. Isso não é um problema de permissão corrigível aqui; é uma fronteira arquitetural do
+produto "Claude Code on the web"/sessão remota. Ver `AGENT_RULES.md` → seção 7 para a nota de
+arquitetura correspondente.
+
+**Caminho real para usar o `agy` do Windows**: o usuário precisaria rodar uma sessão do Claude
+Code **na própria máquina Windows** (localmente, ou WSL com PATH compartilhado) apontando para
+este mesmo repositório — não esta sessão remota. Isso é uma decisão de onde rodar a sessão, não
+uma configuração que esta sessão possa mudar sozinha.
+
+**Comando executado (verificação inicial, repetida em três sessões):**
 ```
 $ which agy
 (sem saída, exit code 1)

@@ -20,8 +20,9 @@ EXPECTED EVIDENCE (novo — o que precisa estar em EVIDENCE.md antes de PROVADO)
 
 Status operacional (ciclo de vida da tarefa): `PENDING`, `READY`, `IN_PROGRESS`, `BLOCKED`,
 `PROVADO`, `PARTIAL`. Ao reportar evidência de resultado, usar o vocabulário de `AGENT_RULES.md`
-(`PROVADO`/`PARCIAL`/`BLOQUEADO`/`NÃO IMPLEMENTADO`). `scripts/agent-orchestrator.cjs` continua
-lendo apenas `TASK ID:` de `ACTIVE_TASK.md` — nenhuma mudança de schema quebra o orquestrador.
+(`PROVADO`/`PARCIAL`/`BLOQUEADO`/`NÃO IMPLEMENTADO`). `scripts/agent-orchestrator.cjs` lê o
+`TASK ID:` de `ACTIVE_TASK.md` e envia o conteúdo de `HANDOFF.md` (o contrato real) ao executor —
+nenhuma mudança de schema aqui quebra o orquestrador.
 
 **Regra de desbloqueio**: a fila não avança pela primeira fase numericamente — avança pela
 **primeira tarefa cujas DEPENDENCIES estão todas resolvidas**. Ver seção final "Primeira tarefa
@@ -36,8 +37,8 @@ ID: TASK-MERGE-PREP-001
 DOMAIN: Foundation + Agenda (transversal às PRs #1 e #2)
 PHASE: 1 e 3
 PRIORITY: P0
-STATUS: READY (nenhuma DEPENDENCY pendente — não precisa de decisão humana para começar)
-DEPENDENCIES: nenhuma (é uma tarefa de correção de evidência/documentação, não de produto)
+STATUS: PROVADO (executada nesta sessão — ver EVIDENCE.md → E-020)
+DEPENDENCIES: nenhuma (foi uma tarefa de correção de evidência/documentação, não de produto)
 
 OBJECTIVE:
   Corrigir as descrições das PRs #1 e #2 no GitHub para refletir os números reais verificados
@@ -70,7 +71,8 @@ QA REQUIREMENTS: nenhuma (não há código novo para testar).
 EXPECTED EVIDENCE:
   Link/diff da edição de cada descrição de PR, registrado em EVIDENCE.md.
 
-STATUS: READY — pode ser executada imediatamente, sem esperar nenhuma decisão humana.
+STATUS: PROVADO — executada por Claude (fallback direto, agy indisponível), descrições de PR #1 e
+  PR #2 corrigidas via mcp__github__update_pull_request, evidência em EVIDENCE.md → E-020.
 ```
 
 ---
@@ -146,8 +148,14 @@ suposição. O que existe hoje para cada uma:
 - **FASE 2 (Auth)**: nenhuma tarefa ainda — bloqueada por HDR-011.
 - **FASE 4 (Education — ratificação)**: nenhuma tarefa de código nova — bloqueada por HDR-010 (é
   uma decisão de governança, não uma tarefa de implementação).
-- **FASE 5 (Hoje)**: nenhuma tarefa ainda — 5a poderia começar (depende só de Fase 1), mas não foi
-  decomposta nesta sessão por não ser o foco desta consolidação; 5b bloqueada por HDR-006.
+- **FASE 5 (Hoje)**: nenhuma tarefa ainda. **Verificado nesta sessão**: `PRODUCT_CONTRACT.md` só
+  define a responsabilidade geral de Hoje em uma linha ("resumo operacional... o que merece
+  atenção agora") — não há layout, seções ou wireframe suficientes para escrever
+  `ACCEPTANCE CRITERIA` verificáveis sem inventar a UI. Diferente da Agenda (que teve uma sessão
+  de auditoria de protótipo antes de virar tarefa), Hoje precisa de uma rodada de definição de
+  contrato/design antes de poder ser decomposta — isso não é tecnicamente bloqueado por merge de
+  PR, mas por falta de especificação de produto suficiente. Registrar como necessidade real, não
+  forçar uma implementação inventada.
 - **FASES 6-13**: nenhuma tarefa ainda — cada uma bloqueada por pelo menos um HDR de definição de
   contrato (ver `DECISIONS.md` → HDR-005 e correlatos).
 
@@ -155,5 +163,20 @@ suposição. O que existe hoje para cada uma:
 
 ## Primeira tarefa desbloqueada
 
-**`TASK-MERGE-PREP-001`** — não exige nenhuma decisão humana prévia, não toca código de produto, e
-prepara terreno preciso para as decisões HDR-001/HDR-003/HDR-010 que desbloqueiam tudo o mais.
+**`TASK-MERGE-PREP-001` — CONCLUÍDA nesta sessão** (`PROVADO`, ver `EVIDENCE.md` → E-020): as
+descrições de PR #1 e PR #2 foram corrigidas para refletir os números reais.
+
+**Estado da fila agora**: não há nenhuma outra tarefa executável autonomamente por Claude sem
+decisão humana. Verificado sistematicamente: FASE 2 (Auth) bloqueada por HDR-011; FASE 3
+(merge/ratificação da Agenda) bloqueada por HDR-001/HDR-003; FASE 4 (ratificação de Educação)
+bloqueada por HDR-010; FASE 5 (Hoje) não tem contrato específico o suficiente para virar tarefa
+sem inventar UI; FASES 6-13 bloqueadas por HDR-005 e correlatos. **Isto é um ponto de parada real
+e válido** (`AGENT_RULES.md` → "nunca bloquear por executor indisponível" não se aplica aqui — o
+bloqueio agora é de decisão humana real, exatamente o caso em que `BLOQUEADO`/parar é correto).
+
+**Decisões que desbloqueariam a próxima tarefa, cada uma com o que ela libera:**
+- **HDR-001** (ordem/aprovação de merge PR #1 → PR #2) → libera o fechamento formal das Fases 1 e 3.
+- **HDR-003** (ratificar agrupamento da List View) → libera o fechamento formal da Fase 3.
+- **HDR-010** (ratificar expansão multi-trilha de Educação) → libera o fechamento formal da Fase 4.
+- **HDR-011** (escolher provedor de Auth) → libera o início real da Fase 2.
+- Uma rodada de definição de contrato/design para Hoje → libera a decomposição da Fase 5a.

@@ -86,18 +86,21 @@ Nenhuma tarefa fica parada esperando um executor específico ficar disponível. 
 execução é, nesta ordem:
 
 ```
-Executor principal:  Antigravity (agy)
-Fallback:             Claude Code (execução direta)
-Fallback final:       BLOQUEADO
+PRIMARY EXECUTOR:  Antigravity (agy)
+FALLBACK EXECUTOR: Claude Code (execução direta)
+FINAL STATE:       BLOQUEADO (só para bloqueios reais — ver abaixo)
 ```
 
 Regras:
 
 - **Antigravity é preferencial, não obrigatório.** Quando `scripts/agent-orchestrator.cjs`
-  confirma que `agy` está disponível e autenticado, a tarefa é delegada a ele via `HANDOFF.md`.
-- **Tarefas pequenas podem ser sempre executadas diretamente por Claude**, com ou sem Antigravity
-  disponível — não há necessidade de esperar um executor externo para mudanças pequenas, locais,
-  de baixo risco (ex.: um componente novo isolado, uma correção pontual).
+  confirma que `agy` está disponível e autenticado, tarefas grandes de implementação são
+  delegadas a ele via `HANDOFF.md`.
+- **Tarefas pequenas podem ser sempre executadas diretamente por Claude, mesmo com Antigravity
+  disponível**, quando isso for mais eficiente do que preparar um handoff completo para uma
+  mudança pontual, local e de baixo risco (ex.: corrigir um texto, ajustar um valor, um componente
+  novo isolado). A preferência por Antigravity nunca deve virar burocracia desnecessária para
+  tarefas triviais.
 - **Tarefas grandes preferem Antigravity quando disponível**, mas isso não é um requisito duro:
   se Antigravity está indisponível (ver `BLOCKERS.md` → BLOCK-001), **Claude assume a
   implementação diretamente**, seguindo exatamente o mesmo contrato de `HANDOFF.md`/
@@ -118,6 +121,18 @@ Regras:
   ele não se audita menos rigorosamente do que auditaria o Antigravity. Os mesmos gates de
   `QA_GATE.md` (Test/Build/Browser QA/Regression/Evidence) se aplicam integralmente antes de
   qualquer alegação de `PROVADO`.
+- **Permissões do Antigravity, quando disponível**: restritas aos comandos necessários ao Medusa —
+  `git` (branch/commit/status/diff, nunca push --force/reset --hard sem autorização), `npm run
+  typecheck`, `npm run build`, `npm run lint`, `npm run test` (quando existir), e os scripts de QA
+  em `scripts/*.js`. **Nunca configurar `--dangerously-skip-permissions` como padrão permanente** —
+  preferir permissões específicas por comando.
+- **Nota de arquitetura de ambiente**: `agy` instalado numa máquina (ex.: Windows do usuário) só é
+  utilizável por uma sessão do Claude Code que rode **naquela mesma máquina** (localmente, ou via
+  WSL apontando para o mesmo PATH). Uma sessão de Claude Code em ambiente remoto/nuvem (como esta)
+  roda num container isolado sem acesso ao sistema de arquivos ou PATH da máquina do usuário —
+  `agy` instalado lá **não é alcançável daqui**, mesmo que `agy --version` funcione perfeitamente
+  quando o próprio usuário o testa localmente. Isso não é uma falha de configuração corrigível
+  remotamente — é uma fronteira de isolamento do ambiente. Ver `BLOCKERS.md` → BLOCK-001.
 
 ## 8. Checkpoints Obrigatórios (retomabilidade)
 

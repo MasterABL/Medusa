@@ -11,6 +11,10 @@
  * Uso:
  *   node scripts/agent-orchestrator.cjs [--dry-run]
  *
+ * O payload enviado ao executor é sempre o conteúdo de .ai/HANDOFF.md (o contrato formal),
+ * nunca um prompt improvisado — .ai/ACTIVE_TASK.md só é lido para confirmar o TASK ID ativo e
+ * checar consistência com HANDOFF.md.
+ *
  * Cadeia de execução (AGENT_RULES.md → seção 7):
  *   Executor principal:  Antigravity (agy)
  *   Fallback:             Claude Code (execução direta)
@@ -35,6 +39,7 @@ const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const ACTIVE_TASK_PATH = path.join(ROOT, '.ai', 'ACTIVE_TASK.md');
+const HANDOFF_PATH = path.join(ROOT, '.ai', 'HANDOFF.md');
 const RUNS_DIR = path.join(ROOT, '.ai', 'runs');
 const AGENT_CMD = process.env.MEDUSA_AGENT_CMD || 'agy';
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -72,6 +77,25 @@ function readActiveTask() {
   return { taskId: idMatch[1], content };
 }
 
+function readHandoff(taskId) {
+  if (!fs.existsSync(HANDOFF_PATH)) {
+    console.error(
+      `[agent-orchestrator] ERRO: .ai/HANDOFF.md não encontrado. O HANDOFF.md é o contrato ` +
+        'enviado ao Antigravity (nunca um prompt improvisado) — preencha-o antes de executar.'
+    );
+    process.exit(EXIT.NO_ACTIVE_TASK);
+  }
+  const content = fs.readFileSync(HANDOFF_PATH, 'utf8');
+  if (!content.includes(taskId)) {
+    console.error(
+      `[agent-orchestrator] ERRO: .ai/HANDOFF.md não menciona o TASK ID ativo (${taskId}). ` +
+        'ACTIVE_TASK.md e HANDOFF.md precisam ser consistentes antes de delegar ao executor.'
+    );
+    process.exit(EXIT.NO_ACTIVE_TASK);
+  }
+  return content;
+}
+
 function checkExecutorAvailable() {
   const probe = spawnSync(AGENT_CMD, ['--version'], { encoding: 'utf8' });
   if (probe.error || probe.status !== 0) {
@@ -91,6 +115,7 @@ function buildFallbackRecord(taskId, startedAt, executorCheck) {
     executor: AGENT_CMD,
     executorAvailable: false,
     executorCheckDetail: executorCheck.detail,
+    handoffPath: path.relative(ROOT, HANDOFF_PATH),
     status: 'FALLBACK: CLAUDE_DIRECT',
     exitCode: EXIT.FALLBACK_CLAUDE,
     note:
@@ -109,6 +134,7 @@ function buildDryRunRecord(taskId, startedAt) {
     finishedAt: new Date().toISOString(),
     executor: AGENT_CMD,
     executorAvailable: true,
+    handoffPath: path.relative(ROOT, HANDOFF_PATH),
     dryRun: true,
     status: 'NÃO EXECUTADO (dry-run)',
     exitCode: EXIT.ANTIGRAVITY_EXECUTED,
@@ -124,6 +150,7 @@ function buildAntigravityRecord(taskId, startedAt, result) {
     finishedAt: new Date().toISOString(),
     executor: AGENT_CMD,
     executorAvailable: true,
+    handoffPath: path.relative(ROOT, HANDOFF_PATH),
     exitCode: succeeded ? EXIT.ANTIGRAVITY_EXECUTED : EXIT.ANTIGRAVITY_FAILED,
     processExitCode: result.status,
     stdout: result.stdout || '',
@@ -139,7 +166,7 @@ function buildAntigravityRecord(taskId, startedAt, result) {
   };
 }
 
-function runTask(taskId, activeTaskContent) {
+function runTask(taskId, handoffContent) {
   const startedAt = new Date().toISOString();
 
   const executorCheck = checkExecutorAvailable();
@@ -151,7 +178,8 @@ function runTask(taskId, activeTaskContent) {
     return buildDryRunRecord(taskId, startedAt);
   }
 
-  const result = spawnSync(AGENT_CMD, ['-p', activeTaskContent], {
+  // O HANDOFF.md é o único contrato enviado ao executor — nunca um prompt improvisado paralelo.
+  const result = spawnSync(AGENT_CMD, ['-p', handoffContent], {
     encoding: 'utf8',
     maxBuffer: 20 * 1024 * 1024,
   });
@@ -170,8 +198,9 @@ function saveRun(record) {
 }
 
 function main() {
-  const { taskId, content } = readActiveTask();
-  const record = runTask(taskId, content);
+  const { taskId } = readActiveTask();
+  const handoffContent = readHandoff(taskId);
+  const record = runTask(taskId, handoffContent);
   const outPath = saveRun(record);
 
   console.log(`[agent-orchestrator] tarefa: ${record.taskId}`);
