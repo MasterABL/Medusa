@@ -47,8 +47,12 @@ export function EventFormDrawer({
   const [endTime, setEndTime] = useState('');
   const [allDay, setAllDay] = useState(false);
   const [isFlexible, setIsFlexible] = useState(false);
-  const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceFreq, setRecurrenceFreq] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
+  const [recurrenceEnd, setRecurrenceEnd] = useState<'never' | 'date' | 'count'>('never');
+  const [recurrenceUntil, setRecurrenceUntil] = useState('');
+  const [recurrenceCount, setRecurrenceCount] = useState(10);
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -65,8 +69,14 @@ export function EventFormDrawer({
       setEndTime(initialItem.endTime || '10:00');
       setAllDay(!!initialItem.allDay);
       setIsFlexible(!!initialItem.isFlexible);
-      setIsRecurring(!!initialItem.recurrence);
       setRecurrenceFreq(initialItem.recurrence?.frequency || 'weekly');
+      setRecurrenceInterval(initialItem.recurrence?.interval || 1);
+      setRecurrenceDays(initialItem.recurrence?.daysOfWeek || []);
+      setRecurrenceEnd(
+        initialItem.recurrence?.until ? 'date' : initialItem.recurrence?.count ? 'count' : 'never'
+      );
+      setRecurrenceUntil(initialItem.recurrence?.until || '');
+      setRecurrenceCount(initialItem.recurrence?.count || 10);
       setLocation(initialItem.location || '');
       setDescription(initialItem.description || '');
     } else {
@@ -78,8 +88,12 @@ export function EventFormDrawer({
       setEndTime(defaultEndTime);
       setAllDay(false);
       setIsFlexible(false);
-      setIsRecurring(false);
       setRecurrenceFreq('weekly');
+      setRecurrenceInterval(1);
+      setRecurrenceDays([]);
+      setRecurrenceEnd('never');
+      setRecurrenceUntil('');
+      setRecurrenceCount(10);
       setLocation('');
       setDescription('');
       if (categories.length > 0) {
@@ -151,7 +165,23 @@ export function EventFormDrawer({
       durationMinutes: duration,
       allDay: isFullDay,
       isFlexible: kind === 'time_block' ? isFlexible : false,
-      recurrence: isRecurring ? { frequency: recurrenceFreq } : undefined,
+      // Achado de auditoria corrigido: `isRecurring` nunca era acionado pela interface (não
+      // havia nenhum controle que o definisse como true), então nenhuma rotina criada pelo
+      // formulário jamais salvava de fato uma `recurrence` — a rotina existia mas nunca se
+      // repetia. Agora a recorrência acompanha diretamente `kind === 'routine'`.
+      recurrence:
+        kind === 'routine'
+          ? {
+              frequency: recurrenceFreq,
+              interval: recurrenceInterval > 1 ? recurrenceInterval : undefined,
+              daysOfWeek:
+                recurrenceFreq === 'weekly' && recurrenceDays.length > 0
+                  ? recurrenceDays
+                  : undefined,
+              until: recurrenceEnd === 'date' && recurrenceUntil ? recurrenceUntil : undefined,
+              count: recurrenceEnd === 'count' ? recurrenceCount : undefined,
+            }
+          : undefined,
       location: location.trim() || undefined,
       description: description.trim() || undefined,
       source: initialItem?.source || {
@@ -374,21 +404,131 @@ export function EventFormDrawer({
               </div>
             )}
 
-            {/* Configurações de Recorrência */}
+            {/* Configurações de Recorrência — seção 8 do refinamento: além de Diário/Semanal/
+                Mensal, expõe intervalo ("a cada N"), dias da semana e término, sem transformar
+                isto num painel gigantesco (tudo cabe no mesmo card compacto). */}
             {kind === 'routine' && (
-              <div className="space-y-2 p-3 bg-surface-secondary/50 rounded-xl border border-border/50">
+              <div className="space-y-3 p-3 bg-surface-secondary/50 rounded-xl border border-border/50">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary block">
                   Padrão Recorrente
                 </span>
-                <select
-                  value={recurrenceFreq}
-                  onChange={(e) => setRecurrenceFreq(e.target.value as any)}
-                  className="w-full bg-surface border border-border/80 rounded-lg px-3 py-2 text-[12px] text-text-primary focus:outline-none"
-                >
-                  <option value="weekly">Semanal (dias úteis ou fixos)</option>
-                  <option value="daily">Diário (todos os dias)</option>
-                  <option value="monthly">Mensal (mesmo dia do mês)</option>
-                </select>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    id="form-recurrence-freq"
+                    value={recurrenceFreq}
+                    onChange={(e) => setRecurrenceFreq(e.target.value as 'daily' | 'weekly' | 'monthly')}
+                    className="w-full bg-surface border border-border/80 rounded-lg px-3 py-2 text-[12px] text-text-primary focus:outline-none"
+                  >
+                    <option value="weekly">Semanal</option>
+                    <option value="daily">Diário</option>
+                    <option value="monthly">Mensal</option>
+                  </select>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-text-secondary whitespace-nowrap">A cada</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={52}
+                      value={recurrenceInterval}
+                      onChange={(e) => setRecurrenceInterval(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-14 bg-surface border border-border/80 rounded-lg px-2 py-2 text-[12px] text-text-primary focus:outline-none tabular-nums"
+                    />
+                    <span className="text-[11px] text-text-secondary whitespace-nowrap">
+                      {recurrenceFreq === 'daily' ? 'dia(s)' : recurrenceFreq === 'monthly' ? 'mês(es)' : 'semana(s)'}
+                    </span>
+                  </div>
+                </div>
+
+                {recurrenceFreq === 'weekly' && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
+                      Dias (vazio = mesmo dia da data acima)
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((label, dayIdx) => {
+                        const isChecked = recurrenceDays.includes(dayIdx);
+                        return (
+                          <button
+                            key={dayIdx}
+                            type="button"
+                            onClick={() =>
+                              setRecurrenceDays((prev) =>
+                                isChecked ? prev.filter((d) => d !== dayIdx) : [...prev, dayIdx].sort()
+                              )
+                            }
+                            aria-pressed={isChecked}
+                            aria-label={
+                              ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][dayIdx]
+                            }
+                            className={`btn-interactive w-7 h-7 rounded-full text-[11px] font-medium flex items-center justify-center border transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
+                              isChecked
+                                ? 'bg-medusa-primary/20 border-medusa-primary text-text-primary font-semibold'
+                                : 'bg-surface border-border/70 text-text-muted hover:text-text-primary'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5 border-t border-border/50 pt-2.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
+                    Termina
+                  </span>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="flex items-center gap-2 text-[12px] text-text-secondary cursor-pointer select-none">
+                      <input
+                        type="radio"
+                        name="recurrence-end"
+                        checked={recurrenceEnd === 'never'}
+                        onChange={() => setRecurrenceEnd('never')}
+                      />
+                      <span>Nunca</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-[12px] text-text-secondary cursor-pointer select-none">
+                      <input
+                        type="radio"
+                        name="recurrence-end"
+                        checked={recurrenceEnd === 'date'}
+                        onChange={() => setRecurrenceEnd('date')}
+                      />
+                      <span>Em uma data</span>
+                      {recurrenceEnd === 'date' && (
+                        <input
+                          type="date"
+                          value={recurrenceUntil}
+                          onChange={(e) => setRecurrenceUntil(e.target.value)}
+                          className="bg-surface border border-border/80 rounded-lg px-2 py-1 text-[11px] text-text-primary focus:outline-none"
+                        />
+                      )}
+                    </label>
+                    <label className="flex items-center gap-2 text-[12px] text-text-secondary cursor-pointer select-none">
+                      <input
+                        type="radio"
+                        name="recurrence-end"
+                        checked={recurrenceEnd === 'count'}
+                        onChange={() => setRecurrenceEnd('count')}
+                      />
+                      <span>Após</span>
+                      {recurrenceEnd === 'count' && (
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={recurrenceCount}
+                          onChange={(e) => setRecurrenceCount(Math.max(1, Number(e.target.value) || 1))}
+                          className="w-14 bg-surface border border-border/80 rounded-lg px-2 py-1 text-[11px] text-text-primary focus:outline-none tabular-nums"
+                        />
+                      )}
+                      <span>ocorrências</span>
+                    </label>
+                  </div>
+                </div>
               </div>
             )}
 

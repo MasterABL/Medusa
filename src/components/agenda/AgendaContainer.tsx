@@ -9,6 +9,7 @@
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
+import { AgendaItem } from '@/types/agenda';
 import { useAgenda } from '@/context/AgendaContext';
 import { useShell } from '@/context/ShellContext';
 import { AgendaHeader } from './AgendaHeader';
@@ -21,8 +22,10 @@ import { EventDetailPanel } from './EventDetailPanel';
 import { EventFormDrawer } from './EventFormDrawer';
 import { CategoryModal } from './CategoryModal';
 import {
+  calculateDurationMinutes,
   detectTimeConflicts,
   expandRecurringItems,
+  findCompatibleTimeSlots,
   getWeekDays,
 } from './agendaHelpers';
 import { formatDateISO } from './agendaFixtures';
@@ -48,6 +51,7 @@ export function AgendaContainer() {
     setCategoryModalOpen,
     createOrUpdateItem,
     deleteItem,
+    deleteRecurringOccurrence,
     saveCategory,
     deleteCategory,
     goToToday,
@@ -90,6 +94,14 @@ export function AgendaContainer() {
       pulseIslandProcessing();
     },
     [deleteItem, pulseIslandProcessing]
+  );
+
+  const handleDeleteRecurringOccurrence = useCallback(
+    (item: AgendaItem, scope: 'this' | 'following' | 'series') => {
+      deleteRecurringOccurrence(item, scope);
+      pulseIslandProcessing();
+    },
+    [deleteRecurringOccurrence, pulseIslandProcessing]
   );
 
   // Expansão virtual de rotinas recorrentes para o horizonte visual atual
@@ -143,6 +155,34 @@ export function AgendaContainer() {
     setEditingItem(itemToEdit);
     setDrawerOpen(true);
   };
+
+  // Sugestões de "próximo horário compatível" (seções 5/6) — busca lacunas REALMENTE livres
+  // (reaproveita calculateFreeTimeSlots via findCompatibleTimeSlots), não um motor de
+  // otimização definitivo. Só calculado quando o item selecionado tem um conflito real.
+  const conflictSuggestions = useMemo(() => {
+    if (!selectedItem || !selectedItemConflict || !selectedItem.startTime || !selectedItem.endTime) {
+      return [];
+    }
+    // Reagendar uma ocorrência de rotina exigiria o mesmo modelo de exceção por data usado em
+    // deleteRecurringOccurrence — fora de escopo desta função; sugestões só para itens simples.
+    if (selectedItem.kind === 'routine') return [];
+    const duration =
+      selectedItem.durationMinutes || calculateDurationMinutes(selectedItem.startTime, selectedItem.endTime);
+    return findCompatibleTimeSlots(expandedItems, duration, new Date(`${selectedItem.date}T00:00:00`), 3);
+  }, [selectedItem, selectedItemConflict, expandedItems]);
+
+  const handleApplySuggestion = useCallback(
+    (item: AgendaItem, suggestion: { date: string; start: string; end: string }) => {
+      createOrUpdateItem({
+        id: item.id,
+        date: suggestion.date,
+        startTime: suggestion.start,
+        endTime: suggestion.end,
+      });
+      pulseIslandProcessing();
+    },
+    [createOrUpdateItem, pulseIslandProcessing]
+  );
 
   return (
     <main
@@ -239,6 +279,9 @@ export function AgendaContainer() {
               onClose={() => setSelectedItemId(null)}
               onEdit={handleOpenEdit}
               onDelete={handleDeleteItem}
+              onDeleteRecurring={handleDeleteRecurringOccurrence}
+              suggestions={conflictSuggestions}
+              onApplySuggestion={handleApplySuggestion}
             />
           </div>
         )}

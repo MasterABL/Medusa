@@ -14,6 +14,15 @@ import { useShell } from '@/context/ShellContext';
 import { getPastelThemeStyle } from './palette';
 import { formatDuration } from './agendaHelpers';
 
+type RecurringDeleteScope = 'this' | 'following' | 'series';
+
+interface ConflictSuggestion {
+  date: string;
+  start: string;
+  end: string;
+  dayLabel: string;
+}
+
 interface EventDetailPanelProps {
   item: AgendaItem | null;
   category?: AgendaCategory;
@@ -21,6 +30,9 @@ interface EventDetailPanelProps {
   onClose: () => void;
   onEdit: (item: AgendaItem) => void;
   onDelete: (itemId: string) => void;
+  onDeleteRecurring?: (item: AgendaItem, scope: RecurringDeleteScope) => void;
+  suggestions?: ConflictSuggestion[];
+  onApplySuggestion?: (item: AgendaItem, suggestion: ConflictSuggestion) => void;
 }
 
 export function EventDetailPanel({
@@ -30,9 +42,14 @@ export function EventDetailPanel({
   onClose,
   onEdit,
   onDelete,
+  onDeleteRecurring,
+  suggestions = [],
+  onApplySuggestion,
 }: EventDetailPanelProps) {
   const { theme } = useShell();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteScope, setDeleteScope] = useState<RecurringDeleteScope>('this');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Fechar com tecla Escape
   useEffect(() => {
@@ -157,6 +174,46 @@ export function EventDetailPanel({
               Sobreposição detectada com outro compromisso na faixa de {conflict.start} às {conflict.end}.
               A decisão sobre ajuste temporal permanece com você.
             </p>
+
+            {/* Sugestões de próximo horário compatível (seções 5/6) — busca real de lacunas
+                livres (findCompatibleTimeSlots), não um motor de otimização definitivo. */}
+            {suggestions.length > 0 && onApplySuggestion && (
+              <div className="pt-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowSuggestions((prev) => !prev)}
+                  className="btn-interactive text-[11px] font-mono font-medium text-rose-700 dark:text-rose-300 hover:underline flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">
+                    {showSuggestions ? 'expand_less' : 'expand_more'}
+                  </span>
+                  <span>{showSuggestions ? 'Ocultar sugestões' : 'Ver horários compatíveis'}</span>
+                </button>
+
+                {showSuggestions && (
+                  <div className="mt-2 space-y-1.5 animate-in fade-in">
+                    {suggestions.map((s, idx) => (
+                      <div
+                        key={`${s.date}-${s.start}`}
+                        className="flex items-center justify-between gap-2 bg-surface rounded-lg border border-border/60 px-2.5 py-1.5"
+                      >
+                        <div className="text-[11px] text-text-primary">
+                          <span className={idx === 0 ? 'font-semibold' : ''}>{s.dayLabel}</span>
+                          <span className="text-text-muted"> — {s.start} a {s.end}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onApplySuggestion(item, s)}
+                          className="btn-interactive px-2 py-1 rounded-md text-[10px] font-mono font-medium bg-medusa-primary text-[#1C2420] hover:brightness-105 flex-shrink-0"
+                        >
+                          Usar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -215,11 +272,44 @@ export function EventDetailPanel({
       {/* Ações de Edição e Exclusão */}
       <div className="pt-2 flex flex-col gap-2">
         {confirmDelete ? (
-          <div className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2 text-center animate-in fade-in">
-            <p className="text-[12px] font-medium text-rose-800 dark:text-rose-200">
-              Confirmar exclusão deste compromisso?
+          <div className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in">
+            <p className="text-[12px] font-medium text-rose-800 dark:text-rose-200 text-center">
+              Excluir compromisso
             </p>
-            <div className="flex items-center justify-center gap-2">
+
+            {/* Distinção de escopo para itens de série recorrente (seção 9) — sem isto,
+                excluir uma ocorrência de rotina removia a série inteira sem aviso. */}
+            {item.kind === 'routine' && onDeleteRecurring ? (
+              <div className="space-y-1.5">
+                {(
+                  [
+                    { value: 'this', label: 'Somente este evento' },
+                    { value: 'following', label: 'Este e os próximos' },
+                    { value: 'series', label: 'Toda a série' },
+                  ] as { value: RecurringDeleteScope; label: string }[]
+                ).map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex items-center gap-2 text-[12px] text-rose-800 dark:text-rose-200 cursor-pointer select-none"
+                  >
+                    <input
+                      type="radio"
+                      name="delete-scope"
+                      checked={deleteScope === opt.value}
+                      onChange={() => setDeleteScope(opt.value)}
+                      className="text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[12px] text-rose-800 dark:text-rose-200 text-center">
+                Confirmar exclusão deste compromisso?
+              </p>
+            )}
+
+            <div className="flex items-center justify-center gap-2 pt-0.5">
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
@@ -229,10 +319,16 @@ export function EventDetailPanel({
               </button>
               <button
                 type="button"
-                onClick={() => onDelete(item.id)}
+                onClick={() => {
+                  if (item.kind === 'routine' && onDeleteRecurring) {
+                    onDeleteRecurring(item, deleteScope);
+                  } else {
+                    onDelete(item.id);
+                  }
+                }}
                 className="btn-interactive px-3 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
               >
-                Sim, excluir
+                {item.kind === 'routine' && onDeleteRecurring ? 'Excluir' : 'Sim, excluir'}
               </button>
             </div>
           </div>

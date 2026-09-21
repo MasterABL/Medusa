@@ -17,6 +17,7 @@ import { NowIndicator } from './NowIndicator';
 import {
   calculateFreeTimeSlots,
   detectTimeConflicts,
+  layoutConflictColumns,
   parseTimeToMinutes,
 } from './agendaHelpers';
 import { formatDateISO } from './agendaFixtures';
@@ -62,8 +63,13 @@ export function DayView({
     (it) => !it.allDay && it.kind !== 'deadline' && it.startTime && it.endTime
   );
 
-  // Detecção de conflitos no dia
+  // Detecção de conflitos no dia (para badges/tooltip de duração)
   const conflicts = detectTimeConflicts(dayItems);
+
+  // Colunas de composição para 1..N eventos concorrentes (ver agendaHelpers.ts —
+  // achado de auditoria: a versão anterior só tratava o caso binário de 2 eventos com
+  // deslocamentos fixos em px, quebrando legibilidade com 3+ eventos concorrentes).
+  const conflictColumns = layoutConflictColumns(dayItems);
 
   // Cálculo de intervalos livres (>= 30 min)
   const freeSlots = calculateFreeTimeSlots(dayItems, START_HOUR, END_HOUR);
@@ -205,16 +211,19 @@ export function DayView({
               const conflict = getItemConflict(item);
               const isSelected = selectedItemId === item.id;
 
-              // Se houver conflito, desloca levemente o bloco para evitar sobreposição total ilegível
-              const hasConflict = !!conflict;
-              const isSecondInConflict =
-                hasConflict && conflict?.itemB.id === item.id;
-
-              const leftOffset = hasConflict
-                ? isSecondInConflict
-                  ? 'left-24 sm:left-44 right-2'
-                  : 'left-14 sm:left-20 right-12 sm:right-28'
-                : 'left-14 sm:left-20 right-2';
+              // Colunas de 1..N para composição legível de eventos concorrentes (ver
+              // layoutConflictColumns em agendaHelpers.ts) — a faixa disponível (depois do
+              // gutter de horário) é dividida em `colCount` colunas iguais com um pequeno
+              // espaçamento entre elas; `colIndex` decide a posição, priorizada por domínio
+              // (Trabalho antes de Educação em caso de conflito, ver DOMAIN_PRIORITY_ORDER).
+              const colInfo = conflictColumns.get(item.id) || { colIndex: 0, colCount: 1 };
+              const { colIndex, colCount } = colInfo;
+              const gapPercent = colCount > 1 ? 1.5 : 0;
+              const columnWidthPercent = (100 - gapPercent * (colCount - 1)) / colCount;
+              const leftPercent = colIndex * (columnWidthPercent + gapPercent);
+              // Colunas estreitas (3+) perdem a linha de horário para preservar legibilidade
+              // do título — "não basta diminuir a fonte", conteúdo secundário recua primeiro.
+              const isNarrowColumn = colCount >= 3;
 
               return (
                 <div
@@ -223,16 +232,29 @@ export function DayView({
                     top: `${topPercent}%`,
                     height: `${heightPercent}%`,
                   }}
-                  className={`absolute ${leftOffset} transition-all duration-200`}
+                  className="absolute left-14 sm:left-20 right-2 transition-all duration-200"
                 >
-                  <EventBlock
-                    item={item}
-                    category={cat}
-                    conflict={conflict}
-                    isSelected={isSelected}
-                    onClick={() => onSelectItem(item)}
-                    style={{ width: '100%', height: '100%' }}
-                  />
+                  {/* Sub-região de coluna dentro da faixa de eventos (mesmo gutter
+                      responsivo de sempre) — divide o espaço em 1..N colunas iguais. */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      bottom: 0,
+                      left: `${leftPercent}%`,
+                      width: `${columnWidthPercent}%`,
+                    }}
+                  >
+                    <EventBlock
+                      item={item}
+                      category={cat}
+                      conflict={conflict}
+                      isSelected={isSelected}
+                      onClick={() => onSelectItem(item)}
+                      compact={isNarrowColumn}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  </div>
                 </div>
               );
             })}

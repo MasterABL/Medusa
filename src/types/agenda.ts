@@ -63,6 +63,10 @@ export interface AgendaItem {
   recurrence?: RecurrenceRule;
   seriesId?: string;
   isException?: boolean;
+  // Datas (YYYY-MM-DD) de ocorrências individuais excluídas de uma série recorrente — ver
+  // AgendaContext.deleteRecurringOccurrence e expandRecurringItems em agendaHelpers.ts.
+  // Modelagem de Fase A em Local State; nenhuma exceção real por ocorrência é persistida.
+  recurrenceExceptions?: string[];
   description?: string;
   location?: string;
   source: AgendaSourceRef;

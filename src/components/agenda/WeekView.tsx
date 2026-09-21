@@ -18,6 +18,7 @@ import { DayView } from './DayView';
 import {
   detectTimeConflicts,
   getWeekDays,
+  layoutConflictColumns,
   parseTimeToMinutes,
   WEEK_DAY_NAMES,
 } from './agendaHelpers';
@@ -209,6 +210,10 @@ export function WeekView({
             const dateStr = formatDateISO(day);
             const dayItems = items.filter((it) => it.date === dateStr);
             const conflicts = detectTimeConflicts(dayItems);
+            // Achado de auditoria: esta coluna renderizava eventos concorrentes com
+            // `left-1 right-1` fixo para todos — sobreposição total, sem nenhum
+            // deslocamento. Aplica a mesma composição em colunas de DayView.
+            const conflictColumns = layoutConflictColumns(dayItems);
 
             const timedItems = dayItems.filter(
               (it) => !it.allDay && it.kind !== 'deadline' && it.startTime && it.endTime
@@ -243,6 +248,12 @@ export function WeekView({
                   // Se fora da faixa visível, ignorar
                   if (topPercent < 0 || topPercent > 100) return null;
 
+                  const colInfo = conflictColumns.get(item.id) || { colIndex: 0, colCount: 1 };
+                  const gapPercent = colInfo.colCount > 1 ? 3 : 0;
+                  const columnWidthPercent =
+                    (100 - gapPercent * (colInfo.colCount - 1)) / colInfo.colCount;
+                  const leftPercent = colInfo.colIndex * (columnWidthPercent + gapPercent);
+
                   return (
                     <div
                       key={item.id}
@@ -252,15 +263,25 @@ export function WeekView({
                       }}
                       className="absolute left-1 right-1"
                     >
-                      <EventBlock
-                        item={item}
-                        category={cat}
-                        conflict={conflict}
-                        isSelected={isSelected}
-                        onClick={() => onSelectItem(item)}
-                        compact
-                        style={{ width: '100%', height: '100%' }}
-                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          left: `${leftPercent}%`,
+                          width: `${columnWidthPercent}%`,
+                        }}
+                      >
+                        <EventBlock
+                          item={item}
+                          category={cat}
+                          conflict={conflict}
+                          isSelected={isSelected}
+                          onClick={() => onSelectItem(item)}
+                          compact
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      </div>
                     </div>
                   );
                 })}

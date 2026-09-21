@@ -49,6 +49,7 @@ interface AgendaContextType {
   // Operações de Itens
   createOrUpdateItem: (itemData: Partial<AgendaItem>) => void;
   deleteItem: (itemId: string) => void;
+  deleteRecurringOccurrence: (item: AgendaItem, scope: 'this' | 'following' | 'series') => void;
 
   // Operações de Categorias
   saveCategory: (category: AgendaCategory) => void;
@@ -158,6 +159,49 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Exclusão de uma ocorrência recorrente com distinção explícita de escopo (seção 9 do
+  // pedido de refinamento): "somente este evento" usa `recurrenceExceptions` (modelagem em
+  // Local State — nenhuma exceção real por ocorrência é persistida); "este e os próximos"
+  // reaproveita o campo `recurrence.until` já existente no modelo de dados, encerrando a
+  // série no dia anterior a esta ocorrência; "toda a série" remove o item base inteiro.
+  const deleteRecurringOccurrence = (
+    item: AgendaItem,
+    scope: 'this' | 'following' | 'series'
+  ) => {
+    const baseId = item.id.includes('-virt-') ? item.id.split('-virt-')[0] : item.id;
+
+    if (scope === 'series') {
+      setItems((prev) => prev.filter((it) => it.id !== baseId));
+      setSelectedItemId(null);
+      return;
+    }
+
+    const nowISO = new Date().toISOString();
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== baseId) return it;
+        if (scope === 'this') {
+          return {
+            ...it,
+            recurrenceExceptions: [...(it.recurrenceExceptions || []), item.date],
+            updatedAt: nowISO,
+          };
+        }
+        // scope === 'following'
+        const untilDate = new Date(`${item.date}T00:00:00`);
+        untilDate.setDate(untilDate.getDate() - 1);
+        return {
+          ...it,
+          recurrence: it.recurrence
+            ? { ...it.recurrence, until: formatDateISO(untilDate) }
+            : it.recurrence,
+          updatedAt: nowISO,
+        };
+      })
+    );
+    setSelectedItemId(null);
+  };
+
   // Categorias
   const saveCategory = (category: AgendaCategory) => {
     setCategories((prev) => {
@@ -194,6 +238,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       setCategoryModalOpen,
       createOrUpdateItem,
       deleteItem,
+      deleteRecurringOccurrence,
       saveCategory,
       deleteCategory,
       goToToday,

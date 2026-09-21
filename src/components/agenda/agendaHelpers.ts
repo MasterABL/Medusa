@@ -7,6 +7,7 @@
  */
 
 import {
+  AgendaDomain,
   AgendaItem,
   AgendaViewMode,
   FreeTimeSlot,
@@ -245,6 +246,114 @@ export function detectTimeConflicts(items: AgendaItem[]): TimeConflict[] {
   return conflicts;
 }
 
+export interface ConflictColumnInfo {
+  colIndex: number;
+  colCount: number;
+}
+
+/**
+ * Fase A — heurística de UX para decidir qual item ocupa a coluna mais à esquerda (mais
+ * "em evidência") quando há conflito visual na timeline. NÃO é uma regra de negócio
+ * definitiva — apenas a ordem usada para composição visual nesta rodada de experiência.
+ * Uma Fase B real (motor de priorização, preferências do usuário, urgência) pode substituir
+ * isto sem mudar o contrato de `layoutConflictColumns` (recebe itens, devolve colunas).
+ */
+const DOMAIN_PRIORITY_ORDER: AgendaDomain[] = [
+  'work',
+  'personal',
+  'body',
+  'finance',
+  'education',
+  'external',
+];
+
+function getDomainPriorityRank(domain: AgendaDomain): number {
+  const idx = DOMAIN_PRIORITY_ORDER.indexOf(domain);
+  return idx === -1 ? DOMAIN_PRIORITY_ORDER.length : idx;
+}
+
+/**
+ * Calcula, para um conjunto de itens de um mesmo dia, em qual "coluna" cada item deve ser
+ * renderizado quando há sobreposição de horário — suporta 1, 2, 3 ou N eventos concorrentes,
+ * não apenas o caso binário.
+ *
+ * Algoritmo em duas passadas:
+ * 1. Agrupa itens em clusters de sobreposição transitiva (varredura por ordem temporal,
+ *    técnica padrão de "merge de intervalos sobrepostos" — um cluster fecha quando o próximo
+ *    item começa depois do fim máximo já visto no cluster atual).
+ * 2. Dentro de cada cluster, atribui colunas por ORDEM DE PRIORIDADE (não por horário) via
+ *    alocação gulosa na primeira coluna livre — assim um item de prioridade mais alta (ex.:
+ *    Trabalho) tende a ocupar a coluna 0 mesmo que outro item do cluster comece antes.
+ */
+export function layoutConflictColumns(items: AgendaItem[]): Map<string, ConflictColumnInfo> {
+  const timedItems = items.filter(
+    (it) => !it.allDay && it.kind !== 'deadline' && it.startTime && it.endTime
+  );
+
+  const getRange = (item: AgendaItem) => {
+    const start = parseTimeToMinutes(item.startTime!);
+    const end = start + (item.durationMinutes || parseTimeToMinutes(item.endTime!) - start);
+    return { start, end };
+  };
+
+  const byTime = [...timedItems].sort((a, b) => getRange(a).start - getRange(b).start);
+
+  const clusters: AgendaItem[][] = [];
+  let current: AgendaItem[] = [];
+  let currentEnd = -Infinity;
+  for (const item of byTime) {
+    const { start, end } = getRange(item);
+    if (current.length > 0 && start >= currentEnd) {
+      clusters.push(current);
+      current = [];
+      currentEnd = -Infinity;
+    }
+    current.push(item);
+    currentEnd = Math.max(currentEnd, end);
+  }
+  if (current.length > 0) clusters.push(current);
+
+  const result = new Map<string, ConflictColumnInfo>();
+
+  for (const cluster of clusters) {
+    if (cluster.length === 1) {
+      result.set(cluster[0].id, { colIndex: 0, colCount: 1 });
+      continue;
+    }
+
+    const byPriority = [...cluster].sort((a, b) => {
+      const rankDiff = getDomainPriorityRank(a.domain) - getDomainPriorityRank(b.domain);
+      if (rankDiff !== 0) return rankDiff;
+      return getRange(a).start - getRange(b).start;
+    });
+
+    const columnEnds: number[] = [];
+    for (const item of byPriority) {
+      const { start, end } = getRange(item);
+      let placedCol = -1;
+      for (let i = 0; i < columnEnds.length; i++) {
+        if (columnEnds[i] <= start) {
+          columnEnds[i] = end;
+          placedCol = i;
+          break;
+        }
+      }
+      if (placedCol === -1) {
+        columnEnds.push(end);
+        placedCol = columnEnds.length - 1;
+      }
+      result.set(item.id, { colIndex: placedCol, colCount: 0 });
+    }
+
+    const colCount = columnEnds.length;
+    for (const item of cluster) {
+      result.get(item.id)!.colCount = colCount;
+    }
+  }
+
+  return result;
+}
+
 /**
  * Identifica intervalos de tempo livre >= 30 minutos entre horários de operação (padrão 06:00 às 23:00)
  */
@@ -312,6 +421,54 @@ export function calculateFreeTimeSlots(
   }
 
   return freeSlots;
+}
+
+export interface CompatibleTimeSlotSuggestion {
+  date: string;
+  start: string;
+  end: string;
+  dayLabel: string;
+}
+
+/**
+ * Busca horários alternativos REALMENTE livres (reaproveita `calculateFreeTimeSlots`, não um
+ * motor de otimização) para resolver um conflito — seções 5/6 do refinamento: "próximo horário
+ * compatível". Varre `daysToScan` dias a partir de `fromDate` e retorna até `maxSuggestions`
+ * lacunas livres que comportam `durationMinutes`. Não considera deslocamento/trânsito (isso é
+ * um ponto de integração futura registrado à parte, não implementado nesta função).
+ */
+export function findCompatibleTimeSlots(
+  allItems: AgendaItem[],
+  durationMinutes: number,
+  fromDate: Date,
+  maxSuggestions = 3,
+  daysToScan = 6
+): CompatibleTimeSlotSuggestion[] {
+  const suggestions: CompatibleTimeSlotSuggestion[] = [];
+  const cursor = new Date(fromDate);
+
+  for (let dayOffset = 0; dayOffset < daysToScan && suggestions.length < maxSuggestions; dayOffset += 1) {
+    const dateStr = formatDateISO(cursor);
+    const dayItems = allItems.filter((it) => it.date === dateStr);
+    const freeSlots = calculateFreeTimeSlots(dayItems, 6, 23);
+
+    for (const slot of freeSlots) {
+      if (suggestions.length >= maxSuggestions) break;
+      if (slot.durationMinutes < durationMinutes) continue;
+      const startMin = parseTimeToMinutes(slot.start);
+      suggestions.push({
+        date: dateStr,
+        start: slot.start,
+        end: formatMinutesToTime(startMin + durationMinutes),
+        dayLabel:
+          dayOffset === 0 ? 'Hoje' : dayOffset === 1 ? 'Amanhã' : WEEK_DAY_NAMES[cursor.getDay()].full,
+      });
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return suggestions;
 }
 
 /**
@@ -403,9 +560,58 @@ export function groupItemsForListView(
   ];
 }
 
+function startOfWeek(date: Date): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() - d.getDay());
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Verifica se `candidate` casa com o PADRÃO BASE da recorrência (frequência + intervalo +
+ * dias da semana), sem considerar `until`/`count` — usado tanto para decidir se um dia deve
+ * gerar uma ocorrência quanto para contar ocorrências anteriores (necessário para `count`).
+ */
+function matchesRecurrenceBasePattern(routine: AgendaItem, candidate: Date): boolean {
+  const rule = routine.recurrence;
+  if (!rule) return false;
+  const anchor = new Date(`${routine.date}T00:00:00`);
+  if (candidate < anchor) return false;
+  const interval = rule.interval && rule.interval > 0 ? rule.interval : 1;
+
+  if (rule.frequency === 'daily') {
+    const diffDays = Math.round((candidate.getTime() - anchor.getTime()) / 86400000);
+    return diffDays >= 0 && diffDays % interval === 0;
+  }
+
+  if (rule.frequency === 'monthly') {
+    if (candidate.getDate() !== anchor.getDate()) return false;
+    const diffMonths =
+      (candidate.getFullYear() - anchor.getFullYear()) * 12 +
+      (candidate.getMonth() - anchor.getMonth());
+    return diffMonths >= 0 && diffMonths % interval === 0;
+  }
+
+  // weekly (padrão) — dias da semana explícitos, ou o próprio dia da âncora se nenhum for informado
+  const days = rule.daysOfWeek && rule.daysOfWeek.length > 0 ? rule.daysOfWeek : [anchor.getDay()];
+  if (!days.includes(candidate.getDay())) return false;
+  const diffWeeks = Math.round(
+    (startOfWeek(candidate).getTime() - startOfWeek(anchor).getTime()) / (7 * 86400000)
+  );
+  return diffWeeks >= 0 && diffWeeks % interval === 0;
+}
+
 /**
  * Expande virtualmente rotinas recorrentes para o intervalo de datas especificado,
  * garantindo que a rotina apareça nos dias corretos sem criar registros duplicados.
+ *
+ * Respeita `recurrence.interval` (a cada N dias/semanas/meses), `recurrence.until` (data
+ * final, inclusive) e `recurrence.count` (número de ocorrências) — nenhum dos três era
+ * verificado antes desta rodada (achado de auditoria: o formulário já expunha "Termina: Nunca/
+ * Em uma data/Após X ocorrências" na intenção do modelo de dados, mas a expansão ignorava os
+ * três campos). Também respeita `recurrenceExceptions` (datas de ocorrências individuais
+ * excluídas — ver AgendaContext.deleteRecurringOccurrence, modelagem local de "excluir somente
+ * este evento" sem exigir um backend de exceções real).
  */
 export function expandRecurringItems(
   items: AgendaItem[],
@@ -423,23 +629,36 @@ export function expandRecurringItems(
   const cursor = new Date(startDate);
   while (cursor <= endDate) {
     const dateStr = formatDateISO(cursor);
-    const dayOfWeek = cursor.getDay();
 
     for (const routine of routines) {
-      const days = routine.recurrence?.daysOfWeek;
-      if (days && days.includes(dayOfWeek)) {
-        // Verifica se já existe um item estático para esse dia
-        const existing = nonRoutines.some(
-          (it) => it.seriesId === routine.id && it.date === dateStr
-        );
-        if (!existing) {
-          result.push({
-            ...routine,
-            id: `${routine.id}-virt-${dateStr}`,
-            date: dateStr,
-            seriesId: routine.id,
-          });
+      const rule = routine.recurrence!;
+      if (!matchesRecurrenceBasePattern(routine, cursor)) continue;
+      if (rule.until && dateStr > rule.until) continue;
+      if (routine.recurrenceExceptions?.includes(dateStr)) continue;
+
+      if (rule.count) {
+        // Conta quantas ocorrências do padrão base já caíram entre a âncora e esta data
+        // (inclusive) para saber se esta é a N-ésima e ainda cabe no limite de `count`.
+        let occurrenceIndex = 0;
+        const probe = new Date(`${routine.date}T00:00:00`);
+        while (probe <= cursor) {
+          if (matchesRecurrenceBasePattern(routine, probe)) occurrenceIndex += 1;
+          probe.setDate(probe.getDate() + 1);
         }
+        if (occurrenceIndex > rule.count) continue;
+      }
+
+      // Verifica se já existe um item estático para esse dia
+      const existing = nonRoutines.some(
+        (it) => it.seriesId === routine.id && it.date === dateStr
+      );
+      if (!existing) {
+        result.push({
+          ...routine,
+          id: `${routine.id}-virt-${dateStr}`,
+          date: dateStr,
+          seriesId: routine.id,
+        });
       }
     }
     cursor.setDate(cursor.getDate() + 1);
