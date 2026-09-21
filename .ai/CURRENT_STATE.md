@@ -71,6 +71,68 @@ BLOCKERS:
   (IA/Google Workspace/Stitch — pré-requisitos de infraestrutura ausentes).
 ```
 
+## Modelo FASE A / FASE B (`DECISIONS.md` → D-013, `AGENT_RULES.md` → seção 0)
+
+A partir desta sessão, "design" no Medusa significa experiência completa (Estrutura/UI/UX/Motion/
+Loading/Responsive/Accessibility/Estados/Microinterações + Human Experience Gate), não apenas uma
+implementação visual inicial. Nenhuma aba avança para Fase B (dados reais/persistência/integrações/
+IA/automações) antes de todas as 8 abas fecharem Fase A — ver `ROADMAP.md` para a grade completa.
+Classificação atual por domínio (vocabulário `AGENT_RULES.md` → seção 0):
+
+| Domínio | Classificação | Evidência |
+|---|---|---|
+| Hoje | BASE IMPLEMENTADA | PR #4, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-026), sem Human Experience Gate nem merge |
+| Agenda | BASE IMPLEMENTADA | PR #6, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-028), sem Human Experience Gate nem merge |
+| Educação / Study Mode | EXPERIENCE EM REFINAMENTO | PR #7 refinou motion/espaço/Dynamic Island sobre a base multi-trilha já provada (`EVIDENCE.md` → E-029); sem Human Experience Gate nem merge |
+| Shell / Context Panel (transversal, não é uma das 8 abas) | BASE IMPLEMENTADA | PR #5, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-027); é infraestrutura de Fase A consumida por todas as abas, não uma aba em si |
+| Corpo | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
+| Finanças | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
+| Progresso | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
+| Guardian | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório (pode abrir Contract, `MASTER_PLAN.md` → Fase 9, mas isso não é Experience) |
+| Buscar | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
+
+Nenhuma linha acima é `EXPERIENCE COMPLETE` ou `ENGINEERING COMPLETE` hoje — a primeira exige Human
+Experience Gate (`QA_GATE.md` → seção 11) por aba, ainda não concedido para nenhuma; a segunda por
+definição só é alcançável depois de Fase B, que não começou para nenhum domínio.
+
+## Onde estamos — Q&A de governança (formato exigido por esta auditoria)
+
+**Onde estamos?** Três domínios (Hoje, Agenda, Educação) e a infraestrutura de Shell (Context
+Panel) têm implementação provada tecnicamente (Gates 1-10 de `QA_GATE.md`) em branches próprias
+(PR #4, #6, #7, #5) — nenhuma mesclada em `main`. Cinco abas (Corpo, Finanças, Progresso, Guardian,
+Buscar) não têm nenhum código nem especificação.
+
+**O que já foi provado?** Gates 1-10 (Contract→Merge Gate, exceto o próprio Merge) para PR #4, #5,
+#6, #7 — ver `EVIDENCE.md` → E-026 a E-029. Isso cobre Estrutura/UI/UX/Motion/Loading/Responsive/
+Browser QA real com evidência de transição em pleno andamento (não apenas antes/depois).
+
+**O que está em refinamento?** Educação/Study Mode — a base multi-trilha existe e foi provada, mas
+esta sessão registrou explicitamente que o trabalho de motion/Island/voz é evidência de aprendizado
+de processo (estrutura persistente-que-transforma, evidência de motion em plena transição), não uma
+autorização para avançar Educação para Fase B.
+
+**O que está bloqueado?** (a) Merge Gate de todos os PRs abertos — decisão humana real (`HDR-001`);
+(b) Human Experience Gate (`QA_GATE.md` → seção 11) — não concedido para nenhuma aba ainda,
+distinto do Merge Gate; (c) Fase 2/Auth — `HDR-011`; (d) qualquer wiring de IA/Google/Supabase como
+feature de produto — `BLOCK-009` e, agora também, `D-013` (Fase B global não abre enquanto Fase A
+não fechar nas 8 abas, independente de HDRs individuais serem resolvidos).
+
+**O que NÃO deve ser feito ainda?** Nenhuma integração real (Google Calendar/OAuth, Gemini,
+OpenRouter, Supabase como persistência de produto, automações, regras de negócio definitivas,
+schemas de produção) para nenhuma das 8 abas — mesmo que um Human Decision individual (ex.: HDR-011)
+seja resolvido, isso libera a *decisão*, não o início da implementação de Fase B, que continua
+esperando o fechamento global de Fase A (`D-013`).
+
+**Qual é o próximo gate?** Human Experience Gate (`QA_GATE.md` → seção 11) para Hoje, Agenda e
+Educação — os três domínios com Gates 1-10 já `PROVADO`. Nenhum dos três é `EXPERIENCE COMPLETE`
+sem essa aprovação humana explícita, que é distinta e não substituível por automação.
+
+**Nota de honestidade sobre este bloco**: os itens acima foram verificados contra o estado real de
+`EVIDENCE.md`, `TASK_QUEUE.md` e as branches remotas listadas em "Baseline Git" abaixo nesta mesma
+sessão de auditoria — nenhuma reformulação de dados foi inventada; onde este arquivo já divergia do
+estado real de alguma outra forma não coberta pela tarefa desta sessão, isso não foi corrigido
+silenciosamente (ver `ROADMAP.md` → "Nota de discrepância factual").
+
 ## Baseline Git
 
 ```

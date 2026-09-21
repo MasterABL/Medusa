@@ -7,6 +7,8 @@ Master Plan — nenhum campo antigo foi removido):
 ID
 DOMAIN
 PHASE            (novo — número da fase em MASTER_PLAN.md/ROADMAP.md)
+TRACK            (novo — DESIGN/EXPERIENCE ou ENGINEERING/INTEGRATION, ver AGENT_RULES.md → seção 0
+                 e DECISIONS.md → D-013)
 PRIORITY
 STATUS
 DEPENDENCIES
@@ -24,6 +26,16 @@ Status operacional (ciclo de vida da tarefa): `PENDING`, `READY`, `IN_PROGRESS`,
 `TASK ID:` de `ACTIVE_TASK.md` e envia o conteúdo de `HANDOFF.md` (o contrato real) ao executor —
 nenhuma mudança de schema aqui quebra o orquestrador.
 
+**TRACK — regra de bloqueio global (D-013)**: `DESIGN/EXPERIENCE` cobre Estrutura/UI/UX/Motion/
+Loading/Responsive/Accessibility/Estados/Microinterações de uma das 8 abas — pode ser `READY`/
+`IN_PROGRESS` livremente, sujeito só às próprias `DEPENDENCIES`. `ENGINEERING/INTEGRATION` cobre
+dados reais, persistência, APIs, integrações (Google/Supabase/IA), automações e regras de negócio
+definitivas — **nenhuma tarefa deste tipo pode ser a "próxima tarefa executável" enquanto Fase A
+não fechar (Human Experience Gate) para as 8 abas**, mesmo que sua própria dependência humana
+(HDR) já tenha sido resolvida. Tarefas de infraestrutura/tooling transversal (CI, dependabot, etc.)
+não são nem uma coisa nem outra — usam `ENGINEERING/INFRA` e não são bloqueadas por D-013 (não são
+integração de produto).
+
 **Regra de desbloqueio**: a fila não avança pela primeira fase numericamente — avança pela
 **primeira tarefa cujas DEPENDENCIES estão todas resolvidas**. Ver seção final "Primeira tarefa
 desbloqueada".
@@ -36,6 +48,7 @@ desbloqueada".
 ID: TASK-MERGE-PREP-001
 DOMAIN: Foundation + Agenda (transversal às PRs #1 e #2)
 PHASE: 1 e 3
+TRACK: ENGINEERING/INFRA (correção de texto/comunicação sobre PRs, não produto — não bloqueado por D-013)
 PRIORITY: P0
 STATUS: PROVADO (executada nesta sessão — ver EVIDENCE.md → E-020)
 DEPENDENCIES: nenhuma (foi uma tarefa de correção de evidência/documentação, não de produto)
@@ -90,6 +103,7 @@ ainda precisa ser "implementada do zero".
 ID: TASK-AGENDA-001
 DOMAIN: Agenda
 PHASE: 3
+TRACK: DESIGN/EXPERIENCE (Fase A — Estrutura/UI/UX/Motion/Local State; nenhum dado real/persistência)
 PRIORITY: P0
 STATUS: PROVADO (todos os 9 ACCEPTANCE CRITERIA verificados; só falta Merge Gate — HDR-001)
 DEPENDENCIES:
@@ -151,6 +165,7 @@ STATUS: PROVADO — implementação, testes, build, browser QA e todos os 9 ACCE
 ID: TASK-CI-001
 DOMAIN: Agent OS / Infraestrutura
 PHASE: 0
+TRACK: ENGINEERING/INFRA (CI/tooling — não é integração de produto, não bloqueado por D-013)
 PRIORITY: P1
 STATUS: PROVADO — executada nesta sessão (ver EVIDENCE.md)
 DEPENDENCIES: nenhuma
@@ -211,6 +226,7 @@ suposição. O que existe hoje para cada uma:
 ### TASK-HOJE-FOUNDATION-001 — Substituir página fake da rota `hoje` por Hoje Foundation v1 honesta
 
 - **FASE:** 5 (Hoje) — recorte mínimo, não o contrato completo.
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — Local State honesto, sem persistência/integração real).
 - **ORIGEM:** achado de honestidade (E-025): `src/app/page.tsx` em `main` renderiza documentação
   de Shell com estatísticas fabricadas ("14 rpm", "0.02%", "ALL GATES PROVED") como se fossem
   dados reais do produto.
@@ -244,6 +260,7 @@ suposição. O que existe hoje para cada uma:
 ### TASK-CONTEXT-PANEL-GEOMETRY-001 — Portar a correção de geometria do Context Panel para `main`
 
 - **FASE:** Shell / P0.
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — geometria/Estrutura do Shell, infraestrutura consumida pelas 8 abas).
 - **ORIGEM:** BLOCK-008 (raiz encontrada na sessão anterior: 4 funções de geometria duplicadas).
   Instrução explícita desta sessão: "Faça a correção chegar a uma branch preparada para merge."
 - **ESCOPO:** portar `calculateShellGeometry()` (já provado em `feature/agenda`) para `main`,
@@ -268,6 +285,7 @@ suposição. O que existe hoje para cada uma:
 
 - **FASE:** Agenda (Fase 3, se numerada pelo MASTER_PLAN) — instrução explícita de continuação de
   sprint: "Não siga [auditoria de Educação]. O próximo domínio de implementação é: AGENDA."
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — CRUD/views/filtros em Local State/fixture, sem persistência real).
 - **ORIGEM:** a Agenda já existia, completa e auditada (`TASK-AGENDA-001`, 9/9 ACCEPTANCE
   CRITERIA), mas só em `feature/agenda` (PR #2), presa atrás de `HDR-001` porque essa branch
   também bundla Educação e uma versão diferente do hardening do Shell.
@@ -296,6 +314,7 @@ suposição. O que existe hoje para cada uma:
 ### TASK-STUDY-MODE-REFINEMENT-001 — Refinar motion/espaço/Dynamic Island do Study Mode existente
 
 - **FASE:** Educação (Study Mode) — instrução explícita: evoluir, não reescrever.
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — motion/espaço/Dynamic Island; nenhuma IA/voz real, fixtures locais).
 - **ORIGEM:** a arquitetura multi-trilha (ENEM/Inglês/Faculdade) já existia completa em
   `feature/agenda`/`e616635`, mas só nessa branch não mesclada. Portada para `main` via branch
   própria (`feat/education-multitrack`, a partir de `fix/context-panel-geometry`), depois
@@ -374,17 +393,32 @@ TECHNICAL BLOCKERS:
 NEXT EXECUTABLE TASK (real, não hipotética):
   Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
   do que as suítes de Context Panel + Agenda + Study Mode já cobrem individualmente — não
-  depende de nenhum HDR nem de BLOCK-009.
+  depende de nenhum HDR nem de BLOCK-009. TRACK: DESIGN/EXPERIENCE (Fase A) — consistente com
+  D-013, já que nenhuma tarefa ENGINEERING/INTEGRATION pode ser "next executable" com Fase A
+  ainda aberta nas 8 abas.
 ```
+
+**Nota D-013 sobre esta seção**: nenhum item de `BLOCKED TASKS`/`HUMAN GATES` acima que seja
+`ENGINEERING/INTEGRATION` (Auth/HDR-011, Supabase, IA/Google como feature de produto) se torna
+executável apenas por resolver seu HDR — mesmo resolvido, essas tarefas continuam `BLOQUEADO` por
+Fase A ainda estar aberta nas 8 abas (ver `ROADMAP.md`). Resolver um HDR de Fase B hoje adianta a
+*decisão*, não a *implementação*.
 
 **Decisões que desbloqueariam trabalho além disso, cada uma com o que ela libera:**
 - **HDR-001** (aprovação de merge) → libera o fechamento formal das Fases 1, 3, 4, Hoje
   Foundation (PR #4), Context Panel (PR #5), Agenda (PR #6) e Study Mode Refinement (PR #7).
-- **HDR-011** (escolher provedor de Auth) → libera o início real da Fase 2 E o wiring do projeto
-  Supabase já existente como persistência real.
+  TRACK: DESIGN/EXPERIENCE — Merge Gate é distinto de Human Experience Gate (D-013); mesclar não
+  torna uma aba `EXPERIENCE COMPLETE` por si só.
+- **HDR-011** (escolher provedor de Auth) → libera a *decisão* de Fase 2 E do wiring do projeto
+  Supabase já existente como persistência real. TRACK: ENGINEERING/INTEGRATION — **por D-013, a
+  implementação real só começa depois do Human Experience Gate fechar nas 8 abas**, mesmo com
+  HDR-011 resolvido.
 - Provisionar uma chave de API de IA (Gemini ou OpenRouter, decisão humana de custo/provider) →
-  libera qualquer feature que dependa de IA (ex.: um "Prompt Lab" ou assistente).
-- Registrar um app OAuth do Medusa no Google Cloud Console → libera integração real de Google
-  Calendar/Gmail/Drive como features de produto (não apenas o acesso desta sessão).
+  libera a *decisão* de qualquer feature que dependa de IA. TRACK: ENGINEERING/INTEGRATION —
+  mesma trava de D-013 acima.
+- Registrar um app OAuth do Medusa no Google Cloud Console → libera a *decisão* de integração real
+  de Google Calendar/Gmail/Drive como features de produto. TRACK: ENGINEERING/INTEGRATION — mesma
+  trava de D-013 acima.
 - Uma rodada de definição de contrato/design para o layout final de Hoje/Corpo/Finanças/
-  Progresso/Guardian/Buscar → libera a decomposição completa das Fases 5-13.
+  Progresso/Guardian/Buscar → libera a decomposição completa das Fases 5-13. TRACK:
+  DESIGN/EXPERIENCE (Fase A) — não bloqueado por D-013.

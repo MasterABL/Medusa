@@ -134,6 +134,74 @@ conteúdo `activeRoute === 'agenda'` de `758cd8d`). PR #6 aberta. **PR #6 depend
 mesclar PR #5 primeiro reduz o diff de PR #6 a apenas Agenda; mesclar PR #6 diretamente traz PR #5
 junto (mesmo resultado final, ordem diferente). `HDR-001` agora também cobre esta relação.
 
+### D-013 — Modelo de Desenvolvimento Medusa: FASE A (Experience) precede FASE B (Engineering), globalmente
+
+**Decisão explícita do usuário, registrada diretamente aqui (não é uma HUMAN GATE ANALYSIS — o
+humano já decidiu; isto documenta a decisão tomada).**
+
+A partir desta sessão, o projeto opera com uma separação formal entre duas macro-fases,
+ortogonais à numeração de Fases 0-14 de `MASTER_PLAN.md`:
+
+```
+FASE A — DESIGN / EXPERIENCE (estrutura, UI, UX, motion, loading, responsive, accessibility,
+         microinterações, browser QA) → DESIGN SYSTEM CONSOLIDADO → BROWSER/VISUAL QA →
+         HUMAN EXPERIENCE GATE
+              ↓
+FASE B — PRODUTO / ENGENHARIA (dados, persistência, APIs, integrações, Supabase, Google, IA,
+         automações, regras de negócio) → INTEGRAÇÃO → END-TO-END QA
+```
+
+**Regra principal**: Fase B não começa, para NENHUM domínio, antes de a Fase A estar fechada para
+TODAS as abas na ordem oficial `Hoje → Agenda → Educação → Corpo → Finanças → Progresso →
+Guardian → Buscar` (ver `ROADMAP.md` → seção "Fase A/Fase B"). Isto é uma decisão explícita de
+sequenciamento de produto, não uma dedução técnica.
+
+**Compatibilidade com `D-006`**: `D-006` já estabelecia que um domínio pode ter Contract/
+Foundation/UI/Local State prontos antes de sua vez numérica, e que Auth (Fase 2) só bloqueia o
+Persistence Slice, não a UI. `D-013` **estende** esse princípio, não o contradiz: adiciona uma
+restrição adicional que `D-006` não cobria — mesmo com Auth resolvido, nenhum domínio inicia seu
+Persistence Slice/Integration (Fase B) enquanto a Experience (Fase A) de qualquer uma das 8 abas
+na lista oficial ainda estiver aberta. Local State/fixtures continuam válidos e obrigatórios
+durante a Fase A (nunca representados como dado real — `AGENT_RULES.md` → Honestidade).
+
+**O que NÃO deve ser antecipado na Fase A** (lista fechada, expansível só por nova decisão):
+Google Calendar OAuth, integrações externas reais, persistência definitiva, schemas finais de
+produção, Gemini, OpenRouter, APIs reais, automações de produção, regras de negócio definitivas,
+sincronizações externas, pipelines reais de dados. Modelar o ponto de integração futuro é
+permitido; implementá-lo agora não é.
+
+**Categorias de status de uma aba/domínio** (substituem "implementado"/"funciona" como critério de
+fechamento — ver `ROADMAP.md` e `CURRENT_STATE.md` para a classificação atual de cada domínio):
+
+```
+BASE IMPLEMENTADA         — implementação funcional existe, serve de fundamento, não é a
+                             experiência final.
+EXPERIENCE EM REFINAMENTO — implementação existe e está passando por UI/UX/motion/responsive/
+                             accessibility QA, mas ainda não recebeu o Human Experience Gate.
+EXPERIENCE COMPLETE       — contrato de experiência fechado e provado (todos os itens da Fase A
+                             + Human Experience Gate).
+ENGINEERING COMPLETE      — etapa posterior: dados/integrações/lógica real implementados e
+                             validados (só possível depois de EXPERIENCE COMPLETE + Fase A global
+                             fechada).
+```
+
+**Aprendizado de motion generalizado como regra permanente** (originado no refinamento do Study
+Mode desta sessão, `EVIDENCE.md` → E-029): quando um fluxo representa uma transformação de estado
+contínua, preferir uma estrutura persistente que transforma (`unmount`/`remount` evitado) a um
+swap abrupto; e motion só é considerado provado com evidência **em plena transição** (valor real
+amostrado no meio da animação), nunca apenas por comparação antes/depois. Formalizado em
+`QA_GATE.md` → "Experience-Complete Gate".
+
+**Human Gate**: aprovação humana continua obrigatória para qualidade visual, experiência, decisão
+de produto, aceitação de motion e fechamento de experiência — automação prova critérios técnicos,
+não substitui essa decisão (`AGENT_RULES.md` → seção 11).
+
+**Impacto imediato**: nenhuma tarefa de Fase B (Supabase, Auth real, Google, IA, automações) deve
+ser promovida a `ACTIVE_TASK.md` enquanto a Fase A não estiver fechada para as 8 abas. Isto não
+revoga trabalho de engenharia já existente (ex.: geometria do Shell, correções de bug) — essas
+continuam válidas como infraestrutura de Fase A (estrutura/Shell fazem parte do escopo de Fase A).
+Ver `TASK_QUEUE.md` para a marcação `DESIGN/EXPERIENCE` vs `ENGINEERING/INTEGRATION` em cada tarefa.
+
 ---
 
 ## HUMAN DECISION REQUIRED
