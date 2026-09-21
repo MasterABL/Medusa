@@ -49,10 +49,13 @@ export function EducationDashboard({
   const completedCount = trackItems.filter((i) => i.status === 'completed').length;
   const progressPercent = Math.round((completedCount / trackItems.length) * 100);
 
+  // Rótulo "ENEM" por instrução explícita de produto (ENEM/Inglês/Faculdade). O id interno
+  // permanece `vestibular` (StudyTrack) para não exigir uma migração de tipo mais ampla nesta
+  // rodada — é só o texto exibido que muda, não a chave de dados.
   const tracks: { id: StudyTrack; label: string; icon: string }[] = [
     { id: 'faculdade', label: 'Faculdade', icon: 'school' },
     { id: 'ingles', label: 'Inglês', icon: 'translate' },
-    { id: 'vestibular', label: 'Vestibular', icon: 'assignment' },
+    { id: 'vestibular', label: 'ENEM', icon: 'assignment' },
   ];
 
   return (

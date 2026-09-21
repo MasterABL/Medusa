@@ -115,10 +115,11 @@ export function StudyModeView({
     setTimeout(() => setNoteSavedFeedback(null), 2500);
   };
 
+  // Rótulo "ENEM" por instrução explícita de produto — ver mesma nota em EducationDashboard.tsx.
   const tracks: { id: StudyTrack; label: string }[] = [
     { id: 'faculdade', label: 'Faculdade' },
     { id: 'ingles', label: 'Inglês' },
-    { id: 'vestibular', label: 'Vestibular' },
+    { id: 'vestibular', label: 'ENEM' },
   ];
 
   return (
@@ -233,8 +234,13 @@ export function StudyModeView({
           aria-label="Conteúdo da Aula"
           className="lg:col-span-8 flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden"
         >
-          {/* Canvas / Visualizador Adaptado à Trilha — flex-1 preenche a altura do palco */}
-          <div className="relative w-full flex-1 min-h-[380px] sm:min-h-[460px] lg:min-h-[560px] xl:min-h-[640px] bg-[#0E1311] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none">
+          {/* Canvas / Visualizador Adaptado à Trilha — flex-1 preenche a altura do palco.
+              Achado de auditoria: a escada de min-h fixos parava em 640px no desktop, então em
+              telas mais altas (1440×1200 testado) sobravam ~240px de espaço vazio abaixo do
+              player em vez de a aula continuar sendo a protagonista. O termo `calc(100vh-...)`
+              cresce além de 640px quando o viewport é mais alto que ~960px, sem reduzir o piso
+              já testado em telas mais baixas (max() nunca fica abaixo dos valores existentes). */}
+          <div className="relative w-full flex-1 min-h-[380px] sm:min-h-[460px] lg:min-h-[560px] xl:min-h-[max(640px,calc(100vh-320px))] bg-[#0E1311] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none">
             {/* Visualização de Fundo Dinâmica por Trilha */}
             <div className="absolute inset-0 flex items-center justify-center opacity-35 pointer-events-none">
               {trackDef.id === 'ingles' ? (

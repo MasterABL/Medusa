@@ -562,7 +562,11 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
 
   vestibular: {
     id: 'vestibular',
-    name: 'Vestibular',
+    // "ENEM" por instrução explícita de produto (ENEM/Inglês/Faculdade) — o resto do conteúdo
+    // desta trilha (tagline, domainLabel, lesson.*) já usava "ENEM" consistentemente; só este
+    // campo `name` (usado em cabeçalhos/rótulos de sessão em toda a UI) ainda dizia
+    // "Vestibular". O id interno permanece `vestibular` (StudyTrack) sem mudança de tipo.
+    name: 'ENEM',
     tagline: 'ENEM · Ciências da Natureza & Tecnologias',
     domainLabel: 'Matriz de Referência ENEM · Habilidades 01 a 04',
     accentColor: '#18534B',
