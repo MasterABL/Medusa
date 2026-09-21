@@ -4,15 +4,11 @@ import React from 'react';
 import { useShell } from '@/context/ShellContext';
 
 export function ContextPanel() {
-  const { mode, isContextOpen, toggleContext, setContextOpen, breakpoint } = useShell();
+  const { setContextOpen, breakpoint, geometry } = useShell();
 
   // No Modo Foco, o Context Panel desliza continuamente para fora (translate-x-full) sem remount
   const isDesktop = breakpoint === 'desktop';
-  const isOpen = isDesktop && mode !== 'foco' && isContextOpen;
-
-  const getPanelWidthClass = () => {
-    return mode === 'compacto' ? 'w-[260px]' : 'w-[320px]';
-  };
+  const isOpen = geometry.isContextVisible;
 
   return (
     <>
@@ -22,9 +18,14 @@ export function ContextPanel() {
           id="context-panel"
           aria-label="Painel de Contexto Regional"
           aria-hidden={!isOpen}
-          style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
-          className={`fixed right-0 top-0 h-full bg-surface border-l border-border z-30 flex flex-col pt-16 pb-6 overflow-y-auto panel-transition shadow-sm ${getPanelWidthClass()} ${
-            isOpen ? 'translate-x-0' : 'translate-x-full'
+          style={{
+            width: `${geometry.effectiveContextWidth}px`,
+            pointerEvents: isOpen ? 'auto' : 'none',
+          }}
+          className={`fixed right-0 top-0 h-full bg-surface z-30 flex flex-col pt-16 pb-6 overflow-y-auto panel-transition shadow-sm ${
+            isOpen
+              ? 'translate-x-0 border-l border-border'
+              : 'translate-x-full border-l-0 border-transparent'
           }`}
         >
           <div className="px-6 flex flex-col space-y-6">
@@ -127,7 +128,7 @@ export function ContextPanel() {
       )}
 
       {/* Botão Flutuante de Reabertura (quando recolhido no Desktop, exceto no Foco) */}
-      {isDesktop && mode !== 'foco' && !isOpen && (
+      {geometry.isContextAvailable && !isOpen && (
         <button
           type="button"
           id="btn-reopen-context"

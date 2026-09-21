@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { Theme, ShellMode, IslandState, Breakpoint } from '@/types/shell';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { Theme, ShellMode, IslandState, Breakpoint, ShellGeometry, calculateShellGeometry } from '@/types/shell';
 
 interface ShellContextValue {
   theme: Theme;
@@ -11,6 +11,7 @@ interface ShellContextValue {
   isContextOpen: boolean;
   toggleContext: () => void;
   setContextOpen: (open: boolean) => void;
+  geometry: ShellGeometry;
   isDrawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
@@ -40,12 +41,18 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   const [activeRoute, setActiveRouteState] = useState<string>('hoje');
   const [mounted, setMounted] = useState(false);
 
-  // Inicialização e persistência de tema
+  // Inicialização e persistência de tema e do painel regional
   useEffect(() => {
     setMounted(true);
     const savedTheme = (localStorage.getItem('medusa-theme-v2') as Theme) || 'light';
     setThemeState(savedTheme);
     applyThemeToDOM(savedTheme);
+
+    // Persistência local do Context Panel (sobrevive a reload sem persistência no servidor)
+    const savedContext = localStorage.getItem('medusa-context-panel-open');
+    if (savedContext !== null) {
+      setContextOpenState(savedContext === 'true');
+    }
 
     // Detecção de Breakpoint (Desktop >= 1024, Tablet 768-1023, Mobile < 768)
     const updateBreakpoint = () => {
@@ -120,12 +127,30 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleContext = useCallback(() => {
-    setContextOpenState((prev) => !prev);
+    setContextOpenState((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('medusa-context-panel-open', String(next));
+      } catch {
+        // Fallback para storage restrito
+      }
+      return next;
+    });
   }, []);
 
   const setContextOpen = useCallback((open: boolean) => {
     setContextOpenState(open);
+    try {
+      localStorage.setItem('medusa-context-panel-open', String(open));
+    } catch {
+      // Fallback para storage restrito
+    }
   }, []);
+
+  // Cálculo da Geometria Unificada (Fonte Única da Verdade — ver src/types/shell.ts)
+  const geometry = useMemo(() => {
+    return calculateShellGeometry(mode, breakpoint, isContextOpen);
+  }, [mode, breakpoint, isContextOpen]);
 
   const openDrawer = useCallback(() => {
     setDrawerOpenState(true);
@@ -185,6 +210,7 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
         isContextOpen,
         toggleContext,
         setContextOpen,
+        geometry,
         isDrawerOpen,
         openDrawer,
         closeDrawer,

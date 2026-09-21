@@ -13,6 +13,7 @@ export function Sidebar() {
     activeRoute,
     setActiveRoute,
     breakpoint,
+    geometry,
   } = useShell();
 
   const isCompact = mode === 'compacto';
@@ -22,13 +23,6 @@ export function Sidebar() {
 
   // No Foco ou Mobile/Tablet, a sidebar permanente é 0px estrutural
   const isDrawerActive = (isFocus || isMobile || isTablet) && isDrawerOpen;
-
-  // Largura calculada estritamente (240px Amplo | 68px Compacto | 0px Foco)
-  const getSidebarWidth = () => {
-    if (isFocus || isMobile) return '0px';
-    if (isTablet) return isFocus ? '0px' : '68px';
-    return isCompact ? '68px' : '240px';
-  };
 
   const navItems = [
     { route: 'hoje', label: 'Hoje', icon: 'wb_sunny', badge: null, dot: true },
@@ -233,13 +227,13 @@ export function Sidebar() {
           aria-label="Navegação Principal"
           aria-hidden={isFocus}
           style={{
-            width: getSidebarWidth(),
+            width: `${geometry.sidebarWidth}px`,
             pointerEvents: isFocus ? 'none' : 'auto',
           }}
-          className={`fixed left-0 top-0 h-full bg-surface-secondary border-r z-40 panel-transition shadow-calm overflow-hidden ${
-            isFocus
-              ? 'border-transparent'
-              : 'border-border/70 dark:border-border/50'
+          className={`fixed left-0 top-0 h-full bg-surface-secondary z-40 panel-transition shadow-calm overflow-hidden ${
+            geometry.sidebarWidth === 0
+              ? 'border-r-0 border-transparent'
+              : 'border-r border-border/70 dark:border-border/50'
           }`}
         >
           {renderNavContent(false)}

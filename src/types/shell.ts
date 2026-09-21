@@ -36,3 +36,89 @@ export interface IslandFixture {
 }
 
 export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
+
+export const SHELL_DIMENSIONS = {
+  SIDEBAR_WIDE: 240,
+  SIDEBAR_COMPACT: 68,
+  SIDEBAR_CLOSED: 0,
+  CONTEXT_WIDE: 320,
+  CONTEXT_COMPACT: 260,
+  CONTEXT_CLOSED: 0,
+} as const;
+
+export interface ShellGeometry {
+  sidebarWidth: number;
+  contextWidth: number;
+  effectiveContextWidth: number;
+  isContextOpen: boolean;
+  isContextAvailable: boolean;
+  isContextVisible: boolean;
+  contentPaddingLeft: string;
+  contentPaddingRight: string;
+  headerStyle: { left: string; right: string };
+  mainPaddingStyle: { paddingLeft: string; paddingRight: string };
+}
+
+/**
+ * Fonte única de verdade da geometria do Shell. Antes desta função existirem 4 cálculos
+ * independentes (Sidebar, ContextPanel, ShellLayout, Header), cada um com seus próprios
+ * literais 240/68/320/260 hardcoded — a causa raiz do Context Panel nunca recolher de verdade
+ * (a largura do box model nunca chegava a 0px, só era deslocada via transform). Ver
+ * .ai/BLOCKERS.md -> BLOCK-008.
+ */
+export function calculateShellGeometry(
+  mode: ShellMode,
+  breakpoint: Breakpoint,
+  isContextOpen: boolean
+): ShellGeometry {
+  const isDesktop = breakpoint === 'desktop';
+  const isTablet = breakpoint === 'tablet';
+  const isMobile = breakpoint === 'mobile';
+  const isFocus = mode === 'foco';
+  const isCompact = mode === 'compacto';
+
+  // 1. Largura calculada da sidebar permanente
+  let sidebarWidth: number = SHELL_DIMENSIONS.SIDEBAR_WIDE;
+  if (isFocus || isMobile) {
+    sidebarWidth = SHELL_DIMENSIONS.SIDEBAR_CLOSED;
+  } else if (isTablet || isCompact) {
+    sidebarWidth = SHELL_DIMENSIONS.SIDEBAR_COMPACT;
+  }
+
+  // 2. Largura nominal do painel regional de acordo com o modo
+  const contextWidth = isCompact
+    ? SHELL_DIMENSIONS.CONTEXT_COMPACT
+    : SHELL_DIMENSIONS.CONTEXT_WIDE;
+
+  // 3. Disponibilidade e Visibilidade do Context Panel
+  // No Foco, Tablet ou Mobile, o Context Panel permanece 100% fora da composição
+  const isContextAvailable = isDesktop && !isFocus;
+  const isContextVisible = isContextAvailable && isContextOpen;
+
+  // 4. Largura efetiva ocupada no layout (refluxo real do conteúdo)
+  const effectiveContextWidth = isContextVisible
+    ? contextWidth
+    : SHELL_DIMENSIONS.CONTEXT_CLOSED;
+
+  const contentPaddingLeft = `${sidebarWidth}px`;
+  const contentPaddingRight = `${effectiveContextWidth}px`;
+
+  return {
+    sidebarWidth,
+    contextWidth,
+    effectiveContextWidth,
+    isContextOpen,
+    isContextAvailable,
+    isContextVisible,
+    contentPaddingLeft,
+    contentPaddingRight,
+    headerStyle: {
+      left: contentPaddingLeft,
+      right: contentPaddingRight,
+    },
+    mainPaddingStyle: {
+      paddingLeft: contentPaddingLeft,
+      paddingRight: contentPaddingRight,
+    },
+  };
+}
