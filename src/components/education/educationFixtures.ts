@@ -332,6 +332,15 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
           'Professor alterou o prazo da lista de exercícios para sexta-feira.',
           'Nova mensagem da monitoria sobre a Questão 3.',
         ],
+        materials: [
+          { id: 'fis-mat-1', name: 'Slides · Oscilações e MHS', kind: 'slides', sizeLabel: '2.4 MB' },
+          { id: 'fis-mat-2', name: 'Lista de Exercícios 3', kind: 'pdf', sizeLabel: '340 KB' },
+          { id: 'fis-mat-3', name: 'Tabela de Constantes Físicas', kind: 'pdf', sizeLabel: '120 KB' },
+        ],
+        deadlines: [
+          { id: 'fis-dl-1', label: 'Lista de Exercícios 3', date: 'Sexta-feira' },
+          { id: 'fis-dl-2', label: 'Prova 2 · Oscilações', date: '10/Out' },
+        ],
       },
       {
         code: 'MAT-215',
@@ -344,6 +353,11 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         focusDuration: '40 min',
         content: FACULDADE_MAT215_MODULES,
         notices: ['Lista 3 liberada — prazo de entrega na próxima terça.'],
+        materials: [
+          { id: 'mat-mat-1', name: 'Slides · Métodos Iterativos', kind: 'slides', sizeLabel: '1.8 MB' },
+          { id: 'mat-mat-2', name: 'Lista 3 · Bisseção e Newton-Raphson', kind: 'pdf', sizeLabel: '280 KB' },
+        ],
+        deadlines: [{ id: 'mat-dl-1', label: 'Lista 3', date: 'Terça-feira' }],
       },
       {
         code: 'MEC-130',
@@ -356,6 +370,11 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         focusDuration: '50 min',
         content: FACULDADE_MEC130_MODULES,
         notices: ['Laboratório remarcado para quinta-feira, mesmo horário.'],
+        materials: [
+          { id: 'mec-mat-1', name: 'Apostila · Flexão em Vigas', kind: 'pdf', sizeLabel: '3.1 MB' },
+          { id: 'mec-mat-2', name: 'Planilha · Diagramas de Esforços', kind: 'planilha', sizeLabel: '95 KB' },
+        ],
+        deadlines: [{ id: 'mec-dl-1', label: 'Relatório de Laboratório', date: 'Quinta-feira' }],
       },
       {
         code: 'CMP-102',
@@ -368,6 +387,11 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         focusDuration: '40 min',
         content: FACULDADE_CMP102_MODULES,
         notices: ['Monitoria extra marcada para tirar dúvidas do projeto final.'],
+        materials: [
+          { id: 'cmp-mat-1', name: 'Slides · Árvores Balanceadas', kind: 'slides', sizeLabel: '2.0 MB' },
+          { id: 'cmp-mat-2', name: 'Especificação do Projeto Final', kind: 'pdf', sizeLabel: '410 KB' },
+        ],
+        deadlines: [{ id: 'cmp-dl-1', label: 'Entrega do Projeto Final', date: '15/Out' }],
       },
     ],
   },
@@ -1027,6 +1051,12 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
     // Semana de referência: Seg 21/Set a Dom 27/Set · Hoje = Ter 22/Set (weekOffset 0).
     // weekOffset 1 = semana seguinte, só aparece no filtro "Mês" do Cronograma.
     cronograma: [
+      {
+        id: 'cron-0', date: '15/Set', weekday: 'Ter', weekOffset: 0,
+        discipline: 'Todas as áreas', topic: 'Simulado · Linguagens e Códigos', subtopic: '45 questões, condições reais de prova',
+        activityType: 'simulado', status: 'concluido', durationMinutes: 90,
+        nextAction: 'Revisar as questões erradas do simulado',
+      },
       {
         id: 'cron-1', date: '21/Set', weekday: 'Seg', weekOffset: 0,
         discipline: 'Humanas', topic: 'Revolução Industrial & Transformações Sociais', subtopic: 'Primeira e Segunda Revolução Industrial',

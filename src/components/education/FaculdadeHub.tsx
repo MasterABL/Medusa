@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { TrackDefinition, TrackModuleItem } from './types';
 import { TrackModuleList } from './TrackModuleList';
+import { CompletedActivityList } from './CompletedActivityList';
+import { useEducationPanel } from '@/context/EducationPanelContext';
 
 interface FaculdadeHubProps {
   trackDef: TrackDefinition;
@@ -11,16 +13,16 @@ interface FaculdadeHubProps {
 
 /**
  * Hub de Faculdade — organização acadêmica. A disciplina selecionada é estado real (não só
- * apresentação): escolher outra disciplina troca a sessão em foco, o conteúdo e os avisos, tudo
- * dentro do mesmo Hub — nunca uma navegação para outra tela. A troca usa a mesma animação de
- * entrada já usada no painel companheiro do Study Mode (`study-summary-enter`, crossfade +
- * deslocamento sutil), reaproveitada aqui em vez de um sistema de motion novo.
+ * apresentação): escolher outra disciplina troca a sessão em foco e o conteúdo, tudo dentro do
+ * mesmo Hub — nunca uma navegação para outra tela. A troca usa a mesma animação de entrada já
+ * usada no painel companheiro do Study Mode (`study-summary-enter`, crossfade + deslocamento
+ * sutil), reaproveitada aqui em vez de um sistema de motion novo. Avisos, materiais e prazos da
+ * disciplina ativa aparecem no Context Panel (ver FaculdadeContextPanel.tsx) — não duplicados
+ * aqui na área principal.
  */
 export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
   const disciplines = trackDef.disciplines ?? [];
-  const [selectedCode, setSelectedCode] = useState<string>(
-    () => disciplines.find((d) => d.isActive)?.code ?? disciplines[0]?.code ?? ''
-  );
+  const { faculdadeDisciplineCode: selectedCode, setFaculdadeDisciplineCode: setSelectedCode } = useEducationPanel();
 
   const selected = disciplines.find((d) => d.code === selectedCode) ?? disciplines[0];
   // FIS-204 é a disciplina com sessão de estudo real (a que o hero "Continuar Sessão" do Hub
@@ -28,6 +30,7 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
   // disciplinas mostram seu próprio conteúdo fixture, sem sessão iniciável ainda.
   const isPrimaryDiscipline = selected?.code === trackDef.disciplines?.find((d) => d.isActive)?.code;
   const contentToShow = isPrimaryDiscipline ? trackItems : selected?.content ?? [];
+  const completedContent = contentToShow.filter((m) => m.status === 'completed');
 
   if (!selected) return null;
 
@@ -99,23 +102,21 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
           )}
         </section>
 
-        {/* Avisos da disciplina selecionada */}
-        {selected.notices.length > 0 && (
-          <section id="faculdade-notices" aria-label="Avisos" className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Avisos</span>
-            {selected.notices.map((notice, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[12px] text-text-secondary">
-                <span className="material-symbols-outlined text-[14px] text-medusa-primary mt-0.5">campaign</span>
-                <span>{notice}</span>
-              </div>
-            ))}
-          </section>
-        )}
-
         <TrackModuleList
           title={`Aulas & Conteúdos · ${selected.title}`}
           domainLabel={trackDef.domainLabel}
           items={contentToShow}
+        />
+
+        <CompletedActivityList
+          sectionId="faculdade-completed-activities"
+          title={`Aulas Concluídas · ${selected.title}`}
+          items={completedContent.map((m) => ({
+            id: m.id,
+            title: m.title,
+            subtitle: m.code,
+            completedAt: m.date,
+          }))}
         />
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useShell } from '@/context/ShellContext';
+import { useEducationPanel } from '@/context/EducationPanelContext';
 import {
   StudySessionState,
   StudyTrack,
@@ -26,6 +27,7 @@ const RECEDE_MS = 320;
 
 export function EducationContainer() {
   const { setIslandState, setMode, mode, setVoiceActive } = useShell();
+  const { setCurrentTrackMirror, setIsSessionCompletedMirror } = useEducationPanel();
 
   // Trilha ativa no Learning OS (Faculdade, Inglês, Vestibular)
   const [currentTrack, setCurrentTrack] = useState<StudyTrack>('faculdade');
@@ -50,6 +52,15 @@ export function EducationContainer() {
     confusionDiagnosis: string;
   } | null>(null);
   const [currentVideoTimestamp, setCurrentVideoTimestamp] = useState(0);
+
+  // Espelha trilha ativa + sessão concluída para o Context Panel do Shell — ele não tem acesso
+  // direto ao estado local deste container (ver EducationPanelContext.tsx).
+  useEffect(() => {
+    setCurrentTrackMirror(currentTrack);
+  }, [currentTrack, setCurrentTrackMirror]);
+  useEffect(() => {
+    setIsSessionCompletedMirror(isSessionCompleted);
+  }, [isSessionCompleted, setIsSessionCompletedMirror]);
 
   // Definição da trilha ativa (Derivado de currentTrack + FIXTURE)
   const trackDef = TRACK_DEFINITIONS[currentTrack];

@@ -154,6 +154,19 @@ export interface CronogramaBlock {
   nextAction: string;
 }
 
+export interface DisciplineMaterial {
+  id: string;
+  name: string;
+  kind: 'pdf' | 'slides' | 'planilha' | 'imagem';
+  sizeLabel: string;
+}
+
+export interface DisciplineDeadline {
+  id: string;
+  label: string;
+  date: string;
+}
+
 export interface DisciplineChip {
   code: string;
   title: string;
@@ -168,6 +181,9 @@ export interface DisciplineChip {
   /** Aulas/conteúdos desta disciplina — reaproveita o mesmo shape de módulo curado. */
   content: TrackModuleItem[];
   notices: string[];
+  /** Materiais já disponibilizados da disciplina — fixture de leitura, sem upload/IA real. */
+  materials: DisciplineMaterial[];
+  deadlines: DisciplineDeadline[];
 }
 
 export interface TrackDefinition {

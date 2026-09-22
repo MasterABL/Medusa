@@ -4,6 +4,8 @@ import React from 'react';
 import { useShell } from '@/context/ShellContext';
 import { useAgenda } from '@/context/AgendaContext';
 import { AgendaContextSummary } from '@/components/agenda/AgendaContextSummary';
+import { TrackContextPanel } from '@/components/education/TrackContextPanel';
+import { TodayContextPanel } from '@/components/hoje/TodayContextPanel';
 
 export function ContextPanel() {
   const { geometry, setContextOpen, breakpoint, activeRoute } = useShell();
@@ -63,80 +65,78 @@ export function ContextPanel() {
                 </button>
               </div>
 
-              {/* Seção 1: Guardian & Saúde do Sistema (Fluxo Contínuo & Tabular) */}
-              <div className="space-y-2.5 pb-6 border-b border-border/60">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                    Guardian &amp; Bio-Estado
-                  </span>
-                  <span className="text-[11px] font-mono text-[#18534B] dark:text-medusa-primary font-semibold tabular-nums">
-                    99.8% Estável
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-3xl font-bold tracking-tight text-text-primary tabular-nums">
-                    88<span className="text-xs font-normal text-text-muted ml-1">/ 100</span>
-                  </span>
-                  <span className="text-[11px] text-text-secondary">Fluxo contínuo</span>
-                </div>
-                <div className="w-full bg-surface-subtle h-1 rounded-full overflow-hidden">
-                  <div className="bg-medusa-primary h-full w-[88%] rounded-full" />
-                </div>
-                <div className="text-[10px] text-text-muted font-mono pt-0.5">
-                  Sync ativo há 2m · Nuvem Pessoal
-                </div>
-              </div>
-
-              {/* Seção 2: Próxima Transição (Metadados Marginais) */}
-              <div className="space-y-2 pb-6 border-b border-border/60">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                    Próxima Transição
-                  </span>
-                  <span className="text-[10px] font-mono text-text-muted tabular-nums">14:30</span>
-                </div>
-                <h4 className="text-[13px] font-semibold tracking-tight text-text-primary">
-                  Revisão Estratégica do Sistema
-                </h4>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-text-secondary">Bloco de 45m</span>
-                  <span className="text-text-muted font-mono tabular-nums">Em 2h 15m</span>
-                </div>
-              </div>
-
-              {/* Seção 3: Marcos da Agenda (Lista Marginalia com Alinhamento Tabular) */}
-              <div className="space-y-3 pb-6 border-b border-border/60">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                    Marcos da Sessão
-                  </span>
-                  <span className="text-[10px] font-mono text-text-muted">Hoje</span>
-                </div>
-                <div className="space-y-2 text-[12px]">
-                  <div className="flex items-baseline justify-between text-text-primary">
-                    <span className="font-medium">Alinhamento Arquitetural</span>
-                    <span className="text-text-muted font-mono text-[11px] tabular-nums">11:00</span>
+              {/* Corpo do painel: cada área tem seu próprio conteúdo contextual — Educação e Hoje
+                  têm painéis dedicados; as demais rotas (ainda sem painel próprio) mantêm o
+                  resumo operacional padrão. */}
+              {activeRoute === 'educacao' ? (
+                <TrackContextPanel />
+              ) : activeRoute === 'hoje' ? (
+                <TodayContextPanel />
+              ) : (
+                <>
+                  <div className="space-y-2.5 pb-6 border-b border-border/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
+                        Guardian &amp; Bio-Estado
+                      </span>
+                      <span className="text-[11px] font-mono text-[#18534B] dark:text-medusa-primary font-semibold tabular-nums">
+                        99.8% Estável
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-3xl font-bold tracking-tight text-text-primary tabular-nums">
+                        88<span className="text-xs font-normal text-text-muted ml-1">/ 100</span>
+                      </span>
+                      <span className="text-[11px] text-text-secondary">Fluxo contínuo</span>
+                    </div>
+                    <div className="w-full bg-surface-subtle h-1 rounded-full overflow-hidden">
+                      <div className="bg-medusa-primary h-full w-[88%] rounded-full" />
+                    </div>
+                    <div className="text-[10px] text-text-muted font-mono pt-0.5">
+                      Sync ativo há 2m · Nuvem Pessoal
+                    </div>
                   </div>
-                  <div className="flex items-baseline justify-between text-text-secondary">
-                    <span>Sessão de Leitura &amp; Síntese</span>
-                    <span className="text-text-muted font-mono text-[11px] tabular-nums">16:00</span>
-                  </div>
-                  <div className="flex items-baseline justify-between text-text-secondary">
-                    <span>Caminhada Restaurativa</span>
-                    <span className="text-text-muted font-mono text-[11px] tabular-nums">18:00</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Seção 4: Papel Arquitetural (Marginalia Contextual Discreta) */}
-              <div className="space-y-1.5 text-[11px] text-text-muted font-mono">
-                <span className="uppercase tracking-wider text-text-muted text-[10px]">
-                  Papel Arquitetural
-                </span>
-                <p className="leading-relaxed text-text-secondary font-sans text-[11px]">
-                  Região lateral de suporte contínuo. Não compete com o eixo do Island e permanece 100% oculta no Modo Foco.
-                </p>
-              </div>
+                  <div className="space-y-2 pb-6 border-b border-border/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
+                        Próxima Transição
+                      </span>
+                      <span className="text-[10px] font-mono text-text-muted tabular-nums">14:30</span>
+                    </div>
+                    <h4 className="text-[13px] font-semibold tracking-tight text-text-primary">
+                      Revisão Estratégica do Sistema
+                    </h4>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-text-secondary">Bloco de 45m</span>
+                      <span className="text-text-muted font-mono tabular-nums">Em 2h 15m</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
+                        Marcos da Sessão
+                      </span>
+                      <span className="text-[10px] font-mono text-text-muted">Hoje</span>
+                    </div>
+                    <div className="space-y-2 text-[12px]">
+                      <div className="flex items-baseline justify-between text-text-primary">
+                        <span className="font-medium">Alinhamento Arquitetural</span>
+                        <span className="text-text-muted font-mono text-[11px] tabular-nums">11:00</span>
+                      </div>
+                      <div className="flex items-baseline justify-between text-text-secondary">
+                        <span>Sessão de Leitura &amp; Síntese</span>
+                        <span className="text-text-muted font-mono text-[11px] tabular-nums">16:00</span>
+                      </div>
+                      <div className="flex items-baseline justify-between text-text-secondary">
+                        <span>Caminhada Restaurativa</span>
+                        <span className="text-text-muted font-mono text-[11px] tabular-nums">18:00</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

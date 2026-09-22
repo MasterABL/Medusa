@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { TrackDefinition, TrackModuleItem } from './types';
+import { CompletedActivityList } from './CompletedActivityList';
 
 interface EnglishHubProps {
   trackDef: TrackDefinition;
@@ -28,7 +29,6 @@ const LESSON_STATUS_ICON: Record<string, string> = {
  * fluxo da aula, para não competir visualmente com a hierarquia de módulos.
  */
 export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
-  const [historyOpen, setHistoryOpen] = useState(false);
   const modulesWithLessons = trackItems.filter((m) => m.lessons && m.lessons.length > 0);
 
   const allLessons = modulesWithLessons.flatMap((m) => m.lessons ?? []);
@@ -166,59 +166,17 @@ export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
       </section>
 
       {/* ================= MINHAS AULAS — HISTÓRICO PARA REVISÃO ================= */}
-      {history.length > 0 && (
-        <section id="my-lessons-history" aria-label="Minhas Aulas" className="flex flex-col gap-4">
-          <button
-            type="button"
-            onClick={() => setHistoryOpen((v) => !v)}
-            className="flex items-center justify-between gap-3 w-full text-left focus:outline-none"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-text-muted">
-                Minhas Aulas · Concluídas
-              </span>
-              <div className="h-px bg-border/60 w-16" />
-            </div>
-            <span className="flex items-center gap-1.5 text-[11px] font-mono text-text-muted">
-              {history.length} registradas
-              <span
-                className={`material-symbols-outlined text-[16px] transition-transform ${historyOpen ? 'rotate-180' : ''}`}
-              >
-                expand_more
-              </span>
-            </span>
-          </button>
-
-          {historyOpen && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {history.map((rec) => (
-                <div
-                  key={rec.id}
-                  className="p-4 rounded-xl border border-border/60 bg-surface/70 hover:bg-surface transition-all flex items-center justify-between gap-3"
-                >
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-text-muted truncate">{rec.moduleTitle}</span>
-                      <span className="text-text-muted/40">•</span>
-                      <span className="text-[11px] font-mono text-text-secondary flex-shrink-0">{rec.completedAt}</span>
-                    </div>
-                    <h4 className="text-[13px] font-semibold text-text-primary tracking-tight truncate">
-                      {rec.title}
-                    </h4>
-                  </div>
-                  <button
-                    type="button"
-                    className="flex-shrink-0 flex items-center gap-1 text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-1 rounded-full border border-[#71DBD2]/30 hover:opacity-80 transition-opacity"
-                  >
-                    <span className="material-symbols-outlined text-[13px]">replay</span>
-                    Rever
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      <CompletedActivityList
+        sectionId="my-lessons-history"
+        title="Minhas Aulas · Concluídas"
+        items={history.map((rec) => ({
+          id: rec.id,
+          title: rec.title,
+          subtitle: rec.moduleTitle,
+          completedAt: rec.completedAt,
+          durationMinutes: rec.durationMinutes,
+        }))}
+      />
     </div>
   );
 }

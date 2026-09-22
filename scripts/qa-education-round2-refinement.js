@@ -166,10 +166,10 @@ async function enterStudyMode(page) {
 
     await wait(500);
     const afterFocus = await textOf(page, '#faculdade-focus-session');
-    const afterNotices = await textOf(page, '#faculdade-notices');
+    // Avisos migraram do conteúdo principal para o Context Panel nesta rodada (ver
+    // FaculdadeContextPanel.tsx) — checados separadamente no bloco de Context Panel abaixo.
     const afterContent = await textOf(page, '#faculdade-discipline-content');
     check('[Faculdade] Sessão em Foco muda de verdade ao trocar disciplina', afterFocus !== beforeFocus && afterFocus.includes('Newton-Raphson'));
-    check('[Faculdade] Avisos mudam junto com a disciplina', afterNotices.includes('Lista 3'));
     check('[Faculdade] Conteúdo/aulas mudam junto com a disciplina (códigos MAT-215-xx)', afterContent.includes('MAT-215-01'));
     check('[Faculdade] Chip selecionado reflete a nova disciplina (aria-selected)', await page.evaluate(() => document.getElementById('discipline-chip-MAT-215')?.getAttribute('aria-selected') === 'true'));
     check('[Faculdade] Continua no mesmo Hub (não navegou para outra tela)', await exists(page, '#education-dashboard'));

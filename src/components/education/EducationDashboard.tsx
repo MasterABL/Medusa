@@ -76,20 +76,14 @@ export function EducationDashboard({
       <section aria-label="Visão Geral de Educação" className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-border/70 pb-5">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-medium tracking-widest uppercase text-text-muted">
-                Life OS · Learning OS Multi-Trilha
-              </span>
-              <span className="text-text-muted/40">•</span>
-              <span className="text-[11px] text-text-secondary">
-                {trackDef.tagline}
-              </span>
-            </div>
+            <span className="text-[10px] font-mono font-medium tracking-widest uppercase text-text-muted">
+              {trackDef.domainLabel}
+            </span>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-              Trilha de Aprendizado &amp; Prática
+              {trackDef.name}
             </h1>
             <p className="text-[13px] text-text-secondary leading-relaxed max-w-2xl">
-              Motor unificado de estudo: aulas teóricas contextualizadas, anotações ativas e prática deliberada com diagnóstico pedagógico.
+              {trackDef.tagline}
             </p>
           </div>
 
