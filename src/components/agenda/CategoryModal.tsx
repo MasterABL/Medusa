@@ -221,7 +221,7 @@ export function CategoryModal({
             {/* Preview da Categoria */}
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-text-muted uppercase">Preview:</span>
+                <span className="text-[10px] font-mono text-text-muted uppercase">Pré-visualização:</span>
                 <span
                   className="text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full border shadow-subtle"
                   style={{

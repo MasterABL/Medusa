@@ -70,9 +70,6 @@ export function Sidebar() {
             </div>
 
             <div className={`sidebar-label-collapse flex items-center gap-1 overflow-hidden ${showLabels ? 'sidebar-label-in max-w-[140px]' : 'sidebar-label-out max-w-0 pointer-events-none'}`}>
-              <span className="text-[9px] font-mono font-semibold tracking-wider text-text-muted uppercase px-1.5 py-0.5 rounded bg-surface border border-border">
-                SHELL V2
-              </span>
               {!isDrawerContext && (
                 <button
                   type="button"
@@ -217,41 +214,6 @@ export function Sidebar() {
           </nav>
         </div>
 
-        {/* Status Inferior */}
-        <div className="flex flex-col items-center px-2.5 overflow-hidden">
-          <div
-            className={`sidebar-label-collapse flex flex-col gap-2 w-full overflow-hidden ${
-              showLabels ? 'sidebar-label-in max-w-[220px]' : 'sidebar-label-out max-w-0 h-0 pointer-events-none'
-            }`}
-          >
-            <div className="bg-surface/80 rounded-xl p-3 border border-border/60 shadow-calm flex items-center justify-between">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse flex-shrink-0" />
-                <span className="text-[11px] text-text-secondary whitespace-nowrap">Ciclo Operacional</span>
-              </div>
-              <span className="text-[12px] font-mono font-semibold text-text-primary tabular-nums">
-                03/12
-              </span>
-            </div>
-            <div className="px-1 flex items-center justify-between text-[10px] font-mono text-text-muted uppercase whitespace-nowrap">
-              <span>GRID SHELL V2</span>
-              <span className="text-[#2c6956] dark:text-medusa-primary font-semibold">100% READY</span>
-            </div>
-          </div>
-
-          <div
-            className={`sidebar-label-collapse flex items-center justify-center overflow-hidden ${
-              !showLabels ? 'sidebar-label-in max-w-[40px]' : 'sidebar-label-out max-w-0 h-0 pointer-events-none'
-            }`}
-          >
-            <div
-              className="w-8 h-8 rounded-lg bg-surface/80 border border-border/60 flex items-center justify-center text-[10px] font-mono font-semibold text-text-muted shadow-subtle flex-shrink-0"
-              title="Ciclo Operacional: 03/12"
-            >
-              03
-            </div>
-          </div>
-        </div>
       </div>
     );
   };

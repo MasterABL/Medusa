@@ -288,6 +288,10 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       'Olá! Sou seu tutor acadêmico para Física II. Posso esclarecer dúvidas sobre a dedução das equações diferenciais, o comportamento dos vetores no espaço de fase ou os passos dos exercícios.',
     voiceEmphasis: false,
     nextReviewSuggestion: 'Amanhã às 09:00',
+    notices: [
+      'Professor alterou o prazo da lista de exercícios para sexta-feira.',
+      'Nova mensagem da monitoria sobre a Questão 3.',
+    ],
   },
 
   ingles: {

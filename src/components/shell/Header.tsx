@@ -158,7 +158,7 @@ export function Header() {
                 >
                   <div>
                     <span className="block">Amplo</span>
-                    <span className="text-[10px] font-mono text-text-muted">240px + 320px</span>
+                    <span className="text-[10px] text-text-muted">Menu e painel lateral visíveis</span>
                   </div>
                   {mode === 'amplo' && (
                     <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary">check</span>
@@ -178,7 +178,7 @@ export function Header() {
                 >
                   <div>
                     <span className="block">Compacto</span>
-                    <span className="text-[10px] font-mono text-text-muted">68px + 260px</span>
+                    <span className="text-[10px] text-text-muted">Menu reduzido a ícones</span>
                   </div>
                   {mode === 'compacto' && (
                     <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary">check</span>
@@ -198,7 +198,7 @@ export function Header() {
                 >
                   <div>
                     <span className="block">Foco (Zen)</span>
-                    <span className="text-[10px] font-mono text-text-muted">0px + Drawer</span>
+                    <span className="text-[10px] text-text-muted">Só o conteúdo, sem distrações</span>
                   </div>
                   {mode === 'foco' && (
                     <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary">check</span>

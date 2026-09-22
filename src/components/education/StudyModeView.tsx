@@ -510,6 +510,19 @@ export function StudyModeView({
             </div>
           </div>
 
+          {/* Avisos — somente Faculdade, simples e pontuais (não uma parede de cards) */}
+          {isFaculdade && trackDef.notices && trackDef.notices.length > 0 && (
+            <div id="session-notices" className="px-4 pt-3 pb-2.5 border-b border-border/60 flex flex-col gap-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Avisos</span>
+              {trackDef.notices.map((notice, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[12px] text-text-secondary">
+                  <span className="material-symbols-outlined text-[14px] text-medusa-primary mt-0.5">campaign</span>
+                  <span>{notice}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Alternador de Abas (Resumo Vivo / Vocabulário / Notas) */}
           <div className="flex items-center border-b border-border/70 bg-surface-secondary/40 p-1.5">
             <button

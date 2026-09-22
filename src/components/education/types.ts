@@ -135,6 +135,8 @@ export interface TrackDefinition {
   voicePrompts?: VoicePrompt[];
   /** Somente Inglês: cenário de conversação guiada (etapa "Live Immersion" do fluxo). */
   immersionScenario?: ImmersionScenario;
+  /** Somente Faculdade: avisos simples e pontuais da turma/monitoria (Fixture, sem notificação real). */
+  notices?: string[];
 }
 
 export interface SessionResult {

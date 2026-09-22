@@ -137,6 +137,8 @@ async function scanForbiddenTerms(page, rootSelector) {
       return canvas ? getComputedStyle(canvas).backgroundColor : null;
     });
     check('[Faculdade] Lousa usa #0B1120', stageBg === 'rgb(11, 17, 32)', `bg=${stageBg}`);
+    const noticesText = await page.evaluate(() => document.getElementById('session-notices')?.innerText || '');
+    check('[Faculdade] Painel companheiro mostra Avisos simples (não parede de cards)', noticesText.toLowerCase().includes('avisos') && noticesText.length < 400);
     await click(page, '#btn-complete-lesson-trigger');
     await wait(500);
     check('[Faculdade] Aula -> Exercícios direto (sem voz/imersão/flashcards)', await exists(page, '#study-exercises-container'));

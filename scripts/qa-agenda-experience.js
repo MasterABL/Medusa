@@ -247,16 +247,27 @@ async function getViewRegionStyle(page) {
     await clickViewTab(page, 'Lista');
     await new Promise((r) => setTimeout(r, 600));
 
-    await page.evaluate(() => {
-      const item = document.querySelector('[role="button"][aria-label]');
-      if (item) item.click();
-    });
-    await new Promise((r) => setTimeout(r, 400));
-
-    const hasDetailPanel = await page.evaluate(() =>
-      !!document.querySelector('aside[aria-label="Detalhes do compromisso"]')
-    );
+    // O primeiro item da Lista pode ser uma rotina recorrente (ex.: "Trabalho"), que abre um
+    // seletor de escopo de 3 opções em vez da confirmação simples de 2 passos (comportamento
+    // correto e intencional desde a rodada de conflitos/recorrência — não um bug). Este teste
+    // busca especificamente um evento NÃO recorrente para exercitar o caminho de confirmação
+    // simples que ele existe para provar.
+    let hasDetailPanel = false;
+    let isNonRecurring = false;
+    const itemCount = await page.evaluate(() => document.querySelectorAll('[role="button"][aria-label]').length);
+    for (let i = 0; i < itemCount && !isNonRecurring; i++) {
+      await page.evaluate((idx) => {
+        document.querySelectorAll('[role="button"][aria-label]')[idx]?.click();
+      }, i);
+      await new Promise((r) => setTimeout(r, 300));
+      hasDetailPanel = await page.evaluate(() => !!document.querySelector('aside[aria-label="Detalhes do compromisso"]'));
+      if (!hasDetailPanel) continue;
+      isNonRecurring = await page.evaluate(
+        () => !document.querySelector('aside[aria-label="Detalhes do compromisso"]')?.textContent.includes('Rotina Recorrente')
+      );
+    }
     check('[DetailPanel] abre ao selecionar um item', hasDetailPanel);
+    check('[DetailPanel] encontrou um evento não recorrente para testar', isNonRecurring);
 
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('aside button')).find((b) =>
@@ -283,7 +294,9 @@ async function getViewRegionStyle(page) {
     // Troca de view funciona em todos os breakpoints
     await clickViewTab(page, 'Lista');
     await new Promise((r) => setTimeout(r, 400));
-    const listRendered = await page.evaluate(() => document.body.innerText.includes('Camada Temporal Medusa'));
+    // Rótulo simplificado na limpeza global de copy ("Camada Temporal Medusa · Temporal OS" era
+    // nome interno de engenharia, não copy de produto) — mesmo smoke-check de "Agenda renderizou".
+    const listRendered = await page.evaluate(() => document.body.innerText.includes('Agenda · Sincronizada'));
     check(`[Responsive ${width}px] Agenda renderiza corretamente`, listRendered);
 
     await page.close();

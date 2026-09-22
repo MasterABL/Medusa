@@ -181,14 +181,14 @@ export function AgendaHeader({
       <div className="flex items-center justify-between gap-2 text-[11px] text-text-muted font-mono">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
-          <span>Camada Temporal Medusa · Temporal OS</span>
+          <span>Agenda · Sincronizada</span>
         </div>
 
         <span
           title="Os dados desta sessão não persistem após recarregar a página"
           className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-subtle/80 border border-border/50 text-text-muted select-none"
         >
-          Armazenado apenas nesta sessão (Local State)
+          Dados de exemplo · nada é salvo ainda
         </span>
       </div>
     </header>

@@ -122,7 +122,7 @@ export function HojeContainer() {
           O que está acontecendo agora
         </h1>
         <p className="text-[12px] text-text-muted mt-1">
-          Armazenado apenas nesta sessão (Local State) · dados de exemplo, sem persistência real ainda.
+          Dados de exemplo desta sessão — nada aqui é salvo ainda.
         </p>
       </section>
 

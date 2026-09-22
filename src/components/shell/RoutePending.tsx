@@ -20,11 +20,10 @@ export function RoutePending({ route }: { route: string }) {
       <div className="flex flex-col items-center justify-center text-center gap-4 p-10 sm:p-16 rounded-2xl border border-dashed border-border/60 bg-surface/60 mt-6">
         <span className="material-symbols-outlined text-[28px] text-text-muted">construction</span>
         <div className="space-y-1.5">
-          <h1 className="text-lg font-semibold text-text-primary tracking-tight">{label} ainda não foi especificada</h1>
+          <h1 className="text-lg font-semibold text-text-primary tracking-tight">{label} ainda está por vir</h1>
           <p className="text-[13px] text-text-secondary max-w-md">
-            Esta área ainda não tem contrato de produto suficiente para uma implementação real sem
-            inventar UI. Nenhum dado é exibido aqui até que exista especificação (contrato, legado
-            ou precedente) para {label.toLowerCase()}.
+            Ainda estamos definindo como {label.toLowerCase()} vai funcionar. Preferimos não
+            mostrar nada aqui a mostrar algo inventado.
           </p>
         </div>
       </div>

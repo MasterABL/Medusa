@@ -50,7 +50,10 @@ async function clickRoute(page, title) {
       const html = main ? main.innerText : '';
       return {
         hasFakeStats: html.includes('14 rpm') || html.includes('0.02%') || html.includes('ALL GATES PROVED'),
-        hasLocalStateLabel: html.includes('Armazenado apenas nesta sessão (Local State)'),
+        // Texto reformulado na limpeza global de copy ("RODADA — REFINAMENTO FINAL DO STUDY MODE
+        // + UX COPY GLOBAL"): removido o jargão "(Local State)" exposto ao usuário, mantendo a
+        // mesma divulgação honesta de que os dados são de exemplo e não são salvos.
+        hasLocalStateLabel: html.includes('Dados de exemplo desta sessão'),
         hasAgora: html.toUpperCase().includes('AGORA'),
         hasProximo: html.toUpperCase().includes('PRÓXIMO'),
         bodyScrollWidth: document.body.scrollWidth,
@@ -58,21 +61,24 @@ async function clickRoute(page, title) {
       };
     });
     check(`[${bp.name}] Hoje: sem estatísticas fabricadas`, !hojeState.hasFakeStats);
-    check(`[${bp.name}] Hoje: rótulo Local State visível`, hojeState.hasLocalStateLabel);
+    check(`[${bp.name}] Hoje: aviso honesto de dados de exemplo visível`, hojeState.hasLocalStateLabel);
     check(`[${bp.name}] Hoje: seção Agora presente`, hojeState.hasAgora);
     check(`[${bp.name}] Hoje: seção Próximo presente`, hojeState.hasProximo);
     check(`[${bp.name}] Hoje: sem overflow horizontal`, hojeState.bodyScrollWidth <= hojeState.bodyClientWidth + 1);
 
     // ---- Rotas pendentes honestas (apenas testado em desktop, sidebar visível) ----
+    // Agenda saiu desta lista: nesta árvore combinada (rodada de limpeza global de copy) a
+    // Agenda já está implementada (PR #12), não é mais uma rota pendente.
     if (bp.width >= 1024) {
-      for (const [title, label] of [['Agenda', 'Agenda'], ['Corpo', 'Corpo'], ['Finanças', 'Finanças'], ['Progresso', 'Progresso']]) {
+      for (const [title, label] of [['Corpo', 'Corpo'], ['Finanças', 'Finanças'], ['Progresso', 'Progresso']]) {
         await clickRoute(page, title);
         const state = await page.evaluate(() => {
           const main = document.querySelector('main');
           return { html: main ? main.innerText : '' };
         });
         check(`[${bp.name}] Rota ${label}: sem estatísticas fabricadas`, !state.html.includes('14 rpm') && !state.html.includes('ALL GATES PROVED'));
-        check(`[${bp.name}] Rota ${label}: mensagem honesta de pendência`, state.html.includes('ainda não foi especificada') || state.html.includes('ainda não'));
+        // Texto reformulado na limpeza global de copy (removido o jargão "contrato de produto").
+        check(`[${bp.name}] Rota ${label}: mensagem honesta de pendência`, state.html.includes('ainda está por vir') || state.html.includes('Preferimos não mostrar nada'));
       }
       // volta pra Hoje
       await clickRoute(page, 'Hoje');

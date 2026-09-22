@@ -182,7 +182,7 @@ export function AgendaContextSummary({
       {/* Seção 4: Papel Arquitetural da Camada Temporal */}
       <div className="space-y-1.5 text-[11px] text-text-muted font-mono">
         <span className="uppercase tracking-wider text-[10px]">
-          Temporal OS
+          Contexto da Agenda
         </span>
         <p className="leading-relaxed text-text-secondary font-sans text-[11px]">
           A Agenda conhece o tempo; cada domínio conhece o significado. Síntese sincronizada diretamente com o estado ativo.

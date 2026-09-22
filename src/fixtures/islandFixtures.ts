@@ -21,7 +21,7 @@ export const ISLAND_FIXTURES: Record<IslandState, IslandFixture> = {
     label: 'Idle',
     signature: '[ • Hoje ]',
     tag: 'Hoje',
-    desc: 'Ciclo 03 · Sistema Estável',
+    desc: 'Ciclo 03 · Tudo em dia',
     timerBadge: 'Pronto',
     badgeType: 'primary',
     primaryAction: {
@@ -51,7 +51,7 @@ export const ISLAND_FIXTURES: Record<IslandState, IslandFixture> = {
     label: 'Active',
     signature: '[ ● Física · 32m | Pausar | Concluir ]',
     tag: 'Foco Contínuo',
-    desc: 'Refinamento Arquitetural',
+    desc: 'Revisão de Rotina',
     timerBadge: '32 min',
     badgeType: 'primary',
     secondaryAction: {
