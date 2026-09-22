@@ -15,6 +15,13 @@ interface TutorDrawerProps {
   } | null;
   videoTimestamp?: number;
   onVoiceActiveChange?: (active: boolean) => void;
+  /**
+   * 'drawer' (padrão): overlay fixo à direita, como já existia.
+   * 'inline': o Tutor ocupa a região lateral prevista dentro da composição da aula (Modo
+   * Dividido de Inglês) — sem overlay, sem `isOpen` controlando montagem (o painel pai decide
+   * visibilidade via CSS), para que a conversa persista ao alternar entre Tutor e Resumo.
+   */
+  variant?: 'drawer' | 'inline';
 }
 
 export function TutorDrawer({
@@ -24,6 +31,7 @@ export function TutorDrawer({
   contextQuestion,
   videoTimestamp = 0,
   onVoiceActiveChange,
+  variant = 'drawer',
 }: TutorDrawerProps) {
   const initialGreeting =
     trackDef?.tutorGreeting ||
@@ -179,13 +187,19 @@ export function TutorDrawer({
     }, 900);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && variant !== 'inline') return null;
+
+  const isInline = variant === 'inline';
 
   return (
     <div
-      id="tutor-drawer"
+      id={isInline ? 'tutor-inline' : 'tutor-drawer'}
       aria-label="Tutor Contextual da Sessão"
-      className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-surface border-l border-border/80 shadow-2xl z-50 flex flex-col drawer-slide-in animate-slideLeft"
+      className={
+        isInline
+          ? 'h-full w-full bg-surface flex flex-col'
+          : 'fixed inset-y-0 right-0 w-full sm:w-[420px] bg-surface border-l border-border/80 shadow-2xl z-50 flex flex-col drawer-slide-in animate-slideLeft'
+      }
     >
       {/* Header do Tutor */}
       <div className="p-4 border-b border-border/70 flex items-center justify-between bg-surface-secondary/40">
@@ -206,15 +220,17 @@ export function TutorDrawer({
           </div>
         </div>
 
-        <button
-          type="button"
-          id="btn-close-tutor"
-          onClick={onClose}
-          aria-label="Fechar Tutor"
-          className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
-        >
-          <span className="material-symbols-outlined text-[18px]">close</span>
-        </button>
+        {!isInline && (
+          <button
+            type="button"
+            id="btn-close-tutor"
+            onClick={onClose}
+            aria-label="Fechar Tutor"
+            className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        )}
       </div>
 
       {/* Destaque para Inglês / Prática Oral */}

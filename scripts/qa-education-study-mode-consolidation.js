@@ -119,7 +119,7 @@ async function scanForbiddenTerms(page, rootSelector) {
     await wait(500);
     await enterStudyMode(page);
     check('[ENEM] Study Mode alcançado', await exists(page, '#study-mode-container'));
-    check('[ENEM] Sem alternador Vídeo/Aula IA/Dividido (exclusivo de Inglês)', !(await exists(page, '#btn-content-mode-video')));
+    check('[ENEM] Sem alternador de composição de aula (exclusivo de Inglês)', !(await exists(page, '#lesson-composition-switcher')));
     await click(page, '#btn-complete-lesson-trigger');
     await wait(500);
     check('[ENEM] Aula -> Exercícios direto, sem etapas extras', await exists(page, '#study-exercises-container'));
@@ -145,9 +145,9 @@ async function scanForbiddenTerms(page, rootSelector) {
     await page.close();
   }
 
-  // ===== 5. Study Mode 50/50 nas 3 trilhas =====
+  // ===== 5. Study Mode: 50/50 em Faculdade/ENEM; Inglês controla a proporção via composição =====
   {
-    for (const trackId of ['faculdade', 'ingles', 'vestibular']) {
+    for (const trackId of ['faculdade', 'vestibular']) {
       const page = await freshPage(browser, 1440, 960);
       await goToEducacao(page);
       if (trackId !== 'faculdade') {
@@ -169,22 +169,71 @@ async function scanForbiddenTerms(page, rootSelector) {
     }
   }
 
-  // ===== 6. Inglês: alternador Vídeo/Aula IA/Dividido =====
+  // ===== 6. Inglês: composição da aula (Aula / Aula + Resumo / Dividido) =====
   {
     const page = await freshPage(browser, 1440, 960);
     await goToEducacao(page);
     await click(page, '#track-selector-ingles');
     await wait(500);
     await enterStudyMode(page);
-    check('[Inglês] Alternador de modo presente', await exists(page, '#btn-content-mode-video'));
-    await click(page, '#btn-content-mode-ai-lesson');
-    await wait(250);
-    const aiActive = await page.evaluate(() => document.getElementById('btn-content-mode-ai-lesson')?.getAttribute('aria-pressed'));
-    check('[Inglês] Modo "Aula IA" fica ativo ao clicar', aiActive === 'true');
-    await click(page, '#btn-content-mode-split');
-    await wait(250);
-    const splitLayoutPresent = await page.evaluate(() => !!document.querySelector('#lesson-stage .grid-cols-2'));
-    check('[Inglês] Modo "Dividido" monta layout de 2 colunas dentro do palco', splitLayoutPresent);
+    check('[Inglês] Alternador de composição presente', await exists(page, '#lesson-composition-switcher'));
+
+    const getWidths = () => page.evaluate(() => {
+      const stage = document.getElementById('lesson-stage');
+      const aside = document.querySelector('[aria-label="Companheiro da Sessão de Estudo"]');
+      return {
+        stage: stage ? stage.getBoundingClientRect().width : null,
+        aside: aside ? aside.getBoundingClientRect().width : null,
+        asideOpacity: aside ? getComputedStyle(aside).opacity : null,
+      };
+    });
+
+    // Default: Aula + Resumo (~60/40, conteúdo dominante mas painel lateral real, nunca minúsculo)
+    const defaultWidths = await getWidths();
+    const defaultRatio = defaultWidths.stage / defaultWidths.aside;
+    check('[Inglês] Modo padrão "Aula + Resumo" com painel lateral real (30-45% da largura)', defaultRatio > 1.2 && defaultRatio < 2.0, `stage=${defaultWidths.stage} aside=${defaultWidths.aside} ratio=${defaultRatio.toFixed(2)}`);
+
+    // Modo "Aula": palco quase full-width, painel lateral recolhido mas NUNCA desmontado do DOM
+    await click(page, '#btn-lesson-mode-aula');
+    await wait(120); // meio da transição de largura (500ms) — captura estado intermediário, não só o final
+    const midTransition = await getWidths();
+    await wait(500);
+    const aulaWidths = await getWidths();
+    check('[Inglês] Modo "Aula" expande o palco sem desmontar o painel lateral (ainda no DOM)', await exists(page, '[aria-label="Companheiro da Sessão de Estudo"]'));
+    check('[Inglês] Modo "Aula" reduz o painel lateral a ~0 (opacidade)', aulaWidths.asideOpacity === '0');
+    check('[Inglês] Transição é interpolada (largura intermediária != inicial nem final)', midTransition.stage !== defaultWidths.stage);
+
+    // Modo "Dividido": ~60/40 e alterna Tutor <-> Resumo sem desmontar nenhum dos dois
+    await click(page, '#btn-lesson-mode-dividido');
+    await wait(500);
+    const dividedWidths = await getWidths();
+    const dividedRatio = dividedWidths.stage / dividedWidths.aside;
+    check('[Inglês] Modo "Dividido" fica próximo de ~60/40', dividedRatio > 1.0 && dividedRatio < 1.8, `ratio=${dividedRatio.toFixed(2)}`);
+
+    check('[Inglês] Aba "Tutor" só existe no Modo Dividido', await exists(page, '#tab-tutor'));
+    await click(page, '#tab-tutor');
+    await wait(200);
+    check('[Inglês] Tutor inline monta dentro da composição (não é overlay)', await exists(page, '#tutor-inline'));
+    check('[Inglês] Tutor inline NÃO usa a classe de overlay fixo do drawer', !(await page.evaluate(() => document.getElementById('tutor-inline')?.className.includes('fixed'))));
+
+    // Envia uma mensagem no Tutor inline, troca para Resumo e volta — a conversa deve persistir
+    await page.evaluate(() => {
+      const input = document.getElementById('tutor-input-field');
+      if (input) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        setter.call(input, 'Pergunta de teste de continuidade');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    await click(page, '#btn-send-tutor-msg');
+    await wait(150);
+    await click(page, '#tab-summary');
+    await wait(200);
+    await click(page, '#tab-tutor');
+    await wait(200);
+    const tutorPersisted = await page.evaluate(() => (document.getElementById('tutor-inline')?.innerText || '').includes('Pergunta de teste de continuidade'));
+    check('[Inglês] Conversa do Tutor inline persiste ao alternar para Resumo e voltar (sem reload)', tutorPersisted);
+
     await page.close();
   }
 

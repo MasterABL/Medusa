@@ -317,6 +317,7 @@ export function EducationContainer() {
             notes={notes}
             onSaveNote={handleSaveNote}
             onSelectTrack={handleSelectTrack}
+            onVoiceActiveChange={setVoiceActive}
           />
         </div>
       )}

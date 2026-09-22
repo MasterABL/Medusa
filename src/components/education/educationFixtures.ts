@@ -292,6 +292,12 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       'Professor alterou o prazo da lista de exercícios para sexta-feira.',
       'Nova mensagem da monitoria sobre a Questão 3.',
     ],
+    disciplines: [
+      { code: 'FIS-204', title: 'Física II', dateRange: '05/Ago – 14/Dez', credits: 4, isActive: true },
+      { code: 'MAT-215', title: 'Cálculo Numérico', dateRange: '05/Ago – 12/Dez', credits: 4, isActive: false },
+      { code: 'MEC-130', title: 'Resistência dos Materiais', dateRange: '06/Ago – 15/Dez', credits: 3, isActive: false },
+      { code: 'CMP-102', title: 'Algoritmos & Estruturas de Dados', dateRange: '07/Ago – 10/Dez', credits: 3, isActive: false },
+    ],
   },
 
   ingles: {
@@ -522,6 +528,12 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         score: '9.8',
         date: 'Concluído em 05/Set',
         duration: '12h acumuladas',
+        lessons: [
+          { id: 'ing-mod-1-l1', title: 'Pronomes pessoais & verbo To Be', status: 'completed', durationMinutes: 25 },
+          { id: 'ing-mod-1-l2', title: 'Rotina diária & advérbios de frequência', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-1-l3', title: 'Perguntas básicas & Wh-questions', status: 'completed', durationMinutes: 25 },
+          { id: 'ing-mod-1-l4', title: 'Revisão A1 & checkpoint de fluência', status: 'completed', durationMinutes: 20 },
+        ],
       },
       {
         id: 'ing-mod-2',
@@ -531,6 +543,11 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         score: '9.0',
         date: 'Concluído em 10/Set',
         duration: '10h acumuladas',
+        lessons: [
+          { id: 'ing-mod-2-l1', title: 'Passado simples: verbos regulares', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-2-l2', title: 'Passado simples: verbos irregulares comuns', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-2-l3', title: 'Lugares do dia a dia & preposições', status: 'completed', durationMinutes: 25 },
+        ],
       },
       {
         id: 'ing-mod-3',
@@ -540,6 +557,12 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         score: 'Pendente',
         date: 'Hoje · Sessão Recomendada',
         duration: '30 min programados',
+        lessons: [
+          { id: 'ing-mod-3-l1', title: 'Small talk & marcadores de conversa', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-3-l2', title: 'Everyday Conversations: Listening & Speaking', status: 'current', durationMinutes: 30 },
+          { id: 'ing-mod-3-l3', title: 'Phrasal verbs do cotidiano', status: 'locked', durationMinutes: 30 },
+          { id: 'ing-mod-3-l4', title: 'Pedidos educados & esclarecimentos', status: 'locked', durationMinutes: 30 },
+        ],
       },
       {
         id: 'ing-mod-4',
@@ -549,6 +572,11 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         score: 'Bloqueado',
         date: 'Próxima etapa da trilha',
         duration: '35 min estimados',
+        lessons: [
+          { id: 'ing-mod-4-l1', title: 'E-mails profissionais & tom formal', status: 'locked', durationMinutes: 35 },
+          { id: 'ing-mod-4-l2', title: 'Reuniões: propor e negociar', status: 'locked', durationMinutes: 35 },
+          { id: 'ing-mod-4-l3', title: 'Resolução de problemas em equipe', status: 'locked', durationMinutes: 35 },
+        ],
       },
       {
         id: 'ing-mod-5',
@@ -558,7 +586,17 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         score: 'Bloqueado',
         date: 'Etapa avançada',
         duration: '40 min estimados',
+        lessons: [
+          { id: 'ing-mod-5-l1', title: 'Construindo argumentos com coesão', status: 'locked', durationMinutes: 40 },
+          { id: 'ing-mod-5-l2', title: 'Idioms & expressões idiomáticas', status: 'locked', durationMinutes: 40 },
+        ],
       },
+    ],
+    completedLessonsHistory: [
+      { id: 'hist-1', title: 'Small talk & marcadores de conversa', moduleTitle: 'B1 Spoken Interaction', completedAt: 'Ontem às 18:40', durationMinutes: 30 },
+      { id: 'hist-2', title: 'Lugares do dia a dia & preposições', moduleTitle: 'A2 Routine & Past Simple', completedAt: '10/Set', durationMinutes: 25 },
+      { id: 'hist-3', title: 'Passado simples: verbos irregulares comuns', moduleTitle: 'A2 Routine & Past Simple', completedAt: '09/Set', durationMinutes: 30 },
+      { id: 'hist-4', title: 'Revisão A1 & checkpoint de fluência', moduleTitle: 'A1 Fundamentals', completedAt: '05/Set', durationMinutes: 20 },
     ],
     tutorGreeting:
       'Olá! Sou seu parceiro de conversação e treinador de idioma. Posso ajudar você a praticar respostas, tirar dúvidas de vocabulário ou exercitar pronúncia e conversação oral.',
@@ -914,6 +952,13 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       'Olá! Sou seu mentor estratégico para o ENEM. Vamos analisar as questões pela Matriz de Referência, identificar os distratores clássicos e reforçar a fundamentação para garantir sua pontuação.',
     voiceEmphasis: false,
     nextReviewSuggestion: 'Amanhã às 07:30',
+    cronograma: [
+      { id: 'cron-1', date: '22/Set', weekday: 'Hoje', label: 'Ondulatória · Sessão de estudo', type: 'estudo', description: 'Física · v = λ·f e refração' },
+      { id: 'cron-2', date: '23/Set', weekday: 'Amanhã', label: 'Simulado ENEM · Ciências da Natureza', type: 'simulado', description: '45 questões · 90 min' },
+      { id: 'cron-3', date: '25/Set', weekday: 'Quinta', label: 'Revisão espaçada · Cinemática', type: 'revisao', description: 'Pontos de baixo domínio da Semana 1' },
+      { id: 'cron-4', date: '28/Set', weekday: 'Domingo', label: 'Redação · Tema social contemporâneo', type: 'estudo', description: 'Treino cronometrado, 90 min' },
+      { id: 'cron-5', date: '05/Out', weekday: 'Domingo', label: 'Simulado geral · 4 áreas', type: 'prova', description: 'Prova completa, condições reais de exame' },
+    ],
   },
 };
 

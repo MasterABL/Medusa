@@ -105,6 +105,13 @@ export interface ImmersionScenario {
   turns: ImmersionTurn[];
 }
 
+export interface ModuleLessonItem {
+  id: string;
+  title: string;
+  status: 'completed' | 'current' | 'locked';
+  durationMinutes: number;
+}
+
 export interface TrackModuleItem {
   id: string;
   code: string;
@@ -113,6 +120,33 @@ export interface TrackModuleItem {
   score: string;
   date: string;
   duration: string;
+  /** Somente Inglês: aulas dentro do módulo — a unidade principal do curso é o módulo, não a sessão do dia. */
+  lessons?: ModuleLessonItem[];
+}
+
+export interface CompletedLessonRecord {
+  id: string;
+  title: string;
+  moduleTitle: string;
+  completedAt: string;
+  durationMinutes: number;
+}
+
+export interface CronogramaBlock {
+  id: string;
+  date: string;
+  weekday: string;
+  label: string;
+  type: 'estudo' | 'prova' | 'revisao' | 'simulado';
+  description: string;
+}
+
+export interface DisciplineChip {
+  code: string;
+  title: string;
+  dateRange: string;
+  credits: number;
+  isActive: boolean;
 }
 
 export interface TrackDefinition {
@@ -137,6 +171,12 @@ export interface TrackDefinition {
   immersionScenario?: ImmersionScenario;
   /** Somente Faculdade: avisos simples e pontuais da turma/monitoria (Fixture, sem notificação real). */
   notices?: string[];
+  /** Somente Inglês: histórico de aulas concluídas ("Minhas Aulas"), base da lógica de revisão futura. */
+  completedLessonsHistory?: CompletedLessonRecord[];
+  /** Somente ENEM: cronograma de preparação (planejamento temporal, não uma lista de tarefas genérica). */
+  cronograma?: CronogramaBlock[];
+  /** Somente Faculdade: disciplinas ativas do período letivo. */
+  disciplines?: DisciplineChip[];
 }
 
 export interface SessionResult {

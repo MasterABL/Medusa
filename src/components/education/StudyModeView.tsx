@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StudyTrack, TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
+import { TutorDrawer } from './TutorDrawer';
 
 interface StudyModeViewProps {
   trackDef: TrackDefinition;
@@ -10,6 +11,8 @@ interface StudyModeViewProps {
   notes: StudyNote[];
   onSaveNote: (note: StudyNote) => void;
   onSelectTrack?: (track: StudyTrack) => void;
+  /** Reaproveita o mesmo mecanismo do Dynamic Island (nunca duplicado) para o Tutor inline do Modo Dividido. */
+  onVoiceActiveChange?: (active: boolean) => void;
 }
 
 export function StudyModeView({
@@ -19,6 +22,7 @@ export function StudyModeView({
   notes,
   onSaveNote,
   onSelectTrack,
+  onVoiceActiveChange,
 }: StudyModeViewProps) {
   const { lesson, summaryPoints: initialSummaryPoints, voiceEmphasis } = trackDef;
   const isIngles = trackDef.id === 'ingles';
@@ -29,9 +33,11 @@ export function StudyModeView({
   const [currentTime, setCurrentTime] = useState(240); // 04:00
   const duration = lesson.actualDurationSeconds;
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5>(1);
-  const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'vocabulary'>('summary');
-  // Somente Inglês: alterna a área principal entre Vídeo / Aula IA / Dividido (seção 4 do produto).
-  const [contentMode, setContentMode] = useState<'video' | 'ai-lesson' | 'split'>('video');
+  const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'vocabulary' | 'tutor'>('summary');
+  // Somente Inglês: controla a COMPOSIÇÃO da tela da aula — quanto espaço o palco ocupa e se a
+  // região lateral está presente. Não controla mais "o que" toca no palco (isso não muda entre
+  // os 3 modos); controla apenas a proporção e a presença do painel lateral.
+  const [lessonViewMode, setLessonViewMode] = useState<'aula' | 'aula-resumo' | 'dividido'>('aula-resumo');
   const [newNoteText, setNewNoteText] = useState('');
   const [noteSavedFeedback, setNoteSavedFeedback] = useState<string | null>(null);
   const [summaryPoints, setSummaryPoints] = useState<LiveSummaryPoint[]>(
@@ -42,7 +48,16 @@ export function StudyModeView({
   useEffect(() => {
     setSummaryPoints(initialSummaryPoints);
     setCurrentTime(240);
+    setLessonViewMode('aula-resumo');
   }, [trackDef.id, initialSummaryPoints]);
+
+  // A aba "Tutor" só existe dentro do Modo Dividido — se o usuário sair do Dividido com o Tutor
+  // ativo, a aba volta para Resumo (o Tutor inline continua montado, só deixa de estar visível).
+  useEffect(() => {
+    if (lessonViewMode !== 'dividido' && activeTab === 'tutor') {
+      setActiveTab('summary');
+    }
+  }, [lessonViewMode, activeTab]);
 
   // Player timer loop
   useEffect(() => {
@@ -230,35 +245,58 @@ export function StudyModeView({
       </div>
 
       {/* Palco Central: ~50% Conteúdo da Aula + ~50% Companheiro da Sessão (Resumo/Vocabulário/
-          Notas/Tutor) — equilíbrio explícito entre as duas colunas, igual nas 3 trilhas. A coluna
-          estica para usar a altura disponível (evita o vazio abaixo do player). */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
-        {/* ================= COLUNA PRINCIPAL: PLAYER DE CONTEÚDO (~50%) ================= */}
+          Notas/Tutor) nas trilhas de Faculdade/ENEM. Em Inglês, o usuário controla a composição
+          via 3 modos (Aula / Aula + Resumo / Dividido) — largura interpolada via CSS var, sem
+          desmontar nenhum dos dois lados: a sensação é de "mudar como estudo esta aula", não de
+          navegar para outra tela. */}
+      <div
+        className={
+          isIngles
+            ? 'flex flex-col lg:flex-row gap-5 items-stretch'
+            : 'grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch'
+        }
+        style={
+          isIngles
+            ? ({
+                '--stage-w': lessonViewMode === 'aula' ? '100%' : lessonViewMode === 'dividido' ? '58%' : '62%',
+                '--aside-w': lessonViewMode === 'aula' ? '0%' : lessonViewMode === 'dividido' ? '42%' : '38%',
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
+        {/* ================= COLUNA PRINCIPAL: PLAYER DE CONTEÚDO (~50-100%) ================= */}
         <section
           id="lesson-stage"
           aria-label="Conteúdo da Aula"
-          className="flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden"
+          className={`flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full ${
+            isIngles ? 'lg:w-[var(--stage-w)] transition-[width] duration-500 ease-out' : ''
+          }`}
         >
-          {/* Somente Inglês: alternador Vídeo / Aula IA / Dividido — controla o QUE aparece no
-              palco, sem alterar a proporção 50/50 do Study Mode (igual nas 3 trilhas). */}
+          {/* Somente Inglês: os 3 modos de composição da aula — controlam QUANTO espaço o palco
+              ocupa e se/como a região lateral aparece. O conteúdo da aula em si não muda entre
+              os modos (isso não é um seletor de "fonte" de conteúdo). */}
           {isIngles && (
-            <div className="flex items-center gap-1 p-2 border-b border-border/60 bg-surface-secondary/40">
+            <div
+              id="lesson-composition-switcher"
+              className="flex items-center gap-1 p-2 border-b border-border/60 bg-surface-secondary/40"
+            >
               {([
-                { id: 'video', label: 'Vídeo', icon: 'smart_display' },
-                { id: 'ai-lesson', label: 'Aula IA', icon: 'auto_awesome' },
-                { id: 'split', label: 'Dividido', icon: 'vertical_split' },
+                { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Aula em foco total' },
+                { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Aula com pontos-chave ao lado' },
+                { id: 'dividido', label: 'Dividido', icon: 'vertical_split', title: 'Aula dividida com Tutor ou Resumo' },
               ] as const).map((m) => (
                 <button
                   key={m.id}
                   type="button"
-                  id={`btn-content-mode-${m.id}`}
-                  onClick={() => setContentMode(m.id)}
+                  id={`btn-lesson-mode-${m.id}`}
+                  onClick={() => setLessonViewMode(m.id)}
+                  title={m.title}
                   className={`flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
-                    contentMode === m.id
+                    lessonViewMode === m.id
                       ? 'bg-surface text-text-primary shadow-subtle font-semibold'
                       : 'text-text-muted hover:text-text-primary'
                   }`}
-                  aria-pressed={contentMode === m.id}
+                  aria-pressed={lessonViewMode === m.id}
                 >
                   <span className="material-symbols-outlined text-[15px]">{m.icon}</span>
                   <span>{m.label}</span>
@@ -277,33 +315,11 @@ export function StudyModeView({
               isFaculdade ? 'bg-[#0B1120]' : 'bg-[#0E1311]'
             }`}
           >
-            {/* Visualização de Fundo Dinâmica por Trilha/Modo — Dividido mostra os dois lados
-                lado a lado (vídeo à esquerda, Aula IA à direita), como uma única estação de
-                estudo, não dois cartões independentes. */}
-            {isIngles && contentMode === 'split' ? (
-              <div className="absolute inset-0 grid grid-cols-2 divide-x divide-white/10">
-                <div className="flex items-center justify-center opacity-35 pointer-events-none">
-                  <div className="w-full max-w-[180px] flex items-center justify-center gap-1 h-16">
-                    {[24, 48, 72, 36, 84, 60, 40, 80].map((h, i) => (
-                      <div
-                        key={i}
-                        style={{ height: isPlaying ? `${h}%` : '20%' }}
-                        className="w-1 bg-[#71DBD2] rounded-full transition-all duration-300 ease-out"
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center justify-center opacity-35 pointer-events-none">
-                  <span className="material-symbols-outlined text-[64px] text-[#D0EAA3] living-pulse">auto_awesome</span>
-                </div>
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center opacity-35 pointer-events-none">
-                {isIngles && contentMode === 'ai-lesson' ? (
-                  // Aula IA — visual distinto do modo Vídeo, honestamente rotulado (fixture curada, não geração real)
-                  <span className="material-symbols-outlined text-[96px] text-[#D0EAA3] living-pulse">auto_awesome</span>
-                ) : isIngles ? (
-                  // Visualizador de Espectro de Voz e Diálogo para Inglês (Modo Vídeo)
+            {/* Visualização de Fundo por Trilha — a composição (Aula/Aula+Resumo/Dividido) muda
+                a proporção do palco, não o que toca nele: mesma cena visual nos 3 modos. */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-35 pointer-events-none">
+                {isIngles ? (
+                  // Visualizador de Espectro de Voz e Diálogo para Inglês
                   <div className="w-full max-w-lg flex items-center justify-center gap-1.5 h-24">
                     {[24, 48, 72, 36, 84, 96, 60, 40, 80, 52, 90, 68, 44, 30, 65, 85, 40, 60].map((h, i) => (
                       <div
@@ -338,8 +354,7 @@ export function StudyModeView({
                     <line x1="0" y1="60" x2="800" y2="60" stroke="#71DBD2" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
                   </svg>
                 )}
-              </div>
-            )}
+            </div>
 
             {/* Badge Superior do Palco */}
             <div className="relative z-10 flex items-center justify-between flex-wrap gap-2">
@@ -493,7 +508,14 @@ export function StudyModeView({
         {/* ================= COLUNA COMPANHEIRA: ROTEIRO, RESUMO, VOCABULÁRIO & NOTAS (~50%) ================= */}
         <aside
           aria-label="Companheiro da Sessão de Estudo"
-          className="study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden min-h-[480px]"
+          aria-hidden={isIngles && lessonViewMode === 'aula'}
+          className={`study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden min-h-[480px] w-full ${
+            isIngles
+              ? `lg:w-[var(--aside-w)] transition-[width,opacity] duration-500 ease-out ${
+                  lessonViewMode === 'aula' ? 'opacity-0 lg:pointer-events-none' : 'opacity-100'
+                }`
+              : ''
+          }`}
         >
           {/* Roteiro da Sessão — visão rápida do que será coberto, igual nas 3 trilhas */}
           <div id="session-roteiro" className="px-4 pt-3.5 pb-2.5 border-b border-border/60">
@@ -523,8 +545,24 @@ export function StudyModeView({
             </div>
           )}
 
-          {/* Alternador de Abas (Resumo Vivo / Vocabulário / Notas) */}
+          {/* Alternador de Abas (Tutor [só no Modo Dividido] / Resumo Vivo / Vocabulário / Notas) */}
           <div className="flex items-center border-b border-border/70 bg-surface-secondary/40 p-1.5">
+            {isIngles && lessonViewMode === 'dividido' && (
+              <button
+                type="button"
+                id="tab-tutor"
+                onClick={() => setActiveTab('tutor')}
+                className={`flex-1 py-1.5 text-[12px] font-semibold rounded-lg transition-all text-center flex items-center justify-center gap-1.5 ${
+                  activeTab === 'tutor'
+                    ? 'bg-surface text-text-primary shadow-subtle'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
+                <span>Tutor</span>
+              </button>
+            )}
+
             <button
               type="button"
               id="tab-summary"
@@ -569,6 +607,22 @@ export function StudyModeView({
               <span>Notas ({notes.length})</span>
             </button>
           </div>
+
+          {/* Conteúdo da Aba: Tutor inline (somente Inglês, Modo Dividido) — montado permanentemente
+              desde que a trilha seja Inglês (não só quando a aba está ativa) e apenas alterna
+              visibilidade via CSS, para que a conversa persista ao alternar para Resumo e voltar. */}
+          {isIngles && (
+            <div className={`flex-1 flex-col overflow-hidden ${activeTab === 'tutor' ? 'flex' : 'hidden'}`}>
+              <TutorDrawer
+                variant="inline"
+                isOpen
+                onClose={() => setActiveTab('summary')}
+                trackDef={trackDef}
+                videoTimestamp={currentTime}
+                onVoiceActiveChange={onVoiceActiveChange}
+              />
+            </div>
+          )}
 
           {/* Conteúdo da Aba: Vocabulário (somente Inglês) */}
           {activeTab === 'vocabulary' && trackDef.vocabulary && (
