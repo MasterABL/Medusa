@@ -9,8 +9,14 @@ export type StudySessionState =
   | 'ready'
   | 'error'
   | 'study'
+  | 'transitioning_to_voice_exercise'
+  | 'voice_exercise'
+  | 'transitioning_to_immersion'
+  | 'live_immersion'
   | 'transitioning_to_exercises'
   | 'exercises'
+  | 'transitioning_to_flashcards'
+  | 'flashcards'
   | 'completion';
 
 export type StudyTrack = 'faculdade' | 'ingles' | 'vestibular';
@@ -70,6 +76,35 @@ export interface LessonMetadata {
   nextTopicDescription: string;
 }
 
+export interface VocabularyItem {
+  id: string;
+  term: string;
+  translation: string;
+  example: string;
+}
+
+export interface VoicePrompt {
+  id: string;
+  instruction: string;
+  targetPhrase: string;
+  simulatedTranscript: string;
+  feedback: string;
+}
+
+export interface ImmersionTurn {
+  id: string;
+  speakerLine: string;
+  userPromptHint: string;
+  simulatedTranscript: string;
+  feedback: string;
+}
+
+export interface ImmersionScenario {
+  title: string;
+  setting: string;
+  turns: ImmersionTurn[];
+}
+
 export interface TrackModuleItem {
   id: string;
   code: string;
@@ -92,6 +127,14 @@ export interface TrackDefinition {
   modules: TrackModuleItem[];
   tutorGreeting: string;
   voiceEmphasis?: boolean;
+  /** Sugestão estática de próxima revisão exibida no Hub, antes de iniciar a sessão (Fixture por trilha). */
+  nextReviewSuggestion: string;
+  /** Somente Inglês: vocabulário-alvo da sessão, exibido no painel companheiro e nos flashcards. */
+  vocabulary?: VocabularyItem[];
+  /** Somente Inglês: prática oral guiada (etapa "Exercício de voz" do fluxo). */
+  voicePrompts?: VoicePrompt[];
+  /** Somente Inglês: cenário de conversação guiada (etapa "Live Immersion" do fluxo). */
+  immersionScenario?: ImmersionScenario;
 }
 
 export interface SessionResult {

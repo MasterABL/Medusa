@@ -43,9 +43,11 @@ async function goToEducacao(page) {
 }
 
 async function enterStudyMode(page) {
+  // Usa o id estável do botão em vez de casar pelo texto: o rótulo passou a variar entre
+  // "Continuar Sessão de X" / "Iniciar Nova Sessão de X" conforme o estado real da trilha
+  // (consolidação do Study Mode) — o id nunca muda.
   await page.evaluate(() => {
-    const root = document.getElementById('education-experience-root');
-    Array.from(root.querySelectorAll('button')).find((b) => b.textContent.includes('Iniciar Sessão'))?.click();
+    document.getElementById('btn-start-study-session')?.click();
   });
   await new Promise((r) => setTimeout(r, 3700));
   await page.evaluate(() => {
@@ -56,13 +58,12 @@ async function enterStudyMode(page) {
 }
 
 async function getPlayerHeight(page) {
+  // Antes casava pela cor de fundo #0E1311 — mas Faculdade (trilha padrão) agora usa a "Lousa"
+  // #0B1120 (seção 12 do produto), então a cor deixou de identificar o palco de forma
+  // confiável em todas as trilhas. O palco é sempre o primeiro filho direto de #lesson-stage.
   return page.evaluate(() => {
-    const container = document.getElementById('study-mode-container');
-    const player = container
-      ? Array.from(container.querySelectorAll('div')).find(
-          (d) => getComputedStyle(d).backgroundColor === 'rgb(14, 19, 17)'
-        )
-      : null;
+    const stage = document.getElementById('lesson-stage');
+    const player = stage ? stage.querySelector(':scope > div') : null;
     return player ? player.getBoundingClientRect().height : null;
   });
 }

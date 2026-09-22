@@ -287,24 +287,25 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
     tutorGreeting:
       'Olá! Sou seu tutor acadêmico para Física II. Posso esclarecer dúvidas sobre a dedução das equações diferenciais, o comportamento dos vetores no espaço de fase ou os passos dos exercícios.',
     voiceEmphasis: false,
+    nextReviewSuggestion: 'Amanhã às 09:00',
   },
 
   ingles: {
     id: 'ingles',
     name: 'Inglês',
-    tagline: 'B1 Intermediate · Spoken Fluency & Listening',
-    domainLabel: 'Idioma Global · CEFR B1',
+    tagline: 'Inglês Intermediário · Fluência Oral & Compreensão Auditiva',
+    domainLabel: 'Idioma Global · Nível CEFR B1',
     accentColor: '#D0EAA3',
     lesson: {
       track: 'ingles',
       trackLabel: 'Inglês B1',
       discipline: 'Inglês B1',
-      topic: 'Everyday Conversations · Listening & Speaking',
+      topic: 'Conversas do Cotidiano · Compreensão Auditiva & Fala',
       sessionObjective: 'Compreender e responder com naturalidade a perguntas em conversas cotidianas, com precisão gramatical e fluidez de turn-taking.',
       estimatedDuration: '30 min',
       actualDurationSeconds: 1800,
-      module: 'Módulo 03 · Spoken Interaction & Fluency',
-      nextTopic: 'Inglês B1 · Polite Requests, Clarification & Indirect Questions',
+      module: 'Módulo 03 · Interação Oral & Fluência',
+      nextTopic: 'Inglês B1 · Pedidos Educados, Esclarecimentos e Perguntas Indiretas',
       nextTopicDescription: 'Fórmulas de polidez para pedidos indiretos ("Would you mind...", "Could you tell me..."), pedidos de esclarecimento e entonação natural.',
     },
     summaryPoints: [
@@ -556,8 +557,83 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       },
     ],
     tutorGreeting:
-      'Hello! I am your conversation partner and language coach. Posso ajudar você a praticar respostas, tirar dúvidas de vocabulário ou exercitar pronúncia e conversação oral.',
+      'Olá! Sou seu parceiro de conversação e treinador de idioma. Posso ajudar você a praticar respostas, tirar dúvidas de vocabulário ou exercitar pronúncia e conversação oral.',
     voiceEmphasis: true,
+    nextReviewSuggestion: 'Amanhã às 08:30',
+    vocabulary: [
+      {
+        id: 'ing-voc-1',
+        term: 'come up with',
+        translation: 'propor, elaborar (uma ideia ou solução)',
+        example: 'We need to come up with a plan before Friday.',
+      },
+      {
+        id: 'ing-voc-2',
+        term: 'run into',
+        translation: 'encontrar alguém por acaso',
+        example: 'I ran into my old teacher at the supermarket.',
+      },
+      {
+        id: 'ing-voc-3',
+        term: 'catch up',
+        translation: 'colocar o papo em dia / recuperar o atraso',
+        example: 'Let\'s catch up over coffee this weekend.',
+      },
+      {
+        id: 'ing-voc-4',
+        term: 'I was wondering if...',
+        translation: 'fórmula educada para um pedido indireto',
+        example: 'I was wondering if you could help me with this report.',
+      },
+      {
+        id: 'ing-voc-5',
+        term: 'I didn\'t quite catch that',
+        translation: 'pedido educado de repetição/esclarecimento',
+        example: 'Sorry, I didn\'t quite catch that — could you repeat it?',
+      },
+      {
+        id: 'ing-voc-6',
+        term: 'to wrap up',
+        translation: 'finalizar, encerrar algo',
+        example: 'Give me ten minutes to wrap up this email.',
+      },
+    ],
+    voicePrompts: [
+      {
+        id: 'ing-voice-1',
+        instruction: 'Leia a frase em voz alta, com atenção à entonação natural.',
+        targetPhrase: 'I was wondering if you could tell me what time the meeting starts.',
+        simulatedTranscript: '"I was wondering if you could tell me what time the meeting starts."',
+        feedback: 'Boa pronúncia. A entonação ficou natural, como em uma conversa real.',
+      },
+      {
+        id: 'ing-voice-2',
+        instruction: 'Agora pratique um pedido de esclarecimento educado.',
+        targetPhrase: 'Sorry, I didn\'t quite catch that. Could you say it again?',
+        simulatedTranscript: '"Sorry, I didn\'t quite catch that. Could you say it again?"',
+        feedback: 'Você foi compreendido. Essa é exatamente a forma natural de pedir para repetir.',
+      },
+    ],
+    immersionScenario: {
+      title: 'Pedindo um café em Londres',
+      setting: 'Você está em uma cafeteria e o atendente pergunta o que você deseja pedir.',
+      turns: [
+        {
+          id: 'imm-1',
+          speakerLine: '"Hi there! What can I get started for you today?"',
+          userPromptHint: 'Peça um cappuccino e pergunte se eles têm leite de aveia.',
+          simulatedTranscript: '"Hi, could I get a cappuccino, please? Do you have oat milk?"',
+          feedback: 'Muito bem. Pedido claro e educado — exatamente como um falante nativo faria.',
+        },
+        {
+          id: 'imm-2',
+          speakerLine: '"Sure! For here or to go?"',
+          userPromptHint: 'Diga que é para levar (to go).',
+          simulatedTranscript: '"To go, please."',
+          feedback: 'Perfeito. Resposta curta e natural, sem soar robotizada.',
+        },
+      ],
+    },
   },
 
   vestibular: {
@@ -833,6 +909,7 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
     tutorGreeting:
       'Olá! Sou seu mentor estratégico para o ENEM. Vamos analisar as questões pela Matriz de Referência, identificar os distratores clássicos e reforçar a fundamentação para garantir sua pontuação.',
     voiceEmphasis: false,
+    nextReviewSuggestion: 'Amanhã às 07:30',
   },
 };
 

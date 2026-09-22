@@ -15,9 +15,14 @@ import { StudyLoadingState } from './StudyLoadingState';
 import { StudyReadyState } from './StudyReadyState';
 import { StudyErrorState } from './StudyErrorState';
 import { StudyModeView } from './StudyModeView';
+import { VoiceExerciseView } from './VoiceExerciseView';
+import { LiveImmersionView } from './LiveImmersionView';
 import { StudyExercisesView } from './StudyExercisesView';
+import { FlashcardsView } from './FlashcardsView';
 import { StudyCompletionView } from './StudyCompletionView';
 import { TutorDrawer } from './TutorDrawer';
+
+const RECEDE_MS = 320;
 
 export function EducationContainer() {
   const { setIslandState, setMode, mode, setVoiceActive } = useShell();
@@ -99,20 +104,46 @@ export function EducationContainer() {
     setMode('foco');
   }, [mode, setIslandState, setMode]);
 
-  // 5. Concluir aula e transicionar para exercícios: study -> transitioning_to_exercises -> exercises
-  // O tempo do swap (320ms) casa exatamente com a duração real da animação CSS `study-recede`
-  // (globals.css) — antes o timeout era 480ms contra uma animação de 320ms, criando uma pausa
-  // "morta" sem movimento entre o fim do recede e a troca de estado.
-  const handleCompleteLesson = useCallback(() => {
-    setSessionState('transitioning_to_exercises');
-    setIslandState('processing');
-    setTimeout(() => {
-      setSessionState('exercises');
-      setIslandState('active');
-    }, 320);
-  }, [setIslandState]);
+  // Transição genérica entre etapas do fluxo de estudo, reaproveitando a MESMA coreografia
+  // já provada (recede 320ms + pulso `processing` do Island) que antes só existia para o salto
+  // Aula -> Exercícios. Generalizada aqui para servir também às etapas extras da trilha de
+  // Inglês (Exercício de Voz / Live Immersion / Flashcards) sem inventar um segundo mecanismo.
+  const advanceStudyFlow = useCallback(
+    (nextState: StudySessionState, transitioningState: StudySessionState, restingIslandState: 'active' | 'success' = 'active') => {
+      setSessionState(transitioningState);
+      setIslandState('processing');
+      setTimeout(() => {
+        setSessionState(nextState);
+        setIslandState(restingIslandState);
+      }, RECEDE_MS);
+    },
+    [setIslandState]
+  );
 
-  // 6. Finalizar bateria de exercícios: exercises -> completion
+  // 5. Concluir aula: study -> [voz -> imersão ->] exercícios
+  // Inglês segue o fluxo estendido (seção 4 do produto); as demais trilhas (ENEM/Faculdade)
+  // preservam o salto direto original Aula -> Exercícios (byte-a-byte o mesmo comportamento
+  // já provado em E-029/E-033), por instrução explícita de não criar exceção para o ENEM nem
+  // mudar a estrutura das trilhas que já funcionam.
+  const handleCompleteLesson = useCallback(() => {
+    if (currentTrack === 'ingles') {
+      advanceStudyFlow('voice_exercise', 'transitioning_to_voice_exercise');
+    } else {
+      advanceStudyFlow('exercises', 'transitioning_to_exercises');
+    }
+  }, [currentTrack, advanceStudyFlow]);
+
+  // 5b. Somente Inglês: Exercício de Voz -> Live Immersion
+  const handleFinishVoiceExercise = useCallback(() => {
+    advanceStudyFlow('live_immersion', 'transitioning_to_immersion');
+  }, [advanceStudyFlow]);
+
+  // 5c. Somente Inglês: Live Immersion -> Exercícios (reaproveita StudyExercisesView já existente)
+  const handleFinishImmersion = useCallback(() => {
+    advanceStudyFlow('exercises', 'transitioning_to_exercises');
+  }, [advanceStudyFlow]);
+
+  // 6. Finalizar bateria de exercícios: exercises -> completion (ENEM/Faculdade) ou -> flashcards (Inglês)
   // Métricas DERIVADAS (Local State + Fixture)
   const handleFinishExercises = useCallback(
     (correctCount: number, totalCount: number, errorTopics: string[]) => {
@@ -134,11 +165,22 @@ export function EducationContainer() {
       };
 
       setSessionResult(result);
-      setSessionState('completion');
-      setIslandState('success');
+
+      if (currentTrack === 'ingles') {
+        advanceStudyFlow('flashcards', 'transitioning_to_flashcards');
+      } else {
+        setSessionState('completion');
+        setIslandState('success');
+      }
     },
-    [currentTrack, trackDef.lesson.estimatedDuration, trackDef.lesson.topic, setIslandState]
+    [currentTrack, trackDef.lesson.estimatedDuration, trackDef.lesson.topic, setIslandState, advanceStudyFlow]
   );
+
+  // 6b. Somente Inglês: Flashcards -> Conclusão
+  const handleFinishFlashcards = useCallback(() => {
+    setSessionState('completion');
+    setIslandState('success');
+  }, [setIslandState]);
 
   // 7. Retornar para Educação: completion -> dashboard
   // Restaura o modo normal do shell (Painel Regional Global volta à tela)
@@ -191,11 +233,33 @@ export function EducationContainer() {
 
   // Garantia de Focus Mode nos estados de estudo ativos
   useEffect(() => {
-    const isStudyActive = ['study', 'transitioning_to_exercises', 'exercises', 'completion'].includes(sessionState);
+    const isStudyActive = [
+      'study',
+      'transitioning_to_voice_exercise',
+      'voice_exercise',
+      'transitioning_to_immersion',
+      'live_immersion',
+      'transitioning_to_exercises',
+      'exercises',
+      'transitioning_to_flashcards',
+      'flashcards',
+      'completion',
+    ].includes(sessionState);
     if (isStudyActive && mode !== 'foco') {
       setMode('foco');
     }
   }, [sessionState, mode, setMode]);
+
+  // A etapa "transitioning_to_exercises" é compartilhada por dois caminhos diferentes: ENEM/
+  // Faculdade saltam direto de Aula, enquanto Inglês chega vindo de Live Immersion. A tela que
+  // deve receder (`study-recede`) durante essa transição depende de qual delas está saindo.
+  const showStudyStage =
+    sessionState === 'study' ||
+    sessionState === 'transitioning_to_voice_exercise' ||
+    (sessionState === 'transitioning_to_exercises' && currentTrack !== 'ingles');
+  const showLiveImmersion =
+    sessionState === 'live_immersion' ||
+    (sessionState === 'transitioning_to_exercises' && currentTrack === 'ingles');
 
   return (
     <main
@@ -216,6 +280,7 @@ export function EducationContainer() {
       {/* 2. Loading State: Preparando aula da trilha */}
       {sessionState === 'loading' && (
         <StudyLoadingState
+          trackDef={trackDef}
           onCancel={handleReturnToDashboard}
           onComplete={handleLoadingComplete}
           simulateFailure={isSimulateFailureActive}
@@ -239,11 +304,11 @@ export function EducationContainer() {
         />
       )}
 
-      {/* 5. Study Mode: Palco de Estudo + Coluna Interna (Resumo Vivo + Notas) */}
-      {(sessionState === 'study' || sessionState === 'transitioning_to_exercises') && (
+      {/* 5. Study Mode: Palco de Estudo + Coluna Companheira (Resumo/Vocabulário/Notas/Tutor) */}
+      {showStudyStage && (
         <div
           id="lesson-transition-wrapper"
-          className={sessionState === 'transitioning_to_exercises' ? 'study-recede' : ''}
+          className={sessionState === 'transitioning_to_voice_exercise' || (sessionState === 'transitioning_to_exercises' && currentTrack !== 'ingles') ? 'study-recede' : ''}
         >
           <StudyModeView
             trackDef={trackDef}
@@ -256,13 +321,34 @@ export function EducationContainer() {
         </div>
       )}
 
+      {/* 5b. Somente Inglês: Exercício de Voz (Idle -> Listening -> Processing -> Resposta) */}
+      {(sessionState === 'voice_exercise' || sessionState === 'transitioning_to_immersion') && trackDef.voicePrompts && (
+        <div className={sessionState === 'transitioning_to_immersion' ? 'study-recede' : ''}>
+          <VoiceExerciseView trackDef={trackDef} onFinish={handleFinishVoiceExercise} />
+        </div>
+      )}
+
+      {/* 5c. Somente Inglês: Live Immersion (cenário de conversação guiada) */}
+      {showLiveImmersion && trackDef.immersionScenario && (
+        <div className={sessionState === 'transitioning_to_exercises' ? 'study-recede' : ''}>
+          <LiveImmersionView trackDef={trackDef} onFinish={handleFinishImmersion} />
+        </div>
+      )}
+
       {/* 6. Exercícios: Prática Deliberada da Trilha Ativa */}
-      {sessionState === 'exercises' && (
-        <StudyExercisesView
-          trackDef={trackDef}
-          onFinishExercises={handleFinishExercises}
-          onOpenTutorForError={handleOpenTutorForError}
-        />
+      {(sessionState === 'exercises' || sessionState === 'transitioning_to_flashcards') && (
+        <div className={sessionState === 'transitioning_to_flashcards' ? 'study-recede' : ''}>
+          <StudyExercisesView
+            trackDef={trackDef}
+            onFinishExercises={handleFinishExercises}
+            onOpenTutorForError={handleOpenTutorForError}
+          />
+        </div>
+      )}
+
+      {/* 6b. Somente Inglês: Flashcards de Vocabulário */}
+      {sessionState === 'flashcards' && trackDef.vocabulary && (
+        <FlashcardsView trackDef={trackDef} onFinish={handleFinishFlashcards} />
       )}
 
       {/* 7. Conclusão da Sessão: Métricas Derivadas Auditáveis */}

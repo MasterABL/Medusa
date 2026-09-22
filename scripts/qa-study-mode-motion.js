@@ -223,9 +223,13 @@ async function goToEducacao(page) {
     const csAnim = await page.evaluate(() => getComputedStyle(document.getElementById('island-capsule')).animationName);
     check('[Reduced Motion] pulsação de voz desabilitada (animationName=none)', csAnim === 'none', `animationName=${csAnim}`);
 
+    // Nesta seção a trilha ativa é Inglês (selecionada acima) — desde a consolidação do Study
+    // Mode, Inglês segue o fluxo estendido (Aula -> Exercício de Voz -> Live Immersion ->
+    // Exercícios), então "Concluir Aula" leva ao Exercício de Voz, não direto a Exercícios.
+    // ENEM/Faculdade continuam indo direto (ver qa-education-tracks-experience.js).
     await click(page, '#btn-complete-lesson-trigger');
     await wait(400);
-    check('[Reduced Motion] aula -> exercícios ainda funciona', await exists(page, '#study-exercises-container'));
+    check('[Reduced Motion] aula -> exercício de voz ainda funciona (fluxo estendido de Inglês)', await exists(page, '#voice-exercise-container'));
 
     await page.close();
   }

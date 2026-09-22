@@ -21,6 +21,12 @@ export function EducationDashboard({
 }: EducationDashboardProps) {
   const [qaSimulateFailure, setQaSimulateFailure] = useState(false);
   const [qaPanelOpen, setQaPanelOpen] = useState(false);
+  // O painel de QA/Dev nunca é renderizado para usuários finais — só existe quando a própria URL
+  // carrega `?qa=1` (usado exclusivamente pelos scripts de QA para alcançar o Error State
+  // mandatório sem expor um controle de teste na experiência real do produto).
+  const [isQaModeEnabled] = useState(
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('qa') === '1'
+  );
 
   const trackDef = TRACK_DEFINITIONS[currentTrack];
   const { lesson, modules } = trackDef;
@@ -167,6 +173,18 @@ export function EducationDashboard({
                     ? lesson.nextTopicDescription
                     : lesson.sessionObjective}
                 </p>
+
+                {/* Roteiro da Sessão — visão rápida do que a sessão cobre, antes de entrar em Foco */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {trackDef.summaryPoints.slice(0, 4).map((point) => (
+                    <span
+                      key={point.id}
+                      className="text-[11px] text-text-secondary bg-surface-secondary/60 border border-border/50 rounded-full px-2.5 py-0.5"
+                    >
+                      {point.title}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -179,14 +197,14 @@ export function EducationDashboard({
               >
                 <span className="material-symbols-outlined text-[18px]">play_circle</span>
                 <span>
-                  {isSessionCompleted ? `Revisar Sessão de ${trackDef.name}` : `Iniciar Sessão de ${trackDef.name}`}
+                  {isSessionCompleted ? `Iniciar Nova Sessão de ${trackDef.name}` : `Continuar Sessão de ${trackDef.name}`}
                 </span>
               </button>
             </div>
           </div>
 
-          {/* Métricas Derivadas / Fixture da Trilha */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-border/60">
+          {/* Métricas da Trilha (Fixture) + Progresso Real (Local State) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border/60">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono uppercase text-text-muted">
                 Tempo Nominal do Ciclo
@@ -217,8 +235,18 @@ export function EducationDashboard({
                 {isSessionCompleted ? 'Revisão Recomendada' : 'Pronto para Estudo'}
               </div>
               <p className="text-[11px] text-text-muted">
-                {isSessionCompleted ? 'Sugestão: Amanhã às 09:00 (Fixture)' : 'Sessão imediata'}
+                {isSessionCompleted ? 'Veja a próxima revisão ao lado' : 'Sessão imediata'}
               </p>
+            </div>
+
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-mono uppercase text-text-muted">
+                Próxima Revisão
+              </span>
+              <div className="text-base font-bold text-text-primary">
+                {trackDef.nextReviewSuggestion}
+              </div>
+              <p className="text-[11px] text-text-muted">Sugestão de ciclo de revisão</p>
             </div>
           </div>
         </div>
@@ -303,7 +331,8 @@ export function EducationDashboard({
         </div>
       </section>
 
-      {/* ================= 4. CONTROLE DE QA/DESENVOLVEDOR (ESTRITAMENTE ISOLADO) ================= */}
+      {/* ================= 4. CONTROLE DE QA/DESENVOLVEDOR (NUNCA RENDERIZADO SEM ?qa=1) ================= */}
+      {isQaModeEnabled && (
       <section
         id="qa-dev-controls"
         aria-label="Controles de Desenvolvimento e QA"
@@ -361,6 +390,7 @@ export function EducationDashboard({
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

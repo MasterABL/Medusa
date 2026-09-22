@@ -519,7 +519,9 @@ async function runFullQA() {
   // =========================================================================
   console.log('\n=== INICIANDO QA DA ABA EDUCAÇÃO & STUDY MODE (MULTI-TRILHA + FOCUS MODE) ===');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  // ?qa=1 habilita o painel de QA/Dev estritamente isolado da Educação (ver EducationDashboard.tsx) —
+  // ele não é renderizado para usuários finais sem esse parâmetro, então este script precisa dele.
+  await page.goto('http://localhost:3000/?qa=1', { waitUntil: 'networkidle0' });
   await wait(400);
 
   // 1. Navegar para Educação
@@ -609,7 +611,9 @@ async function runFullQA() {
     const contextPanel = document.getElementById('context-panel');
     const isPanelHidden = contextPanel ? (contextPanel.getAttribute('aria-hidden') === 'true' || getComputedStyle(contextPanel).transform.includes('matrix')) : true;
     const reopenBtn = document.getElementById('btn-reopen-context');
-    const internalColumn = document.querySelector('aside[aria-label="Resumo Vivo e Anotações da Sessão"]');
+    // Rótulo renomeado na consolidação do Study Mode (agora inclui Roteiro/Vocabulário além de
+    // Resumo/Notas) — o aria-label mudou, o papel estrutural da coluna companheira não.
+    const internalColumn = document.querySelector('aside[aria-label="Companheiro da Sessão de Estudo"]');
     return {
       paddingRightZero: paddingRight === '0px',
       contextPanelHidden: isPanelHidden,
@@ -635,7 +639,9 @@ async function runFullQA() {
 
   const inglesStudyCheck = await page.evaluate(() => {
     const text = document.getElementById('study-mode-container')?.textContent || '';
-    const hasIngles = text.includes('Inglês B1') && text.includes('Everyday Conversations');
+    // "Everyday Conversations" foi traduzido para "Conversas do Cotidiano" na limpeza global de
+    // copy (a interface deve falar português; inglês só permanece como conteúdo pedagógico).
+    const hasIngles = text.includes('Inglês B1') && text.includes('Conversas do Cotidiano');
     const hasVoice = text.includes('Prática Oral') || text.includes('Tutor & Prática Oral');
     return hasIngles && hasVoice;
   });

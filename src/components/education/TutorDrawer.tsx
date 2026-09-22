@@ -113,7 +113,7 @@ export function TutorDrawer({
     setVoiceStatus('listening');
     setTranscription(
       trackDef?.id === 'ingles'
-        ? 'Listening to your spoken practice...'
+        ? 'Ouvindo sua prática de fala...'
         : 'Ouvindo sua dúvida...'
     );
 
@@ -133,7 +133,7 @@ export function TutorDrawer({
           sender: 'tutor',
           text:
             trackDef?.id === 'ingles'
-              ? 'Great question! "Come up with" refers to producing or suggesting an idea/solution, while "run out of" means depleting a physical or abstract supply (e.g., running out of coffee or time).'
+              ? 'Ótima pergunta! "Come up with" significa propor ou elaborar uma ideia ou solução, enquanto "run out of" significa ficar sem algo, como tempo ou café.'
               : 'Com certeza! Analisando a conservação de energia e as condições de contorno, a frequência permanece invariante enquanto a velocidade varia com o meio.',
           timestamp: 'Agora',
           isVoice: true,
@@ -171,7 +171,7 @@ export function TutorDrawer({
         sender: 'tutor',
         text:
           trackDef?.id === 'ingles'
-            ? `That's a very natural conversational query. In spoken interaction, focusing on clear turn-taking and linking words will help your delivery sound much more native.`
+            ? `Essa é uma dúvida bem comum na fala do dia a dia. Prestar atenção ao turn-taking (a alternância natural entre falantes) e usar conectores vai deixar sua fala bem mais fluente.`
             : `Excelente colocação sobre ${trackDef?.lesson.topic || 'o tema'}. A compreensão analítica desse ponto é fundamental para garantir o domínio conceitual completo.`,
         timestamp: 'Agora',
       };
@@ -219,25 +219,19 @@ export function TutorDrawer({
 
       {/* Destaque para Inglês / Prática Oral */}
       {trackDef?.voiceEmphasis && (
-        <div className="px-4 py-2 bg-medusa-primary/10 border-b border-medusa-primary/20 flex items-center justify-between text-[11px]">
-          <div className="flex items-center gap-1.5 text-text-primary">
-            <span className="material-symbols-outlined text-[15px] text-medusa-primary">mic</span>
-            <span className="font-semibold">Prática Oral &amp; Escuta Ativa</span>
-          </div>
-          <span className="text-[9px] font-mono text-text-muted">Protótipo UX (Voz Local)</span>
+        <div className="px-4 py-2 bg-medusa-primary/10 border-b border-medusa-primary/20 flex items-center gap-1.5 text-[11px]">
+          <span className="material-symbols-outlined text-[15px] text-medusa-primary">mic</span>
+          <span className="font-semibold text-text-primary">Prática Oral &amp; Escuta Ativa</span>
         </div>
       )}
 
       {/* Banner de Estado de Voz */}
       {isVoiceActive && (
-        <div className="p-3 bg-medusa-primary/15 border-b border-medusa-primary/30 flex items-center justify-between text-[12px] font-mono">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-medusa-primary living-pulse" />
-            <span className="text-text-primary">
-              {voiceStatus === 'listening' ? 'Ouvindo...' : 'Sintetizando fala...'}
-            </span>
-          </div>
-          <span className="text-[10px] text-text-muted">Anti-Autoescuta Ativo</span>
+        <div className="p-3 bg-medusa-primary/15 border-b border-medusa-primary/30 flex items-center gap-2 text-[12px]">
+          <span className="w-2 h-2 rounded-full bg-medusa-primary living-pulse" />
+          <span className="text-text-primary">
+            {voiceStatus === 'listening' ? 'Ouvindo...' : 'Preparando resposta...'}
+          </span>
         </div>
       )}
 

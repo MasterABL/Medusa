@@ -43,9 +43,9 @@ export function StudyCompletionView({
           </p>
         </div>
 
-        {/* Métricas da Sessão (Taxonomia Estrita: Fixture vs. Derived / Local State) */}
+        {/* Métricas da Sessão */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full pt-2">
-          {/* Métrica 1: Duração Nominal Planejada (Fixture) */}
+          {/* Métrica 1: Duração Nominal Planejada */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
               Duração Nominal
@@ -53,10 +53,10 @@ export function StudyCompletionView({
             <span className="text-xl font-bold text-text-primary font-mono tabular-nums">
               {result.durationFormatted}
             </span>
-            <span className="text-[11px] text-text-muted">Tempo previsto da trilha (Fixture)</span>
+            <span className="text-[11px] text-text-muted">Tempo previsto da trilha</span>
           </div>
 
-          {/* Métrica 2: Aproveitamento em Questões (Derived / Local State) */}
+          {/* Métrica 2: Aproveitamento em Questões (calculado a partir das suas respostas) */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
               Aproveitamento Real
@@ -64,10 +64,10 @@ export function StudyCompletionView({
             <span className="text-xl font-bold text-text-primary font-mono tabular-nums">
               {result.correctAnswers}/{result.totalQuestions} ({result.scorePercentage}%)
             </span>
-            <span className="text-[11px] text-text-muted">Derivado das respostas (Local State)</span>
+            <span className="text-[11px] text-text-muted">Calculado a partir das suas respostas</span>
           </div>
 
-          {/* Métrica 3: Próxima Revisão Sugerida (Fixture) */}
+          {/* Métrica 3: Próxima Revisão Sugerida */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
               Próxima Revisão
@@ -76,7 +76,7 @@ export function StudyCompletionView({
               {result.nextReviewDate}
             </span>
             <span className="text-[11px] text-[#1B502C] dark:text-medusa-support font-medium">
-              Sugestão de ciclo (Fixture)
+              Sugestão de ciclo de revisão
             </span>
           </div>
         </div>
