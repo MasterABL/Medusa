@@ -1,0 +1,12 @@
+{
+  "taskId": "TASK-MERGE-PREP-001",
+  "startedAt": "2026-09-21T00:09:57.414Z",
+  "finishedAt": "2026-09-21T00:09:57.428Z",
+  "executor": "agy",
+  "executorAvailable": false,
+  "executorCheckDetail": "spawnSync agy ENOENT",
+  "handoffPath": ".ai/HANDOFF.md",
+  "status": "FALLBACK: CLAUDE_DIRECT",
+  "exitCode": 2,
+  "note": "Executor \"agy\" indisponível neste ambiente (ver .ai/BLOCKERS.md → BLOCK-001). Por AGENT_RULES.md → seção 7 (\"Executor e Fallback\"), isto NÃO bloqueia o roadmap: Claude deve implementar a tarefa diretamente, usando .ai/HANDOFF.md (o handoff já preenchido) como especificação exata de escopo — não uma versão resumida ou reinterpretada. Os mesmos gates de QA_GATE.md se aplicam integralmente à execução direta de Claude."
+}
