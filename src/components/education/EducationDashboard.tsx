@@ -1,11 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { StudyTrack } from './types';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { EnglishHub } from './EnglishHub';
 import { EnemHub } from './EnemHub';
 import { FaculdadeHub } from './FaculdadeHub';
+import { useEducationPanel } from '@/context/EducationPanelContext';
+
+// Ordem espacial fixa das trilhas (DESIGN.md §5.1): ENEM(0) → Faculdade(1) → Inglês(2).
+// Controla a DIREÇÃO do carrossel — não é o mesmo índice usado como StudyTrack.
+const TRACK_SPATIAL_ORDER: Record<StudyTrack, number> = {
+  vestibular: 0,
+  faculdade: 1,
+  ingles: 2,
+};
+
+const TRACK_EXIT_MS = 100;
+const TRACK_ENTER_MS = 260;
 
 interface EducationDashboardProps {
   currentTrack: StudyTrack;
@@ -24,6 +36,44 @@ export function EducationDashboard({
 }: EducationDashboardProps) {
   const [qaSimulateFailure, setQaSimulateFailure] = useState(false);
   const [qaPanelOpen, setQaPanelOpen] = useState(false);
+
+  // Motion de travessia entre trilhas (carrossel direcional, ver DESIGN.md §5.1). Fica local a
+  // este componente — não duplica nem substitui a máquina de estados de EducationContainer
+  // (Island processing/currentTrack continuam no dono real do estado). O clique só é repassado
+  // ao pai (`onSelectTrack`) depois da fase de saída, então o conteúdo visível nunca fica "preso"
+  // mostrando a trilha nova com o conteúdo antigo.
+  const [transitionPhase, setTransitionPhase] = useState<'idle' | 'exiting' | 'entering'>('idle');
+  const [transitionDirection, setTransitionDirection] = useState<'forward' | 'backward'>('forward');
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTrackClick = (track: StudyTrack) => {
+    if (track === currentTrack) return;
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+    const direction: 'forward' | 'backward' =
+      TRACK_SPATIAL_ORDER[track] > TRACK_SPATIAL_ORDER[currentTrack] ? 'forward' : 'backward';
+    setTransitionDirection(direction);
+    setTransitionPhase('exiting');
+    transitionTimeoutRef.current = setTimeout(() => {
+      onSelectTrack(track);
+      setTransitionPhase('entering');
+      transitionTimeoutRef.current = setTimeout(() => {
+        setTransitionPhase('idle');
+      }, TRACK_ENTER_MS);
+    }, TRACK_EXIT_MS);
+  };
+
+  const trackContentMotionClass =
+    transitionPhase === 'exiting'
+      ? transitionDirection === 'forward'
+        ? 'track-exit-left'
+        : 'track-exit-right'
+      : transitionPhase === 'entering'
+        ? transitionDirection === 'forward'
+          ? 'track-enter-from-right'
+          : 'track-enter-from-left'
+        : '';
   // O painel de QA/Dev nunca é renderizado para usuários finais — só existe quando a própria URL
   // carrega `?qa=1` (usado exclusivamente pelos scripts de QA para alcançar o Error State
   // mandatório sem expor um controle de teste na experiência real do produto).
@@ -33,6 +83,25 @@ export function EducationDashboard({
 
   const trackDef = TRACK_DEFINITIONS[currentTrack];
   const { lesson, modules } = trackDef;
+
+  // BUG REAL CORRIGIDO: o hero "Próxima Ação" mostrava sempre Física II (trackDef.lesson fixo),
+  // mesmo quando o usuário tinha selecionado outra disciplina no seletor da Faculdade logo
+  // abaixo — a mesma seleção que já controlava o Hub e o Context Panel. Visualmente isso parecia
+  // uma dessincronização (área principal "presa" na disciplina anterior). Agora o hero também lê
+  // a disciplina selecionada como fonte única, igual ao resto da tela.
+  const { faculdadeDisciplineCode } = useEducationPanel();
+  const faculdadeDisciplines = trackDef.disciplines ?? [];
+  const selectedFaculdadeDiscipline =
+    currentTrack === 'faculdade'
+      ? faculdadeDisciplines.find((d) => d.code === faculdadeDisciplineCode) ?? faculdadeDisciplines.find((d) => d.isActive)
+      : undefined;
+  const isPrimaryFaculdadeDiscipline =
+    !selectedFaculdadeDiscipline || selectedFaculdadeDiscipline.code === faculdadeDisciplines.find((d) => d.isActive)?.code;
+
+  const heroDiscipline = selectedFaculdadeDiscipline?.title ?? lesson.discipline;
+  const heroTopic = selectedFaculdadeDiscipline?.focusTopic ?? lesson.topic;
+  const heroObjective = selectedFaculdadeDiscipline?.focusObjective ?? lesson.sessionObjective;
+  const heroDuration = selectedFaculdadeDiscipline?.focusDuration ?? lesson.estimatedDuration;
 
   // Trilha dinâmica: se a sessão foi concluída na trilha ativa, o módulo em progresso passa para 'completed'
   const trackItems = modules.map((item) => {
@@ -96,7 +165,7 @@ export function EducationDashboard({
                   key={t.id}
                   type="button"
                   id={`track-selector-${t.id}`}
-                  onClick={() => onSelectTrack(t.id)}
+                  onClick={() => handleTrackClick(t.id)}
                   className={`px-3.5 py-1.5 rounded-xl text-[12px] font-medium transition-all flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
                     isSelected
                       ? 'bg-surface text-text-primary font-semibold shadow-subtle border border-border/60'
@@ -115,11 +184,11 @@ export function EducationDashboard({
         </div>
 
         {/*
-          Conteúdo dependente da trilha remonta com a animação de entrada já existente
-          (`study-stage-enter`) quando `currentTrack` muda — mesmo padrão usado em
-          StudyModeView.tsx, sem inventar um segundo sistema de motion.
+          Conteúdo dependente da trilha usa o carrossel direcional de travessia entre trilhas
+          (ver DESIGN.md §5.1) — a troca de `key` só acontece depois da fase de saída
+          (`handleTrackClick`), então o remount já nasce na fase "entering".
         */}
-        <div key={currentTrack} className="study-stage-enter flex flex-col gap-8">
+        <div key={currentTrack} className={`${trackContentMotionClass} flex flex-col gap-8`}>
         {/* ================= 2. CARTÃO DE PRÓXIMA AÇÃO OPERACIONAL (HERO DA TRILHA) ================= */}
         <div
           id="education-next-action-card"
@@ -155,48 +224,63 @@ export function EducationDashboard({
                     {isSessionCompleted ? 'Próximo Bloco' : 'Sessão Pronta'}
                   </span>
                   <span className="text-[11px] font-mono text-text-muted">
-                    {isSessionCompleted ? '50 min estimados' : lesson.estimatedDuration}
+                    {isSessionCompleted ? '50 min estimados' : heroDuration}
                   </span>
                   <span className="text-text-muted/40">•</span>
                   <span className="text-[11px] font-mono text-text-secondary">
-                    {lesson.discipline}
+                    {heroDiscipline}
                   </span>
                 </div>
                 <h4 className="text-[16px] sm:text-[17px] font-semibold text-text-primary tracking-tight">
-                  {isSessionCompleted ? lesson.nextTopic : `${lesson.discipline} · ${lesson.topic}`}
+                  {isSessionCompleted ? lesson.nextTopic : `${heroDiscipline} · ${heroTopic}`}
                 </h4>
                 <p className="text-[12px] text-text-secondary leading-relaxed max-w-xl">
                   {isSessionCompleted
                     ? lesson.nextTopicDescription
-                    : lesson.sessionObjective}
+                    : heroObjective}
                 </p>
 
-                {/* Roteiro da Sessão — visão rápida do que a sessão cobre, antes de entrar em Foco */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {trackDef.summaryPoints.slice(0, 4).map((point) => (
-                    <span
-                      key={point.id}
-                      className="text-[11px] text-text-secondary bg-surface-secondary/60 border border-border/50 rounded-full px-2.5 py-0.5"
-                    >
-                      {point.title}
-                    </span>
-                  ))}
-                </div>
+                {/* Roteiro da Sessão — só existe fixture por tópico para a disciplina primária
+                    (Física II); mostrar os pontos de Física II ao ver outra disciplina seria
+                    informação errada, não só genérica — por isso fica oculto nesse caso. */}
+                {isPrimaryFaculdadeDiscipline && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {trackDef.summaryPoints.slice(0, 4).map((point) => (
+                      <span
+                        key={point.id}
+                        className="text-[11px] text-text-secondary bg-surface-secondary/60 border border-border/50 rounded-full px-2.5 py-0.5"
+                      >
+                        {point.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                type="button"
-                id="btn-start-study-session"
-                onClick={() => onStartStudy(qaSimulateFailure)}
-                className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
-              >
-                <span className="material-symbols-outlined text-[18px]">play_circle</span>
-                <span>
-                  {isSessionCompleted ? `Iniciar Nova Sessão de ${trackDef.name}` : `Continuar Sessão de ${trackDef.name}`}
+              {isPrimaryFaculdadeDiscipline ? (
+                <button
+                  type="button"
+                  id="btn-start-study-session"
+                  onClick={() => onStartStudy(qaSimulateFailure)}
+                  className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                  <span>
+                    {isSessionCompleted ? `Iniciar Nova Sessão de ${trackDef.name}` : `Continuar Sessão de ${trackDef.name}`}
+                  </span>
+                </button>
+              ) : (
+                <span
+                  id="btn-start-study-session-unavailable"
+                  title="Sessão de estudo completa ainda não disponível para esta disciplina"
+                  className="text-[12px] font-mono text-text-muted bg-surface-secondary/60 border border-border/50 px-4 py-2.5 rounded-full flex items-center gap-2 cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-[16px]">hourglass_empty</span>
+                  Sessão ainda não disponível
                 </span>
-              </button>
+              )}
             </div>
           </div>
 
@@ -256,7 +340,7 @@ export function EducationDashboard({
         (módulo→aulas), ENEM é planejamento temporal (cronograma) e Faculdade é organização
         acadêmica (disciplinas→conteúdo). Nenhuma trilha reaproveita a IA das outras.
       */}
-      <div key={`${currentTrack}-body`} className="study-stage-enter">
+      <div key={`${currentTrack}-body`} className={trackContentMotionClass}>
         {currentTrack === 'ingles' && <EnglishHub trackDef={trackDef} trackItems={trackItems} />}
         {currentTrack === 'vestibular' && (
           <EnemHub

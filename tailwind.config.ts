@@ -16,6 +16,7 @@ const config: Config = {
           support: "rgb(var(--color-support-rgb) / <alpha-value>)",
           tertiary: "rgb(var(--color-tertiary-rgb) / <alpha-value>)",
           accent: "rgb(var(--color-accent-rgb) / <alpha-value>)",
+          alert: "rgb(var(--color-alert-rgb) / <alpha-value>)",
         },
         background: "rgb(var(--color-bg-rgb) / <alpha-value>)",
         surface: "rgb(var(--color-surface-rgb) / <alpha-value>)",
