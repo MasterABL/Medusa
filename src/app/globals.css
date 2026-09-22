@@ -501,6 +501,29 @@ html.theme-transitioning *::after {
 }
 
 /* ==========================================================================
+   DYNAMIC ISLAND — MODO VOZ (encolhimento + pulsação de escuta)
+   Reaproveita a família de easing/duration do Island (--duration-island,
+   --ease-snappy) e o padrão de "breathing" já usado em .living-pulse —
+   extensão do sistema existente, não um segundo sistema de motion.
+   ========================================================================== */
+@keyframes voiceListeningPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+    box-shadow: 0 0 0 0 rgba(113, 219, 210, 0.35);
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+    box-shadow: 0 0 0 6px rgba(113, 219, 210, 0);
+  }
+}
+
+.island-voice-active {
+  animation: voiceListeningPulse 2.2s var(--ease-smooth) infinite;
+}
+
+/* ==========================================================================
    ACESSIBILIDADE: REDUCED MOTION MANDATÓRIO (Tonal crossfade ~140ms, zero transform)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -517,6 +540,7 @@ html.theme-transitioning *::after {
   .island-attention-active,
   .island-error-shake,
   .island-success-settle,
+  .island-voice-active,
   .btn-interactive:hover,
   .btn-interactive:active,
   .study-stage-enter,
@@ -526,6 +550,9 @@ html.theme-transitioning *::after {
   .study-recede {
     animation: none !important;
     transform: none !important;
+  }
+  .island-voice-active {
+    box-shadow: none !important;
   }
   .sidebar-label-in,
   .sidebar-label-out,

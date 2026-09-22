@@ -1,22 +1,18 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { TrackDefinition } from './types';
 
 interface StudyLoadingStateProps {
+  trackDef?: TrackDefinition;
   onCancel: () => void;
   onComplete: () => void;
   simulateFailure?: boolean;
   onSimulatedError?: () => void;
 }
 
-const HUMANIZED_STEPS = [
-  'Selecionando conteúdo essencial...',
-  'Organizando conceitos-chave de Mecânica Ondulatória...',
-  'Preparando material interativo e notas da sessão...',
-  'Quase pronto: calibrando o palco de estudo...',
-];
-
 export function StudyLoadingState({
+  trackDef,
   onCancel,
   onComplete,
   simulateFailure = false,
@@ -25,11 +21,26 @@ export function StudyLoadingState({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [progress, setProgress] = useState(15);
 
+  const discipline = trackDef?.lesson.discipline || 'Física';
+  const topic = trackDef?.lesson.topic || 'Mecânica Ondulatória';
+
+  // Passos humanizados derivados da trilha real (antes ficavam fixos em "Mecânica Ondulatória"
+  // mesmo em sessões de Inglês/Faculdade — achado de auditoria, não apenas texto novo).
+  const humanizedSteps = useMemo(
+    () => [
+      'Selecionando conteúdo essencial...',
+      `Organizando conceitos-chave de ${topic}...`,
+      'Preparando material interativo e notas da sessão...',
+      'Quase pronto: calibrando o palco de estudo...',
+    ],
+    [topic]
+  );
+
   useEffect(() => {
     // Rotação suave de mensagens humanizadas
     const stepInterval = setInterval(() => {
       setCurrentStepIndex((prev) => {
-        if (prev < HUMANIZED_STEPS.length - 1) {
+        if (prev < humanizedSteps.length - 1) {
           return prev + 1;
         }
         return prev;
@@ -67,7 +78,7 @@ export function StudyLoadingState({
       clearInterval(progressInterval);
       if (completeTimeout) clearTimeout(completeTimeout);
     };
-  }, [simulateFailure, onComplete, onSimulatedError]);
+  }, [simulateFailure, onComplete, onSimulatedError, humanizedSteps.length]);
 
   return (
     <div
@@ -86,10 +97,10 @@ export function StudyLoadingState({
           Preparando sua aula
         </span>
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
-          Física · Mecânica Ondulatória
+          {discipline} · {topic}
         </h2>
         <p className="text-[13px] text-text-secondary min-h-[22px] transition-opacity duration-300 font-medium">
-          {HUMANIZED_STEPS[currentStepIndex]}
+          {humanizedSteps[currentStepIndex]}
         </p>
       </div>
 
@@ -102,7 +113,7 @@ export function StudyLoadingState({
       </div>
 
       <div className="flex items-center justify-between w-full max-w-md text-[11px] text-text-muted font-mono pt-1">
-        <span>Sessão: 45 min estimada</span>
+        <span>Sessão: {trackDef?.lesson.estimatedDuration || '45 min'} estimada</span>
         <span className="tabular-nums">{Math.min(progress, 100)}%</span>
       </div>
 

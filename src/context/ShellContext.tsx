@@ -20,6 +20,8 @@ interface ShellContextValue {
   closeCommand: () => void;
   islandState: IslandState;
   setIslandState: (state: IslandState) => void;
+  isVoiceActive: boolean;
+  setVoiceActive: (active: boolean) => void;
   isQuiet: boolean;
   toggleQuiet: (forced?: boolean) => void;
   breakpoint: Breakpoint;
@@ -36,6 +38,9 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   const [isDrawerOpen, setDrawerOpenState] = useState<boolean>(false);
   const [isCommandOpen, setCommandOpenState] = useState<boolean>(false);
   const [islandState, setIslandState] = useState<IslandState>('active');
+  // Sobreposição do modo Voz sobre o catálogo canônico (fechado) do Island — não é um 11º
+  // estado do catálogo, é um overlay ortogonal (ver DynamicIsland.tsx).
+  const [isVoiceActive, setVoiceActive] = useState<boolean>(false);
   const [isQuietManual, setIsQuietManual] = useState<boolean>(false);
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
   const [activeRoute, setActiveRouteState] = useState<string>('hoje');
@@ -219,6 +224,8 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
         closeCommand,
         islandState,
         setIslandState,
+        isVoiceActive,
+        setVoiceActive,
         isQuiet,
         toggleQuiet,
         breakpoint,

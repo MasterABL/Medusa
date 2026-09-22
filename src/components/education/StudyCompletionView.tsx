@@ -1,18 +1,21 @@
 'use client';
 
 import React from 'react';
-import { SessionResult } from './types';
-import { LESSON_FIXTURE } from './educationFixtures';
+import { SessionResult, TrackDefinition } from './types';
 
 interface StudyCompletionViewProps {
   result: SessionResult;
+  trackDef: TrackDefinition;
   onReturnToEducation: () => void;
 }
 
 export function StudyCompletionView({
   result,
+  trackDef,
   onReturnToEducation,
 }: StudyCompletionViewProps) {
+  const { lesson } = trackDef;
+
   return (
     <div
       id="study-completion-container"
@@ -27,31 +30,33 @@ export function StudyCompletionView({
         </div>
 
         <div className="space-y-1.5">
-          <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-[#1B502C] dark:text-medusa-support bg-medusa-support/15 px-3 py-1 rounded-full border border-medusa-support/30">
-            Sessão Concluída com Sucesso
-          </span>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-[#1B502C] dark:text-medusa-support bg-medusa-support/15 px-3 py-1 rounded-full border border-medusa-support/30">
+              Sessão Concluída · {trackDef.name}
+            </span>
+          </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-            {LESSON_FIXTURE.discipline} · {LESSON_FIXTURE.topic}
+            {lesson.discipline} · {lesson.topic}
           </h1>
           <p className="text-[13px] text-text-secondary max-w-md mx-auto">
-            Aula e prática finalizadas. O aproveitamento da sessão foi calculado com base nas suas respostas.
+            Aula e prática deliberada finalizadas. O aproveitamento da sessão foi calculado a partir das suas respostas.
           </p>
         </div>
 
-        {/* Métricas da Sessão (Regra Anti-Ficção estrita) */}
+        {/* Métricas da Sessão */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full pt-2">
           {/* Métrica 1: Duração Nominal Planejada */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
-              Duração Planejada
+              Duração Nominal
             </span>
             <span className="text-xl font-bold text-text-primary font-mono tabular-nums">
               {result.durationFormatted}
             </span>
-            <span className="text-[11px] text-text-muted">Tempo nominal do módulo</span>
+            <span className="text-[11px] text-text-muted">Tempo previsto da trilha</span>
           </div>
 
-          {/* Métrica 2: Aproveitamento Real em Questões */}
+          {/* Métrica 2: Aproveitamento em Questões (calculado a partir das suas respostas) */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
               Aproveitamento Real
@@ -59,7 +64,7 @@ export function StudyCompletionView({
             <span className="text-xl font-bold text-text-primary font-mono tabular-nums">
               {result.correctAnswers}/{result.totalQuestions} ({result.scorePercentage}%)
             </span>
-            <span className="text-[11px] text-text-muted">5 questões respondidas</span>
+            <span className="text-[11px] text-text-muted">Calculado a partir das suas respostas</span>
           </div>
 
           {/* Métrica 3: Próxima Revisão Sugerida */}
@@ -71,12 +76,12 @@ export function StudyCompletionView({
               {result.nextReviewDate}
             </span>
             <span className="text-[11px] text-[#1B502C] dark:text-medusa-support font-medium">
-              Sugestão de ciclo (Fixture)
+              Sugestão de ciclo de revisão
             </span>
           </div>
         </div>
 
-        {/* Ponto a Reforçar (Consequência Pedagógica Real) */}
+        {/* Ponto a Reforçar (Consequência Pedagógica Derivada) */}
         <div className="w-full text-left p-4 rounded-xl bg-surface-secondary/50 border border-border/60 space-y-1">
           <div className="flex items-center gap-2 text-text-primary font-semibold text-[13px]">
             <span className="material-symbols-outlined text-[16px] text-medusa-primary">
@@ -93,13 +98,13 @@ export function StudyCompletionView({
         <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-surface border border-border/60 text-left">
           <div className="space-y-0.5">
             <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-              Próximo Tópico Desbloqueado na Trilha
+              Próximo Tópico Desbloqueado · {trackDef.name}
             </span>
             <h4 className="text-[14px] font-semibold text-text-primary">
-              {LESSON_FIXTURE.nextTopic}
+              {lesson.nextTopic}
             </h4>
-            <p className="text-[11px] text-text-muted">
-              Ressonância acústica, tubos sonoros e velocidade do som.
+            <p className="text-[11px] text-text-muted leading-relaxed">
+              {lesson.nextTopicDescription}
             </p>
           </div>
 
