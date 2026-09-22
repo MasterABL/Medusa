@@ -264,7 +264,13 @@ export function EducationDashboard({
       */}
       <div key={`${currentTrack}-body`} className="study-stage-enter">
         {currentTrack === 'ingles' && <EnglishHub trackDef={trackDef} trackItems={trackItems} />}
-        {currentTrack === 'vestibular' && <EnemHub trackDef={trackDef} trackItems={trackItems} />}
+        {currentTrack === 'vestibular' && (
+          <EnemHub
+            trackDef={trackDef}
+            trackItems={trackItems}
+            onStartStudy={() => onStartStudy(qaSimulateFailure)}
+          />
+        )}
         {currentTrack === 'faculdade' && <FaculdadeHub trackDef={trackDef} trackItems={trackItems} />}
       </div>
 

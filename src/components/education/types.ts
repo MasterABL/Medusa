@@ -132,13 +132,26 @@ export interface CompletedLessonRecord {
   durationMinutes: number;
 }
 
+/**
+ * Bloco do Cronograma do ENEM — a unidade do mapa operacional de preparação, não um item de
+ * to-do list. Cruza tempo (data/dia da semana/semana) com disciplina, conteúdo, tipo de
+ * atividade, recurso e status de execução.
+ */
 export interface CronogramaBlock {
   id: string;
-  date: string;
-  weekday: string;
-  label: string;
-  type: 'estudo' | 'prova' | 'revisao' | 'simulado';
-  description: string;
+  date: string; // "22/Set"
+  weekday: string; // "Ter"
+  /** 0 = semana atual (usada pelo filtro "Semana"), 1 = próxima semana (some ao filtro "Mês"). */
+  weekOffset: 0 | 1;
+  isToday?: boolean;
+  discipline: string; // "Física" | "Todas as áreas" (simulados que cruzam disciplinas)
+  topic: string;
+  subtopic?: string;
+  activityType: 'aula' | 'video' | 'exercicio' | 'simulado' | 'revisao' | 'redacao';
+  status: 'planejado' | 'concluido' | 'atrasado';
+  durationMinutes: number;
+  hasVideoResource?: boolean;
+  nextAction: string;
 }
 
 export interface DisciplineChip {
@@ -146,7 +159,15 @@ export interface DisciplineChip {
   title: string;
   dateRange: string;
   credits: number;
+  /** Seleção inicial (fixture) ao entrar no Hub — a seleção real em uso vira estado de UI. */
   isActive: boolean;
+  /** Sessão em foco específica desta disciplina, exibida quando ela está selecionada. */
+  focusTopic: string;
+  focusObjective: string;
+  focusDuration: string;
+  /** Aulas/conteúdos desta disciplina — reaproveita o mesmo shape de módulo curado. */
+  content: TrackModuleItem[];
+  notices: string[];
 }
 
 export interface TrackDefinition {

@@ -1,91 +1,78 @@
 'use client';
 
-import React from 'react';
-import { TrackDefinition, TrackModuleItem, CronogramaBlock } from './types';
+import React, { useState } from 'react';
+import { TrackDefinition, TrackModuleItem } from './types';
 import { TrackModuleList } from './TrackModuleList';
+import { EnemCronogramaView } from './EnemCronogramaView';
 
 interface EnemHubProps {
   trackDef: TrackDefinition;
   trackItems: TrackModuleItem[];
+  onStartStudy?: (simulateError?: boolean) => void;
 }
 
-const CRONOGRAMA_TYPE_STYLE: Record<CronogramaBlock['type'], { badge: string; label: string; dot: string }> = {
-  estudo: { badge: 'bg-[#71DBD2]/15 text-[#18534B] dark:text-[#71DBD2] border-[#71DBD2]/30', label: 'Estudo', dot: 'bg-[#71DBD2]' },
-  simulado: { badge: 'bg-[#FFF18C]/25 text-[#5C4A00] dark:text-[#FFF18C] border-[#FFF18C]/40', label: 'Simulado', dot: 'bg-[#FFF18C]' },
-  revisao: { badge: 'bg-medusa-support/15 text-[#1B502C] dark:text-medusa-support border-medusa-support/30', label: 'Revisão', dot: 'bg-medusa-support' },
-  prova: { badge: 'bg-[#D0EAA3]/25 text-[#3D4C1D] dark:text-[#D0EAA3] border-[#D0EAA3]/40', label: 'Prova', dot: 'bg-[#D0EAA3]' },
-};
-
 /**
- * Hub do ENEM — trilha orientada a PLANEJAMENTO. O Cronograma é a seção principal (não uma
- * lista genérica de tarefas): timeline com dimensão temporal explícita (data + dia da semana),
- * tipo do bloco (estudo/simulado/revisão/prova) e o que estudar em cada um.
+ * Hub do ENEM — trilha orientada a PLANEJAMENTO. "Visão Geral" mantém a lista curada de
+ * conteúdos por habilidade; "Cronograma" é uma subexperiência própria (não uma seção pequena
+ * dentro do Hub) — o mapa operacional de preparação, com dimensão temporal, disciplinas,
+ * conteúdos, tipos de atividade e status.
  */
-export function EnemHub({ trackDef, trackItems }: EnemHubProps) {
+export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
+  const [view, setView] = useState<'visao-geral' | 'cronograma'>('visao-geral');
   const cronograma = trackDef.cronograma ?? [];
 
   return (
-    <div className="flex flex-col gap-8">
-      {cronograma.length > 0 && (
-        <section id="enem-cronograma" aria-label="Cronograma de Preparação" className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-text-muted">
-                Cronograma · Preparação ENEM
-              </span>
-              <div className="h-px bg-border/60 w-16" />
-            </div>
-            <span className="text-[11px] font-mono text-text-muted">Próximos {cronograma.length} blocos</span>
-          </div>
+    <div className="flex flex-col gap-6">
+      <div
+        id="enem-subnav"
+        role="tablist"
+        aria-label="Navegação do ENEM"
+        className="flex items-center gap-1 p-1 bg-surface-secondary/70 border border-border/60 rounded-xl w-fit"
+      >
+        <button
+          type="button"
+          id="enem-tab-visao-geral"
+          role="tab"
+          aria-selected={view === 'visao-geral'}
+          onClick={() => setView('visao-geral')}
+          className={`px-3.5 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center gap-1.5 ${
+            view === 'visao-geral'
+              ? 'bg-surface text-text-primary shadow-subtle font-semibold'
+              : 'text-text-muted hover:text-text-primary'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[15px]">dashboard</span>
+          Visão Geral
+        </button>
+        <button
+          type="button"
+          id="enem-tab-cronograma"
+          role="tab"
+          aria-selected={view === 'cronograma'}
+          onClick={() => setView('cronograma')}
+          className={`px-3.5 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center gap-1.5 ${
+            view === 'cronograma'
+              ? 'bg-surface text-text-primary shadow-subtle font-semibold'
+              : 'text-text-muted hover:text-text-primary'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[15px]">calendar_month</span>
+          Cronograma
+        </button>
+      </div>
 
-          <div className="relative pl-6 flex flex-col gap-3">
-            <div className="absolute left-[9px] top-2 bottom-2 w-px bg-border/60" aria-hidden="true" />
-            {cronograma.map((block, idx) => {
-              const style = CRONOGRAMA_TYPE_STYLE[block.type];
-              const isNext = idx === 0;
-              return (
-                <div key={block.id} className="relative flex items-start gap-4">
-                  <span
-                    className={`absolute -left-6 top-1.5 w-[10px] h-[10px] rounded-full border-2 border-surface ${style.dot} ${
-                      isNext ? 'living-pulse' : ''
-                    }`}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className={`flex-1 p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                      isNext ? 'bg-surface border-medusa-primary/50 shadow-calm' : 'bg-surface/70 border-border/60'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="flex flex-col items-center flex-shrink-0 w-12">
-                        <span className="text-[10px] font-mono uppercase text-text-muted">{block.weekday}</span>
-                        <span className="text-[13px] font-bold text-text-primary tabular-nums">{block.date}</span>
-                      </div>
-                      <div className="space-y-0.5 min-w-0 border-l border-border/50 pl-3">
-                        <h4 className="text-[13px] font-semibold text-text-primary tracking-tight truncate">
-                          {block.label}
-                        </h4>
-                        <p className="text-[11px] text-text-secondary truncate">{block.description}</p>
-                      </div>
-                    </div>
-                    <span
-                      className={`flex-shrink-0 text-[10px] font-mono font-semibold uppercase px-2.5 py-0.5 rounded-full border self-start sm:self-center ${style.badge}`}
-                    >
-                      {style.label}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      <TrackModuleList
-        title={`Conteúdos por Habilidade · ${trackDef.name}`}
-        domainLabel={trackDef.domainLabel}
-        items={trackItems}
-      />
+      <div key={view} className="study-stage-enter">
+        {view === 'visao-geral' && (
+          <TrackModuleList
+            title={`Conteúdos por Habilidade · ${trackDef.name}`}
+            domainLabel={trackDef.domainLabel}
+            items={trackItems}
+          />
+        )}
+        {view === 'cronograma' && (
+          <EnemCronogramaView blocks={cronograma} onStartStudy={onStartStudy} />
+        )}
+      </div>
     </div>
   );
 }

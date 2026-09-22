@@ -15,7 +15,78 @@
  * ==============================================================================
  */
 
-import { StudyTrack, TrackDefinition } from './types';
+import { StudyTrack, TrackDefinition, TrackModuleItem } from './types';
+
+// Conteúdo de Física II (FIS-204) — reaproveitado tanto em `modules` (trilha ativa da Faculdade)
+// quanto em `disciplines[].content` (mesma disciplina, vista pelo seletor de disciplinas).
+const FACULDADE_FIS204_MODULES: TrackModuleItem[] = [
+  {
+    id: 'fac-mod-1',
+    code: 'FIS-201',
+    title: 'Cinemática Vetorial & Dinâmica Newtoniana',
+    status: 'completed',
+    score: '9.2',
+    date: 'Concluído em 08/Set',
+    duration: '14h acumuladas',
+  },
+  {
+    id: 'fac-mod-2',
+    code: 'FIS-202',
+    title: 'Trabalho, Energia & Sistemas Conservativos',
+    status: 'completed',
+    score: '8.9',
+    date: 'Concluído em 11/Set',
+    duration: '10h acumuladas',
+  },
+  {
+    id: 'fac-mod-3',
+    code: 'FIS-203',
+    title: 'Gravitação Newtoniana & Leis de Kepler',
+    status: 'completed',
+    score: '9.4',
+    date: 'Concluído em 14/Set',
+    duration: '8h acumuladas',
+  },
+  {
+    id: 'fac-mod-4',
+    code: 'FIS-204',
+    title: 'Oscilações: MHS, Dinâmica e Energia',
+    status: 'in_progress',
+    score: 'Pendente',
+    date: 'Hoje · Sessão Recomendada',
+    duration: '45 min programados',
+  },
+  {
+    id: 'fac-mod-5',
+    code: 'FIS-205',
+    title: 'Oscilações Amortecidas, Forçadas e Ressonância',
+    status: 'locked',
+    score: 'Bloqueado',
+    date: 'Próxima etapa da trilha',
+    duration: '50 min estimados',
+  },
+];
+
+// Conteúdo das demais disciplinas do período — mais enxuto que Física II (não há sessão de
+// estudo completa/exercícios fixture para elas ainda), mas real o suficiente para a seleção de
+// disciplina trocar conteúdo de verdade, não só um rótulo.
+const FACULDADE_MAT215_MODULES: TrackModuleItem[] = [
+  { id: 'mat-mod-1', code: 'MAT-215-01', title: 'Erros de Arredondamento & Representação de Ponto Flutuante', status: 'completed', score: '8.7', date: 'Concluído em 09/Set', duration: '6h acumuladas' },
+  { id: 'mat-mod-2', code: 'MAT-215-02', title: 'Métodos de Bisseção & Newton-Raphson', status: 'in_progress', score: 'Pendente', date: 'Hoje · Sessão Recomendada', duration: '40 min programados' },
+  { id: 'mat-mod-3', code: 'MAT-215-03', title: 'Interpolação Polinomial & Splines', status: 'locked', score: 'Bloqueado', date: 'Próxima etapa da trilha', duration: '45 min estimados' },
+];
+
+const FACULDADE_MEC130_MODULES: TrackModuleItem[] = [
+  { id: 'mec-mod-1', code: 'MEC-130-01', title: 'Tensão, Deformação & Lei de Hooke Generalizada', status: 'completed', score: '9.0', date: 'Concluído em 06/Set', duration: '5h acumuladas' },
+  { id: 'mec-mod-2', code: 'MEC-130-02', title: 'Flexão em Vigas & Diagramas de Esforços', status: 'in_progress', score: 'Pendente', date: 'Hoje · Sessão Recomendada', duration: '50 min programados' },
+  { id: 'mec-mod-3', code: 'MEC-130-03', title: 'Torção em Eixos Circulares', status: 'locked', score: 'Bloqueado', date: 'Próxima etapa da trilha', duration: '45 min estimados' },
+];
+
+const FACULDADE_CMP102_MODULES: TrackModuleItem[] = [
+  { id: 'cmp-mod-1', code: 'CMP-102-01', title: 'Complexidade Assintótica & Notação Big-O', status: 'completed', score: '9.5', date: 'Concluído em 12/Set', duration: '7h acumuladas' },
+  { id: 'cmp-mod-2', code: 'CMP-102-02', title: 'Árvores Binárias de Busca & Balanceamento', status: 'in_progress', score: 'Pendente', date: 'Hoje · Sessão Recomendada', duration: '40 min programados' },
+  { id: 'cmp-mod-3', code: 'CMP-102-03', title: 'Grafos: Busca em Largura & Profundidade', status: 'locked', score: 'Bloqueado', date: 'Próxima etapa da trilha', duration: '45 min estimados' },
+];
 
 export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
   faculdade: {
@@ -237,53 +308,7 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
           'Confundir o gráfico temporal senoidal x(t) com o retrato de fase (p vs x), ou confundir sistema ideal conservativo com sistema amortecido (que formaria uma espiral).',
       },
     ],
-    modules: [
-      {
-        id: 'fac-mod-1',
-        code: 'FIS-201',
-        title: 'Cinemática Vetorial & Dinâmica Newtoniana',
-        status: 'completed',
-        score: '9.2',
-        date: 'Concluído em 08/Set',
-        duration: '14h acumuladas',
-      },
-      {
-        id: 'fac-mod-2',
-        code: 'FIS-202',
-        title: 'Trabalho, Energia & Sistemas Conservativos',
-        status: 'completed',
-        score: '8.9',
-        date: 'Concluído em 11/Set',
-        duration: '10h acumuladas',
-      },
-      {
-        id: 'fac-mod-3',
-        code: 'FIS-203',
-        title: 'Gravitação Newtoniana & Leis de Kepler',
-        status: 'completed',
-        score: '9.4',
-        date: 'Concluído em 14/Set',
-        duration: '8h acumuladas',
-      },
-      {
-        id: 'fac-mod-4',
-        code: 'FIS-204',
-        title: 'Oscilações: MHS, Dinâmica e Energia',
-        status: 'in_progress',
-        score: 'Pendente',
-        date: 'Hoje · Sessão Recomendada',
-        duration: '45 min programados',
-      },
-      {
-        id: 'fac-mod-5',
-        code: 'FIS-205',
-        title: 'Oscilações Amortecidas, Forçadas e Ressonância',
-        status: 'locked',
-        score: 'Bloqueado',
-        date: 'Próxima etapa da trilha',
-        duration: '50 min estimados',
-      },
-    ],
+    modules: FACULDADE_FIS204_MODULES,
     tutorGreeting:
       'Olá! Sou seu tutor acadêmico para Física II. Posso esclarecer dúvidas sobre a dedução das equações diferenciais, o comportamento dos vetores no espaço de fase ou os passos dos exercícios.',
     voiceEmphasis: false,
@@ -293,10 +318,57 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       'Nova mensagem da monitoria sobre a Questão 3.',
     ],
     disciplines: [
-      { code: 'FIS-204', title: 'Física II', dateRange: '05/Ago – 14/Dez', credits: 4, isActive: true },
-      { code: 'MAT-215', title: 'Cálculo Numérico', dateRange: '05/Ago – 12/Dez', credits: 4, isActive: false },
-      { code: 'MEC-130', title: 'Resistência dos Materiais', dateRange: '06/Ago – 15/Dez', credits: 3, isActive: false },
-      { code: 'CMP-102', title: 'Algoritmos & Estruturas de Dados', dateRange: '07/Ago – 10/Dez', credits: 3, isActive: false },
+      {
+        code: 'FIS-204',
+        title: 'Física II',
+        dateRange: '05/Ago – 14/Dez',
+        credits: 4,
+        isActive: true,
+        focusTopic: 'Oscilações · Movimento Harmônico Simples (MHS)',
+        focusObjective: 'Compreender a dinâmica do MHS, a força restauradora elástica e a dedução da equação diferencial do oscilador harmônico.',
+        focusDuration: '45 min',
+        content: FACULDADE_FIS204_MODULES,
+        notices: [
+          'Professor alterou o prazo da lista de exercícios para sexta-feira.',
+          'Nova mensagem da monitoria sobre a Questão 3.',
+        ],
+      },
+      {
+        code: 'MAT-215',
+        title: 'Cálculo Numérico',
+        dateRange: '05/Ago – 12/Dez',
+        credits: 4,
+        isActive: false,
+        focusTopic: 'Métodos de Bisseção & Newton-Raphson',
+        focusObjective: 'Aplicar métodos iterativos para localizar raízes de funções não-lineares e comparar taxa de convergência.',
+        focusDuration: '40 min',
+        content: FACULDADE_MAT215_MODULES,
+        notices: ['Lista 3 liberada — prazo de entrega na próxima terça.'],
+      },
+      {
+        code: 'MEC-130',
+        title: 'Resistência dos Materiais',
+        dateRange: '06/Ago – 15/Dez',
+        credits: 3,
+        isActive: false,
+        focusTopic: 'Flexão em Vigas & Diagramas de Esforços',
+        focusObjective: 'Construir diagramas de esforço cortante e momento fletor para vigas isostáticas sob carregamento combinado.',
+        focusDuration: '50 min',
+        content: FACULDADE_MEC130_MODULES,
+        notices: ['Laboratório remarcado para quinta-feira, mesmo horário.'],
+      },
+      {
+        code: 'CMP-102',
+        title: 'Algoritmos & Estruturas de Dados',
+        dateRange: '07/Ago – 10/Dez',
+        credits: 3,
+        isActive: false,
+        focusTopic: 'Árvores Binárias de Busca & Balanceamento',
+        focusObjective: 'Implementar operações de inserção/remoção em BSTs e reconhecer quando o balanceamento (AVL) se torna necessário.',
+        focusDuration: '40 min',
+        content: FACULDADE_CMP102_MODULES,
+        notices: ['Monitoria extra marcada para tirar dúvidas do projeto final.'],
+      },
     ],
   },
 
@@ -952,12 +1024,75 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       'Olá! Sou seu mentor estratégico para o ENEM. Vamos analisar as questões pela Matriz de Referência, identificar os distratores clássicos e reforçar a fundamentação para garantir sua pontuação.',
     voiceEmphasis: false,
     nextReviewSuggestion: 'Amanhã às 07:30',
+    // Semana de referência: Seg 21/Set a Dom 27/Set · Hoje = Ter 22/Set (weekOffset 0).
+    // weekOffset 1 = semana seguinte, só aparece no filtro "Mês" do Cronograma.
     cronograma: [
-      { id: 'cron-1', date: '22/Set', weekday: 'Hoje', label: 'Ondulatória · Sessão de estudo', type: 'estudo', description: 'Física · v = λ·f e refração' },
-      { id: 'cron-2', date: '23/Set', weekday: 'Amanhã', label: 'Simulado ENEM · Ciências da Natureza', type: 'simulado', description: '45 questões · 90 min' },
-      { id: 'cron-3', date: '25/Set', weekday: 'Quinta', label: 'Revisão espaçada · Cinemática', type: 'revisao', description: 'Pontos de baixo domínio da Semana 1' },
-      { id: 'cron-4', date: '28/Set', weekday: 'Domingo', label: 'Redação · Tema social contemporâneo', type: 'estudo', description: 'Treino cronometrado, 90 min' },
-      { id: 'cron-5', date: '05/Out', weekday: 'Domingo', label: 'Simulado geral · 4 áreas', type: 'prova', description: 'Prova completa, condições reais de exame' },
+      {
+        id: 'cron-1', date: '21/Set', weekday: 'Seg', weekOffset: 0,
+        discipline: 'Humanas', topic: 'Revolução Industrial & Transformações Sociais', subtopic: 'Primeira e Segunda Revolução Industrial',
+        activityType: 'aula', status: 'atrasado', durationMinutes: 35,
+        nextAction: 'Retomar a aula e concluir os 3 exercícios pendentes',
+      },
+      {
+        id: 'cron-2', date: '21/Set', weekday: 'Seg', weekOffset: 0,
+        discipline: 'Matemática', topic: 'Função Afim', subtopic: 'Coeficientes, gráfico e taxa de variação',
+        activityType: 'aula', status: 'concluido', durationMinutes: 30,
+        nextAction: 'Revisão espaçada programada para domingo',
+      },
+      {
+        id: 'cron-3', date: '22/Set', weekday: 'Ter', weekOffset: 0, isToday: true,
+        discipline: 'Física', topic: 'Ondulatória', subtopic: 'v = λ·f e refração em meios distintos',
+        activityType: 'aula', status: 'planejado', durationMinutes: 45, hasVideoResource: true,
+        nextAction: 'Assistir a aula e responder 3 questões práticas',
+      },
+      {
+        id: 'cron-4', date: '22/Set', weekday: 'Ter', weekOffset: 0, isToday: true,
+        discipline: 'Química', topic: 'Estequiometria', subtopic: 'Balanceamento e proporções molares',
+        activityType: 'exercicio', status: 'planejado', durationMinutes: 30,
+        nextAction: 'Resolver a lista de 5 exercícios contextualizados',
+      },
+      {
+        id: 'cron-5', date: '23/Set', weekday: 'Qua', weekOffset: 0,
+        discipline: 'Biologia', topic: 'Genética Mendeliana', subtopic: '1ª e 2ª Leis de Mendel',
+        activityType: 'video', status: 'planejado', durationMinutes: 25, hasVideoResource: true,
+        nextAction: 'Assistir o vídeo indicado e fazer o resumo guiado',
+      },
+      {
+        id: 'cron-6', date: '24/Set', weekday: 'Qui', weekOffset: 0,
+        discipline: 'Todas as áreas', topic: 'Simulado · Ciências da Natureza', subtopic: '45 questões, condições reais de prova',
+        activityType: 'simulado', status: 'planejado', durationMinutes: 90,
+        nextAction: 'Reservar 90 min sem interrupções para o simulado',
+      },
+      {
+        id: 'cron-7', date: '25/Set', weekday: 'Sex', weekOffset: 0,
+        discipline: 'Linguagens', topic: 'Interpretação Textual', subtopic: 'Inferência e ambiguidade proposital',
+        activityType: 'exercicio', status: 'planejado', durationMinutes: 30,
+        nextAction: 'Resolver 5 questões de interpretação no estilo ENEM',
+      },
+      {
+        id: 'cron-8', date: '26/Set', weekday: 'Sáb', weekOffset: 0,
+        discipline: 'Redação', topic: 'Tema social contemporâneo', subtopic: 'Treino cronometrado, dissertativo-argumentativo',
+        activityType: 'redacao', status: 'planejado', durationMinutes: 90,
+        nextAction: 'Escrever a redação em 90 min e revisar a tese',
+      },
+      {
+        id: 'cron-9', date: '27/Set', weekday: 'Dom', weekOffset: 0,
+        discipline: 'Matemática', topic: 'Revisão Espaçada', subtopic: 'Cinemática e Funções — pontos de baixo domínio da semana',
+        activityType: 'revisao', status: 'planejado', durationMinutes: 40,
+        nextAction: 'Revisar os 2 tópicos com menor domínio da Semana 1',
+      },
+      {
+        id: 'cron-10', date: '30/Set', weekday: 'Qua', weekOffset: 1,
+        discipline: 'Física', topic: 'Acústica & Efeito Doppler', subtopic: 'Timbre, altura e frequência percebida',
+        activityType: 'aula', status: 'planejado', durationMinutes: 45,
+        nextAction: 'Assistir a aula e responder o checkpoint de fluência',
+      },
+      {
+        id: 'cron-11', date: '03/Out', weekday: 'Sáb', weekOffset: 1,
+        discipline: 'Todas as áreas', topic: 'Simulado Geral · 4 áreas', subtopic: 'Prova completa, condições reais de exame',
+        activityType: 'simulado', status: 'planejado', durationMinutes: 240,
+        nextAction: 'Bloquear a manhã inteira para o simulado completo',
+      },
     ],
   },
 };

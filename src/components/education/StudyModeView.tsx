@@ -246,9 +246,11 @@ export function StudyModeView({
 
       {/* Palco Central: ~50% Conteúdo da Aula + ~50% Companheiro da Sessão (Resumo/Vocabulário/
           Notas/Tutor) nas trilhas de Faculdade/ENEM. Em Inglês, o usuário controla a composição
-          via 3 modos (Aula / Aula + Resumo / Dividido) — largura interpolada via CSS var, sem
-          desmontar nenhum dos dois lados: a sensação é de "mudar como estudo esta aula", não de
-          navegar para outra tela. */}
+          via 3 modos (Aula / Aula + Resumo / Dividido). Em vez de uma largura fixa por modo,
+          o painel lateral usa `flex-basis: clamp(mín, alvo, máx)` — um sistema fluido que nunca
+          deixa a lateral "microscópica" nem trava exatamente em 60/40 em toda largura de tela —
+          e o palco (`flex: 1`) preenche o restante. Nenhum dos dois lados é desmontado: a
+          sensação é de "mudar como estudo esta aula", não de navegar para outra tela. */}
       <div
         className={
           isIngles
@@ -258,8 +260,12 @@ export function StudyModeView({
         style={
           isIngles
             ? ({
-                '--stage-w': lessonViewMode === 'aula' ? '100%' : lessonViewMode === 'dividido' ? '58%' : '62%',
-                '--aside-w': lessonViewMode === 'aula' ? '0%' : lessonViewMode === 'dividido' ? '42%' : '38%',
+                '--aside-basis':
+                  lessonViewMode === 'aula'
+                    ? '0px'
+                    : lessonViewMode === 'dividido'
+                    ? 'clamp(360px, 40%, 480px)'
+                    : 'clamp(320px, 36%, 420px)',
               } as React.CSSProperties)
             : undefined
         }
@@ -268,8 +274,8 @@ export function StudyModeView({
         <section
           id="lesson-stage"
           aria-label="Conteúdo da Aula"
-          className={`flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full ${
-            isIngles ? 'lg:w-[var(--stage-w)] transition-[width] duration-500 ease-out' : ''
+          className={`flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full min-w-0 ${
+            isIngles ? 'lg:flex-1 lg:basis-0 transition-[flex-basis] duration-500 ease-out' : ''
           }`}
         >
           {/* Somente Inglês: os 3 modos de composição da aula — controlam QUANTO espaço o palco
@@ -291,6 +297,7 @@ export function StudyModeView({
                   id={`btn-lesson-mode-${m.id}`}
                   onClick={() => setLessonViewMode(m.id)}
                   title={m.title}
+                  aria-label={m.label}
                   className={`flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
                     lessonViewMode === m.id
                       ? 'bg-surface text-text-primary shadow-subtle font-semibold'
@@ -299,7 +306,10 @@ export function StudyModeView({
                   aria-pressed={lessonViewMode === m.id}
                 >
                   <span className="material-symbols-outlined text-[15px]">{m.icon}</span>
-                  <span>{m.label}</span>
+                  {/* Rótulo só aparece a partir de sm: em telas muito estreitas os 3 rótulos
+                      completos não cabem lado a lado sem espremer/cortar texto — o ícone +
+                      `title`/`aria-label` mantêm a ação clara mesmo só com o ícone. */}
+                  <span className="hidden sm:inline">{m.label}</span>
                 </button>
               ))}
             </div>
@@ -505,18 +515,25 @@ export function StudyModeView({
           </div>
         </section>
 
-        {/* ================= COLUNA COMPANHEIRA: ROTEIRO, RESUMO, VOCABULÁRIO & NOTAS (~50%) ================= */}
-        <aside
-          aria-label="Companheiro da Sessão de Estudo"
-          aria-hidden={isIngles && lessonViewMode === 'aula'}
-          className={`study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden min-h-[480px] w-full ${
-            isIngles
-              ? `lg:w-[var(--aside-w)] transition-[width,opacity] duration-500 ease-out ${
-                  lessonViewMode === 'aula' ? 'opacity-0 lg:pointer-events-none' : 'opacity-100'
-                }`
-              : ''
-          }`}
-        >
+        {/* ================= COLUNA COMPANHEIRA: ROTEIRO, RESUMO, VOCABULÁRIO & NOTAS (~50%) =================
+            No mobile, o Modo "Aula" precisa recolher a ALTURA real do painel (não só a opacidade)
+            — senão sobra um espaço vazio abaixo do vídeo antes do rodapé, já que em coluna a
+            largura não é o eixo que "some". `max-height` cai para 0 junto com a opacidade; em
+            telas lg+ isso não importa porque a largura (`basis`) já cuida do recolhimento. */}
+        {(() => {
+          const isAulaCollapsed = isIngles && lessonViewMode === 'aula';
+          return (
+            <aside
+              aria-label="Companheiro da Sessão de Estudo"
+              aria-hidden={isAulaCollapsed}
+              className={`study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full lg:min-h-[480px] transition-[flex-basis,opacity,max-height] duration-500 ease-out ${
+                isIngles ? 'lg:basis-[var(--aside-basis)] lg:flex-none lg:max-h-none' : ''
+              } ${
+                isAulaCollapsed
+                  ? 'max-h-0 opacity-0 pointer-events-none'
+                  : 'max-h-[2000px] opacity-100 min-h-[480px]'
+              }`}
+            >
           {/* Roteiro da Sessão — visão rápida do que será coberto, igual nas 3 trilhas */}
           <div id="session-roteiro" className="px-4 pt-3.5 pb-2.5 border-b border-border/60">
             <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Roteiro da sessão</span>
@@ -732,7 +749,9 @@ export function StudyModeView({
               </div>
             </div>
           )}
-        </aside>
+            </aside>
+          );
+        })()}
       </div>
       </div>
     </div>
