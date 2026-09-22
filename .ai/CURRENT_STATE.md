@@ -60,23 +60,65 @@ Nenhum dos três domínios é declarado `EXPERIENCE COMPLETE` por esta rodada �
 tecnicamente, Gate 11 (Human Experience Gate) permanece uma decisão humana pendente e distinta,
 conforme `QA_GATE.md` → seção 11.
 
+**Rodada 7 (mesma sessão de continuação — "CONSOLIDAÇÃO FINAL DA FASE A" / "REFINAMENTO FINAL DO
+STUDY MODE + UX COPY GLOBAL", ambas do usuário, tratadas como uma só rodada por serem a mesma
+consolidação)**: duas frentes, em branches sequenciais (D-012):
+- **Educação — consolidação do Study Mode** (PR #15, `feat/education-study-mode-consolidation`,
+  a partir de `feat/education-tracks-experience`/PR #13): Inglês e Faculdade passaram a usar
+  exatamente o mesmo modelo físico de Study Mode que o ENEM já tinha (Hub ≠ Study Mode — clicar na
+  subaba nunca inicia a aula; só "Continuar/Iniciar Sessão" entra em Foco). Layout do palco
+  mudou de ~70/30 para ~50/50 (conteúdo vs. companheiro) nas 3 trilhas, medido via `getBoundingClientRect()`,
+  não só por classe CSS. Inglês ganhou o alternador real Vídeo/Aula IA/Dividido e o fluxo
+  estendido Aula → Exercício de Voz → Live Immersion → Exercícios → Flashcards → Resultado
+  (`VoiceExerciseView.tsx`, `LiveImmersionView.tsx`, `FlashcardsView.tsx` novos), reaproveitando o
+  ciclo de voz do Dynamic Island já provado em PR #7/#29 (idle→listening→processing→response),
+  com transcrição sempre visível e feedback só em linguagem humana. Faculdade ganhou o tratamento
+  visual de Lousa (`#0B1120`) e, numa segunda passada (seção 8.2 do prompt de consolidação), a
+  seção "Avisos" simples no painel companheiro. ENEM não foi tocado além de continuar a
+  compartilhar a mesma estrutura. Achado real de auditoria corrigido: `StudyLoadingState` mostrava
+  sempre "Física · Mecânica Ondulatória" durante o loading, independente da trilha ativa (nunca
+  recebia `trackDef`). Copy dentro de Educação limpa: rótulos "(Fixture)"/"(Local State)" expostos
+  ao usuário removidos, painel de QA/dev (`#qa-dev-controls`) só renderiza com `?qa=1` (nunca para
+  usuários reais). 44/44 checks reais (`scripts/qa-education-study-mode-consolidation.js`) —
+  `EVIDENCE.md` → E-034.
+- **Limpeza global de copy** (PR #16, `chore/global-copy-cleanup`, construída mesclando
+  `fix/shell-sidebar-recovery`/PR #11 + `feat/agenda-conflicts-experience`/PR #12 +
+  `feat/hoje-foundation`/PR #4 + `feat/education-study-mode-consolidation`/PR #15 — para auditar
+  o estado real e atual de cada domínio em vez de duplicar trabalho já feito ou agendado em outra
+  branch): achados reais de jargão de engenharia/nomes internos vazando para a UI — badge "SHELL
+  V2" e bloco decorativo "Ciclo Operacional 03/12 · GRID SHELL V2 · 100% READY" na Sidebar (um
+  falso indicador de progresso sem significado real, removido); dropdown de modo do Header
+  mostrando valores de pixel crus ("240px + 320px" etc.) em vez de explicar o que cada modo faz;
+  "Camada Temporal Medusa · Temporal OS" (codinome interno) na Agenda simplificado para "Agenda ·
+  Sincronizada"; rótulo "Temporal OS" no Context Panel da Agenda renomeado para "Contexto da
+  Agenda"; "Preview:" em inglês traduzido; `islandFixtures.ts` teve 2 strings de demonstração
+  ("Sistema Estável", "Refinamento Arquitetural") trocadas por texto humano (catálogo fechado de
+  10 estados inalterado, só o texto de exibição mudou); "(Local State)" e "não tem contrato de
+  produto suficiente" no Hoje/`RoutePending` reformulados em linguagem simples, mantendo a mesma
+  honestidade. 44/44 (Educação) + 35/35 (Hoje) + 26/26 (Shell) + 28/28 + 20/20 + 11/11 + 29/30
+  (Agenda) + 11/11 + 41/41 (Educação, regressão) + suíte completa de `qa-browser.js` — `EVIDENCE.md`
+  → E-035.
+
+Nenhum dos dois domínios desta rodada é declarado `EXPERIENCE COMPLETE` — Gates 1-10 `PROVADO`
+tecnicamente, Gate 11 (Human Experience Gate) permanece pendente para todos os domínios tocados.
+
 ## CHECKPOINT ATUAL (formato definido em AGENT_RULES.md → seção 8)
 
 ```
-STATUS:        PARCIAL — 8 PRs abertos e provados tecnicamente (PR #4 Hoje Foundation, PR #5
+STATUS:        PARCIAL — 10 PRs abertos e provados tecnicamente (PR #4 Hoje Foundation, PR #5
                Context Panel geometry, PR #6 Agenda base, PR #7 Study Mode Refinement, PR #9
                Agenda Experience, PR #11 Shell Sidebar recovery, PR #12 Agenda
-               conflitos/recorrência/sugestões, PR #13 Educação ENEM/player), mais
-               PR #1/#2/#3/#8(mesclado)/#10(docs) do histórico. D-013 aprovada humanamente e
+               conflitos/recorrência/sugestões, PR #13 Educação ENEM/player, PR #15 Educação
+               Study Mode consolidation, PR #16 limpeza global de copy), mais
+               PR #1/#2/#3/#8(mesclado)/#10/#14(docs) do histórico. D-013 aprovada humanamente e
                oficial. Sprint não esgotado: ver TASK_QUEUE.md → QUEUE AUDIT.
-FASE ATUAL:    D-013 (Fase A precede Fase B) oficializada e aprovada. Agenda recebeu uma segunda
-               rodada de refinamento (PR #12: conflitos N-a-N, prioridade, sugestões de horário,
-               recorrência "Personalizado", exclusão por escopo) sobre PR #9/#6. Educação recebeu
-               correção de nomenclatura (ENEM) e altura do player (PR #13) sobre PR #7. Shell
-               ganhou correção real de recuperação da Sidebar em modo Compacto (PR #11) sobre
-               PR #5. Todos permanecem EXPERIENCE EM REFINAMENTO — nenhum Human Experience Gate
-               concedido. Fase 5 (Hoje) com recorte mínimo provado (PR #4), inalterada. Fases
-               1/3/4 inalteradas.
+FASE ATUAL:    D-013 (Fase A precede Fase B) oficializada e aprovada. Educação consolidou Inglês/
+               Faculdade para o mesmo modelo físico de Study Mode do ENEM (PR #15) — Hub≠Study
+               Mode, 50/50, fluxo estendido de Inglês (voz/imersão/flashcards), Lousa de
+               Faculdade. Limpeza global de copy (PR #16, mesclando PR #4/#11/#12/#15) removeu
+               jargão de engenharia/codinomes internos vazados para a UI em Shell/Agenda/Hoje.
+               Todos permanecem EXPERIENCE EM REFINAMENTO — nenhum Human Experience Gate
+               concedido. Fases 1/3/4 inalteradas.
 CONCLUÍDO NESTA SESSÃO:
   - Capability Audit real e completo (IA/Design/Knowledge/Dados/Google Workspace/Observabilidade/
     QA/Segurança) — ver EVIDENCE.md → E-027. Achados principais: nenhum conector de IA (Gemini/
@@ -113,6 +155,17 @@ CONCLUÍDO NESTA SESSÃO:
     telas altas estendida, arquitetura de 3 trilhas e Tutor↔Island/Context Panel auditados e
     confirmados já corretos (nenhuma mudança onde não havia defeito) — ver EVIDENCE.md → E-033.
     11/11 checks reais.
+  - TASK-EDUCATION-STUDY-MODE-CONSOLIDATION-001 (PR #15): Inglês/Faculdade passaram a usar
+    exatamente o mesmo modelo físico de Study Mode do ENEM (Hub≠Study Mode, 50/50), Inglês ganhou
+    alternador Vídeo/Aula IA/Dividido + fluxo estendido Aula→Voz→Live Immersion→Exercícios→
+    Flashcards→Resultado, Faculdade ganhou Lousa (#0B1120) + Avisos. Bug real corrigido:
+    `StudyLoadingState` sempre mostrava "Física · Mecânica Ondulatória" independente da trilha
+    (nunca recebia `trackDef`) — ver EVIDENCE.md → E-034. 44/44 checks reais.
+  - TASK-GLOBAL-COPY-CLEANUP-001 (PR #16): jargão de engenharia removido da UI de Shell (badge
+    "SHELL V2", bloco "GRID SHELL V2 · 100% READY", pixels crus no dropdown de modo), Agenda
+    ("Temporal OS", "Preview:" em inglês), `islandFixtures.ts` (2 strings de demo) e Hoje/
+    `RoutePending` ("(Local State)", "contrato de produto") — ver EVIDENCE.md → E-035. Regressão
+    completa em 9 suítes, todas verdes (uma falha ambiental pré-existente, BLOCK-005).
 RESTANTE — identificado mas NÃO executado nesta sessão (ver QUEUE AUDIT para detalhe honesto):
   - Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro
     além do que Context Panel + Agenda + Study Mode + Sidebar recovery já cobrem individualmente.
@@ -128,7 +181,7 @@ RESTANTE — identificado mas NÃO executado nesta sessão (ver QUEUE AUDIT para
 RESTANTE (decisões humanas reais / pré-requisitos de infraestrutura — nada executável por Claude
 hoje):
   - HDR-001: aprovação humana de merge (agora PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 →
-    PR #7 → PR #9 → PR #11 → PR #12 → PR #13; PR #8 já mesclado).
+    PR #7 → PR #9 → PR #11 → PR #12 → PR #13 → PR #15 → PR #16; PR #8 já mesclado).
   - HDR-011: escolha de provedor de Auth (bloqueia Fase 2 E o wiring do Supabase já existente) —
     e, por D-013, mesmo resolvido, a implementação real de Fase B ainda esperaria as 8 abas.
   - BLOCK-009: IA (falta chave de API), Google Workspace como feature de produto (falta app OAuth
@@ -139,25 +192,26 @@ hoje):
     nenhuma aba. Ver a seção "NEXT HUMAN GATE" no relatório de evidência desta rodada para o que
     testar manualmente.
 ÚLTIMO TESTE:
-  node scripts/qa-shell-sidebar-recovery.js (novo, real, Puppeteer) → 26 PASSOU | 0 FALHOU.
-  node scripts/qa-agenda-conflicts-recurrence.js (novo, real, Puppeteer) → 20 PASSOU | 0 FALHOU.
-  node scripts/qa-education-tracks-experience.js (novo, real, Puppeteer) → 11 PASSOU | 0 FALHOU.
-  npx tsc --noEmit / npm run build em `fix/shell-sidebar-recovery`,
-  `feat/agenda-conflicts-experience` e `feat/education-tracks-experience` → todos limpos.
+  node scripts/qa-education-study-mode-consolidation.js (novo, real, Puppeteer) → 44 PASSOU | 0 FALHOU.
+  Regressão completa na branch combinada (chore/global-copy-cleanup): qa-hoje-foundation.js 35/35,
+  qa-shell-sidebar-recovery.js 26/26, qa-agenda-experience.js 28/28, qa-agenda-conflicts-
+  recurrence.js 20/20, qa-agenda-shell-integration.js 11/11, qa-agenda.js 29/30 (BLOCK-005,
+  ambiental), qa-education-tracks-experience.js 11/11, qa-study-mode-motion.js 41/41, qa-
+  browser.js suíte completa passando.
+  npx tsc --noEmit / npm run build em `feat/education-study-mode-consolidation` e
+  `chore/global-copy-cleanup` → todos limpos.
 FALHAS:
-  Nenhuma falha residual real nos 3 domínios. Bugs reais achados e corrigidos durante a auditoria
-  (não bugs de teste): Sidebar (botão inalcançável + geometria de ícones), Agenda (renderização de
-  conflito N-a-N quebrada, rotinas recorrentes nunca salvando `recurrence`). Um único bug real de
-  produto foi introduzido e corrigido na própria rodada antes de reportar PROVADO (rótulo do botão
-  de exclusão de `EventDetailPanel` quebrando a suíte antiga `qa-agenda.js` — corrigido tornando o
-  rótulo condicional). Tutor↔Island e Context Panel/Foco: testados, SEM defeito confirmado, SEM
-  mudança feita.
+  Nenhuma falha residual real. Bug real achado e corrigido: `StudyLoadingState` sempre mostrava
+  "Física · Mecânica Ondulatória" independente da trilha ativa (nunca recebia `trackDef`). Várias
+  falhas de asserção de scripts pré-existentes eram bugs dos PRÓPRIOS SCRIPTS (seletor de item
+  recorrente na Lista da Agenda ao invés de um evento simples; innerText refletindo transformação
+  CSS `uppercase`; strings antigas de copy já intencionalmente trocadas) — corrigidas antes de
+  reportar PROVADO, nunca enfraquecidas para "dar verde".
 PRÓXIMO PASSO:
-  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
-  do que Context Panel + Sidebar recovery + Agenda + Study Mode já cobrem individualmente — não
-  depende de nenhum HDR nem de BLOCK-009. Alternativa igualmente válida: aguardar o Human
-  Experience Gate ser concedido para Hoje/Agenda/Educação antes de abrir mais rodadas de
-  refinamento nessas abas. Ver TASK_QUEUE.md → QUEUE AUDIT.
+  Aguardar o Human Experience Gate ser concedido para Hoje/Agenda/Educação/Shell antes de abrir
+  mais rodadas de refinamento nessas abas — a consolidação pedida nesta rodada está feita.
+  Alternativa igualmente válida: auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/
+  Performance do Shell inteiro além do que já foi coberto. Ver TASK_QUEUE.md → QUEUE AUDIT.
 BLOCKERS:
   Ver BLOCKERS.md → BLOCK-001 (Antigravity), BLOCK-006 (next@14.2.24 CVE), BLOCK-007 (ESLint não
   configurado), BLOCK-008 (Context Panel — RESOLVIDO, PR #5, aguarda só Merge Gate), BLOCK-009
@@ -174,10 +228,10 @@ Classificação atual por domínio (vocabulário `AGENT_RULES.md` → seção 0)
 
 | Domínio | Classificação | Evidência |
 |---|---|---|
-| Hoje | BASE IMPLEMENTADA | PR #4, Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-026), sem Human Experience Gate nem merge |
-| Agenda | EXPERIENCE EM REFINAMENTO | PR #6 (base) + PR #9 (motion/Island/UX) + PR #12 (conflitos N-a-N, prioridade, sugestões, recorrência "Personalizado", exclusão por escopo), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-030, E-032), sem Human Experience Gate nem merge |
-| Educação / Study Mode | EXPERIENCE EM REFINAMENTO | PR #7 (motion/espaço/Dynamic Island) + PR #13 (rótulo ENEM, altura do player), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-029, E-033); sem Human Experience Gate nem merge |
-| Shell / Context Panel / Sidebar (transversal, não é uma das 8 abas) | BASE IMPLEMENTADA | PR #5 (geometria) + PR #11 (recuperação da Sidebar em modo Compacto), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-027, E-031); é infraestrutura de Fase A consumida por todas as abas, não uma aba em si |
+| Hoje | BASE IMPLEMENTADA | PR #4 + PR #16 (copy), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-026, E-035), sem Human Experience Gate nem merge |
+| Agenda | EXPERIENCE EM REFINAMENTO | PR #6 (base) + PR #9 (motion/Island/UX) + PR #12 (conflitos N-a-N, prioridade, sugestões, recorrência "Personalizado", exclusão por escopo) + PR #16 (copy), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-030, E-032, E-035), sem Human Experience Gate nem merge |
+| Educação / Study Mode | EXPERIENCE EM REFINAMENTO | PR #7 (motion/espaço/Dynamic Island) + PR #13 (rótulo ENEM, altura do player) + PR #15 (Study Mode consolidado nas 3 trilhas) + PR #16 (copy), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-029, E-033, E-034, E-035); sem Human Experience Gate nem merge |
+| Shell / Context Panel / Sidebar (transversal, não é uma das 8 abas) | BASE IMPLEMENTADA | PR #5 (geometria) + PR #11 (recuperação da Sidebar em modo Compacto) + PR #16 (copy), Gates 1-10 `PROVADO` (`EVIDENCE.md` → E-027, E-031, E-035); é infraestrutura de Fase A consumida por todas as abas, não uma aba em si |
 | Corpo | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
 | Finanças | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
 | Progresso | NÃO IMPLEMENTADO | nenhum arquivo/spec no repositório |
@@ -282,6 +336,17 @@ branch de trabalho atual = chore/agent-os-bootstrap (PR #3, draft, aberta contra
   `feat/education-multitrack` + 1 commit próprio (rótulo ENEM, altura do player em telas altas).
   **PR #13 também contém o commit de PR #5** (mesma relação de `D-012`). PROVADO
   (`EVIDENCE.md` → E-033).
+- `origin/feat/education-study-mode-consolidation` (**PR #15**, draft, aberta contra `main`) =
+  `feat/education-tracks-experience` + 1 commit próprio (Study Mode consolidado: Hub≠Study Mode,
+  50/50, Inglês com Vídeo/Aula IA/Dividido + fluxo estendido de voz/imersão/flashcards, Faculdade
+  com Lousa). **PR #15 também contém o commit de PR #5** (mesma relação de `D-012`). PROVADO
+  (`EVIDENCE.md` → E-034).
+- `origin/chore/global-copy-cleanup` (**PR #16**, draft, aberta contra `main`) — construída
+  mesclando `fix/shell-sidebar-recovery`/PR #11 + `feat/agenda-conflicts-experience`/PR #12 +
+  `feat/hoje-foundation`/PR #4 + `feat/education-study-mode-consolidation`/PR #15 (merges reais,
+  não cherry-pick, por serem 4 linhagens independentes) + 1 commit próprio de limpeza de copy.
+  **PR #16 contém, portanto, os commits de PR #4, #5, #6, #7, #9, #11, #12, #13 e #15**. PROVADO
+  (`EVIDENCE.md` → E-035).
 - Vercel builda preview automaticamente para todas as PRs (confirmado real — `EVIDENCE.md` →
   E-009, E-013).
 

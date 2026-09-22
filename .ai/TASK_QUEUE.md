@@ -489,9 +489,85 @@ suposição. O que existe hoje para cada uma:
 
 ---
 
+### TASK-EDUCATION-STUDY-MODE-CONSOLIDATION-001 — Inglês/Faculdade no mesmo modelo físico do ENEM
+
+- **FASE:** Educação — terceira rodada de refinamento sobre a mesma aba (Fase A, D-013).
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — UI/UX/motion/fluxo; voz/imersão continuam Local State
+  simulado, nenhum STT/TTS real).
+- **ORIGEM:** "CONSOLIDAÇÃO FINAL DA FASE A" / "REFINAMENTO FINAL DO STUDY MODE" do usuário —
+  exigência explícita de que Inglês e Faculdade se comportem estruturalmente como o ENEM ao entrar
+  em sessão (Hub≠Study Mode, mesma proporção ~50/50, mesma lógica de Foco/Island), mudando só
+  conteúdo/ferramentas/prática. Auditoria achou 2 defeitos reais: grid do Study Mode em ~70/30 (não
+  50/50) nas 3 trilhas, e `StudyLoadingState` sempre mostrando "Física · Mecânica Ondulatória"
+  independente da trilha ativa (nunca recebia `trackDef`) — ver `EVIDENCE.md` → E-034.
+- **DO NOT TOUCH:** lógica de Foco do Shell, catálogo fechado de 10 estados do Island (o ciclo de
+  voz reaproveita `isVoiceActive`/`.island-voice-active` já existente, nunca um mecanismo novo);
+  fluxo/proporção do ENEM (preservado byte-a-byte).
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-034)
+  1. Clicar numa subaba (ENEM/Inglês/Faculdade) nunca inicia a aula — só "Continuar/Iniciar
+     Sessão" entra em Foco/Study Mode.
+  2. Study Mode com proporção ~50/50 (conteúdo vs. companheiro) medida via
+     `getBoundingClientRect()`, igual nas 3 trilhas.
+  3. Inglês: alternador real Vídeo/Aula IA/Dividido; fluxo Aula→Exercício de Voz→Live
+     Immersion→Exercícios→Flashcards→Resultado funcional de ponta a ponta; transcrição sempre
+     visível; feedback só em linguagem humana, nunca métricas técnicas.
+  4. Faculdade: Lousa (`#0B1120`); fluxo direto Aula→Exercícios preservado (Contexto = Hub).
+  5. ENEM: nenhuma mudança de fluxo/proporção/mecânica.
+  6. Bug do `StudyLoadingState` corrigido (mostra a trilha real durante o loading).
+  7. `npx tsc --noEmit` e `npm run build` sem erro.
+  8. Browser QA real — 44/44 checks novos.
+  9. Regressão: `qa-study-mode-motion.js` (41/41), `qa-education-tracks-experience.js` (11/11),
+     `qa-browser.js` (suíte completa) sem quebra real (3 scripts tiveram seletores/strings
+     desatualizados corrigidos, nunca enfraquecidos).
+  10. 390/820/1024/1440, `prefers-reduced-motion: reduce`, teclado/foco validados.
+- **STATUS:** Gates 1-10 **PROVADO**. Gate 11 (Human Experience Gate) **BLOQUEADO**. Classificação:
+  `EXPERIENCE EM REFINAMENTO`. PR https://github.com/MasterABL/Medusa/pull/15 (draft). Depende de
+  PR #13 (que depende de PR #7/#5 — `D-012`). Merge Gate: BLOQUEADO (aprovação humana).
+- **FORA DE ESCOPO / TRABALHO FUTURO:** cenários adicionais de Live Immersion além do exemplo
+  entregue (aeroporto/restaurante/hotel/entrevista/etc. — o mecanismo é genérico e comporta mais
+  cenários fixture no futuro, sem mudança estrutural); STT/TTS real (Fase B).
+
+---
+
+### TASK-GLOBAL-COPY-CLEANUP-001 — Remoção de jargão de engenharia da UI em Shell/Agenda/Hoje/Educação
+
+- **FASE:** Transversal às 8 abas (Fase A, D-013) — não é uma aba em si.
+- **TRACK:** DESIGN/EXPERIENCE (Fase A — copy/UX apenas, nenhuma mudança de dados/lógica).
+- **ORIGEM:** Auditoria de copy pedida explicitamente pelo usuário nas duas últimas rodadas.
+  Corpo/Finanças/Progresso/Guardian/Buscar não têm código (`RoutePending` cobre o estado honesto
+  de pendência). Achados reais (lidos no texto renderizado): badge "SHELL V2" e bloco decorativo
+  "GRID SHELL V2 · 100% READY" na Sidebar; pixels crus no dropdown de modo do Header; "Temporal OS"
+  (codinome interno) na Agenda; 2 strings de `islandFixtures.ts`; "(Local State)"/"contrato de
+  produto" no Hoje/`RoutePending` — ver `EVIDENCE.md` → E-035.
+- **DO NOT TOUCH:** lógica/dados de nenhum domínio — só texto de exibição; catálogo fechado de 10
+  estados do Island (só os valores de `desc`, não as chaves/estrutura).
+- **ACCEPTANCE CRITERIA:** (todos verificados — ver `EVIDENCE.md` → E-035)
+  1. Nenhum termo da lista proibida (fixture, local state, backend, API, pipeline, etc.) visível
+     na UI de produto fora de comentários de código/documentação técnica.
+  2. Nenhum codinome interno de engenharia ("SHELL V2", "Temporal OS") visível na UI.
+  3. Nenhum valor de implementação (pixels, contadores sem contexto) exposto como se fosse
+     informação útil ao usuário.
+  4. Honestidade preservada (dados de exemplo/sem persistência continuam divulgados, só em
+     linguagem simples).
+  5. `npx tsc --noEmit` e `npm run build` sem erro.
+  6. Regressão completa sem quebra real em 9 suítes (`qa-hoje-foundation.js` 35/35,
+     `qa-shell-sidebar-recovery.js` 26/26, `qa-agenda-experience.js` 28/28, `qa-agenda-conflicts-
+     recurrence.js` 20/20, `qa-agenda-shell-integration.js` 11/11, `qa-agenda.js` 29/30 ambiental,
+     `qa-education-tracks-experience.js` 11/11, `qa-study-mode-motion.js` 41/41, `qa-education-
+     study-mode-consolidation.js` 44/44, `qa-browser.js` completo).
+- **STATUS:** Gates 1-10 **PROVADO** para Shell/Agenda/Hoje/Educação. Gate 11 **BLOQUEADO** para
+  todos. PR https://github.com/MasterABL/Medusa/pull/16 (draft), mesclando PR #4/#11/#12/#15
+  (que já carregam PR #5/#6/#7/#9/#13 — `D-012`). Merge Gate: BLOQUEADO (aprovação humana).
+- **NOTA EXPLÍCITA:** um bug de teste real (não de produto) foi achado e corrigido durante esta
+  rodada: `qa-agenda-experience.js` sempre selecionava o primeiro item da Lista para testar
+  exclusão em 2 passos, e esse item por acaso era uma rotina recorrente (fluxo de 3 opções,
+  correto desde PR #12) — corrigido para buscar um evento não-recorrente.
+
+---
+
 ## QUEUE AUDIT (Execution Sprint — Capability Audit + Maximum Product Expansion, sessão atual)
 
-**Nota de processo:** esta sessão teve seis rodadas (mais uma rodada de continuação de governança
+**Nota de processo:** esta sessão teve oito rodadas (mais uma rodada de continuação de governança
 registrando D-013 entre a 3ª e a 4ª, sem código de produto). A 1ª ampliou o escopo para um
 Capability Audit completo e resolveu de fato o P0 do Context Panel (PR #5). A 2ª priorizou Agenda
 sobre a auditoria de Educação (PR #6). A 3ª voltou a Educação — não como auditoria genérica, mas
@@ -503,7 +579,11 @@ explícito do usuário, "RODADA DE REFINAMENTO DE EXPERIÊNCIA") tratou 3 domín
 branches separadas por instrução direta ("não misturar Agenda e Educação numa mudança
 não-revisável"): Shell (recuperação real da Sidebar, PR #11), Agenda (conflitos N-a-N, prioridade,
 sugestões de horário, recorrência "Personalizado", PR #12) e Educação (nomenclatura ENEM, altura
-do player, auditoria de Tutor/Island e Foco sem mudança onde não havia defeito, PR #13).
+do player, auditoria de Tutor/Island e Foco sem mudança onde não havia defeito, PR #13). A 6ª/7ª
+("REFINAMENTO FINAL DO STUDY MODE + UX COPY GLOBAL" e "CONSOLIDAÇÃO FINAL DA FASE A", tratadas
+como uma única consolidação por serem a mesma exigência) fechou Inglês/Faculdade no mesmo modelo
+físico de Study Mode do ENEM (PR #15) e depois auditou copy globalmente numa branch que mescla as
+4 linhagens relevantes (PR #16), em vez de trabalhar sobre bases desatualizadas.
 
 ```
 UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
@@ -538,6 +618,16 @@ UNLOCKED TASKS EXECUTADAS NESTA SESSÃO:
     arquitetura de 3 sub-abas e o mecanismo Tutor↔Island/Foco já corretos — nenhuma mudança feita
     onde não havia defeito confirmado. 11/11 checks reais. PR #13 aberta, depende de PR #7 (que
     depende de PR #5, `D-012`).
+  - TASK-EDUCATION-STUDY-MODE-CONSOLIDATION-001 → EXECUTADA, Gates 1-10 PROVADO (E-034). Inglês/
+    Faculdade consolidados no mesmo modelo físico do ENEM (Hub≠Study Mode, 50/50, fluxo estendido
+    de voz/imersão/flashcards para Inglês, Lousa/Avisos para Faculdade). Bug real corrigido:
+    `StudyLoadingState` não recebia `trackDef`. 44/44 checks novos + regressão completa. PR #15
+    aberta, depende de PR #13 (que depende de PR #7/#5, `D-012`).
+  - TASK-GLOBAL-COPY-CLEANUP-001 → EXECUTADA, Gates 1-10 PROVADO para Shell/Agenda/Hoje/Educação
+    (E-035). Jargão de engenharia/codinomes internos removidos ("SHELL V2", "GRID SHELL V2 · 100%
+    READY", pixels crus no Header, "Temporal OS", "(Local State)"). Branch construída mesclando
+    PR #4/#11/#12/#15 (não cherry-pick) para auditar o estado real e atual de cada domínio.
+    Regressão completa em 9 suítes sem quebra real. PR #16 aberta.
 
 QUEUE AUDIT PARCIAL — trabalho identificado mas NÃO executado nesta sessão (registrado para não
 fingir conclusão):
@@ -563,13 +653,15 @@ BLOCKED TASKS (Human Gate real, não escopo inteiro):
     HDR-005.
   - Fechamento formal (merge) das Fases 1, 3, 4, Hoje Foundation (PR #4), Context Panel (PR #5),
     Agenda (PR #6), Study Mode Refinement (PR #7), Agenda Experience (PR #9), Sidebar Recovery
-    (PR #11), Agenda Conflicts (PR #12) e Education Tracks (PR #13): HDR-001.
+    (PR #11), Agenda Conflicts (PR #12), Education Tracks (PR #13), Education Study Mode
+    Consolidation (PR #15) e Global Copy Cleanup (PR #16): HDR-001.
   - Human Experience Gate (`QA_GATE.md` → Gate 11) para Hoje, Agenda, Educação e para a
     infraestrutura de Shell — distinto do Merge Gate, ainda não concedido para nenhuma aba.
 
 HUMAN GATES (atualizado nesta rodada):
   - HDR-001 (aprovação de merge — agora cobre PR #1 → PR #2 → PR #4 → PR #5 → PR #6 → PR #7 →
-    PR #9 → PR #11 → PR #12 → PR #13, todas tecnicamente dependentes de PR #5 — `D-012`)
+    PR #9 → PR #11 → PR #12 → PR #13 → PR #15 → PR #16, todas tecnicamente dependentes de PR #5
+    — `D-012`)
   - HDR-011 (provedor de Auth)
   - Human Experience Gate por aba (`QA_GATE.md` → Gate 11) — Hoje/Agenda/Educação/Shell com
     Gates 1-10 `PROVADO`, aguardando esta decisão especificamente (D-013 já aprovada não concede
@@ -582,14 +674,15 @@ TECHNICAL BLOCKERS:
   - IA/Google Workspace/Stitch como features de produto: BLOCK-009.
 
 NEXT EXECUTABLE TASK (real, não hipotética):
-  Auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/Performance do Shell inteiro além
-  do que Context Panel + Sidebar recovery + Agenda + Study Mode já cobrem individualmente — não
-  depende de nenhum HDR nem de BLOCK-009. Alternativa igualmente válida (e talvez preferível
-  agora): não abrir mais rodadas de refinamento em Hoje/Agenda/Educação/Shell até o Human
-  Experience Gate ser concedido para o que já está provado tecnicamente, para evitar acumular
-  Experience-em-refinamento sem fechamento. TRACK: DESIGN/EXPERIENCE (Fase A) — consistente com
-  D-013, já que nenhuma tarefa ENGINEERING/INTEGRATION pode ser "next executable" com Fase A ainda
-  aberta nas 8 abas.
+  A consolidação de Fase A pedida nesta rodada está feita (Educação no mesmo modelo do ENEM +
+  copy global limpa). Recomendação explícita desta rodada: NÃO abrir mais rodadas de refinamento
+  em Hoje/Agenda/Educação/Shell até o Human Experience Gate ser concedido para o que já está
+  provado tecnicamente — acumular mais "Experience em refinamento" sem nenhum fechamento humano
+  deixa de ser produtivo. Se uma nova rodada for mesmo necessária antes disso, a próxima tarefa
+  real e não bloqueada seria a auditoria transversal de UX/UI/Motion/Loading/Acessibilidade/
+  Performance do Shell inteiro além do que já foi coberto. TRACK: DESIGN/EXPERIENCE (Fase A) —
+  consistente com D-013, já que nenhuma tarefa ENGINEERING/INTEGRATION pode ser "next executable"
+  com Fase A ainda aberta nas 8 abas.
 ```
 
 **Nota D-013 sobre esta seção**: nenhum item de `BLOCKED TASKS`/`HUMAN GATES` acima que seja
