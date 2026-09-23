@@ -82,6 +82,26 @@ a classe `material-symbols-outlined` normalmente.
 
 ## 5. Motion
 
+### 5.0 Taxonomia (Round 5 §1-2)
+
+Motion no Medusa nunca é "mais animação por animação" — cada categoria abaixo existe porque
+comunica uma coisa diferente ao usuário. Esta tabela é uma auditoria do que **já existe** no
+código (`src/app/globals.css`), não um catálogo aspiracional — toda classe listada está em uso
+real em pelo menos um componente.
+
+| Categoria | O que comunica | Gatilho típico | Classes/padrões reais |
+|---|---|---|---|
+| **MICROMOTION** | "o elemento notou sua presença" — feedback local, sem mudar nada de estrutura | hover, foco, clique num controle pequeno | `.btn-interactive` (todo botão do app); `hover:-translate-y-0.5` nos cards "Próxima Ação" dos Context Panels (`@media (hover: hover)`, nunca gruda em toque); `living-pulse` (ponto pulsante "ao vivo/sincronizado") |
+| **TRANSITION** | "o estado mudou, mas você continua no mesmo lugar" — troca de conteúdo dentro do mesmo container | trocar de trilha, trocar de aba/modo de estudo, avançar de etapa da sessão | `track-exit-left/right` + `track-enter-from-right/left` (carrossel entre ENEM/Faculdade/Inglês, §5.1); `study-stage-enter`, `study-summary-enter`, `study-exercise-slide`, `study-recede` (avançar de etapa dentro do Study Mode); `summary-item-rise` (item novo aparecendo numa lista); `transition-[flex-basis,opacity,max-height]` no palco/painel do Study Mode (trocar entre Modo Aula/Aula+Resumo/Resumo/Tutor ao Vivo) |
+| **CONTEXTUAL MOTION** | "uma camada nova se abriu por cima/ao lado do que já existia" — drawer, modal, painel | abrir Tutor, Cronograma, confirmar interrupção, abrir o Context Panel no mobile | `modal-backdrop-enter` + `modal-pop-enter` (modais centrados: Interromper Aula, Revisão de Aula); `drawer-slide-in` + backdrop (`TutorDrawer` em overlay — corrigido nesta rodada, ver Histórico); `study-summary-enter` reaproveitada para o Tutor tomando 100% do painel lateral de Inglês; `panel-transition` (Context Panel desktop recolhe/expande, e bottom sheet mobile) |
+| **SYSTEM MOTION** | "o sistema está processando/quer sua atenção" — não foi um clique do usuário que disparou | geração de conteúdo, erro, sucesso, voz ativa | `island-processing-active`, `island-attention-active`, `island-error-shake`, `island-success-settle`, `island-voice-active` (todos no Dynamic Island) |
+
+Regra que atravessa as 4 categorias: **nunca só `opacity`** quando existe uma direção espacial
+real (algo entra de um lado, sai para o outro, cresce a partir de onde foi acionado) — combinar
+com `translateX`/`translateY`/`scale` conforme o caso. `prefers-reduced-motion: reduce` desliga
+`animation`/`transform` nas 4 categorias por igual (um único bloco `@media` em `globals.css`
+cobre todas as classes acima) e não precisa de tratamento especial por categoria.
+
 ### 5.1 Cross-Track (Educação)
 
 As 3 trilhas têm ordem espacial fixa: **ENEM (0) → Faculdade (1) → Inglês (2)**.
@@ -171,3 +191,20 @@ o hover continua dando uma resposta visual (sombra/borda), só sem o deslocament
   de dentro do Study Mode (`CronogramaOverlay.tsx`); tiles reais no painel do ENEM; remoção de
   métricas decorativas sem valor de decisão ("Tempo Nominal do Ciclo", "Matriz de Referência ·
   Habilidades 01 a 04").
+- **Rodada 5** (em andamento): §5.0 (esta seção) formaliza a taxonomia de motion pela primeira
+  vez — MICROMOTION/TRANSITION/CONTEXTUAL MOTION/SYSTEM MOTION, mapeando classes já existentes,
+  nenhuma nova categoria inventada sem uso real. Identidade de cor por trilha estendida para o
+  CORPO principal (antes só aparecia no painel lateral) em `EnglishHub`/`EnemHub`/
+  `TrackModuleList`/`CompletedActivityList`. Faculdade ganhou fluxo real de "Adicionar
+  disciplina", CTA real de "Próxima Ação" no painel (antes decorativo) e paridade de Modos de
+  Estudo com Inglês (Aula/Aula+Resumo/Resumo, 60/40 nunca 50/50). Tutor de Inglês no painel
+  lateral agora ocupa 100% do painel ao abrir (antes coexistia num acordeão de altura fixa) com
+  fechamento por X/Esc/clique-fora. Modo "Aula" de Inglês ganhou mais altura de palco (o piso
+  fixo não reclamava o espaço liberado pelo recolhimento da faixa/painel lateral); "Dividido"
+  renomeado para "Tutor ao Vivo" com painel mais largo, diferenciando-o de verdade de "Aula +
+  Resumo" (eram quase idênticos em proporção). **Bug real corrigido**: o `TutorDrawer` em
+  overlay referenciava duas classes de animação inexistentes (`drawer-slide-in
+  animate-slideLeft`) — o painel abria sem transição nenhuma, sem backdrop, sem Esc, sem
+  clique-fora; agora usa o mesmo padrão de overlay do resto do app. Tema claro e sépia
+  recalibrados (claro menos "estourado"; sépia com identidade real de madeira clara/pergaminho —
+  o problema de verdade era falta de diferenciação do claro, não excesso de contraste).
