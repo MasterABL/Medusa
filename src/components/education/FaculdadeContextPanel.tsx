@@ -70,8 +70,10 @@ interface SessionUploadedFile {
  */
 export function FaculdadeContextPanel() {
   const trackDef = TRACK_DEFINITIONS.faculdade;
-  const { faculdadeDisciplineCode, openReviewModal, isSessionCompleted, sessionResultMirror } = useEducationPanel();
-  const disciplines = trackDef.disciplines ?? [];
+  const { faculdadeDisciplineCode, openReviewModal, isSessionCompleted, sessionResultMirror, facultyExtraDisciplines, requestStartStudy } = useEducationPanel();
+  // Fixture + disciplinas adicionadas pelo usuário nesta sessão — mesma lista combinada do
+  // FaculdadeHub.tsx (ver EducationPanelContext.tsx), para as duas superfícies nunca divergirem.
+  const disciplines = [...(trackDef.disciplines ?? []), ...facultyExtraDisciplines];
   const selected = disciplines.find((d) => d.code === faculdadeDisciplineCode) ?? disciplines[0];
 
   const [uploadsByDiscipline, setUploadsByDiscipline] = useState<Record<string, SessionUploadedFile[]>>({});
@@ -152,13 +154,32 @@ export function FaculdadeContextPanel() {
       {/* 2. PRÓXIMA AÇÃO — protagonista do painel: glass + hover (ver Refinamento Visual §3/§6.3) */}
       {nextAction && (
         <ContextPanelSection label="Próxima Ação">
-          <div
-            id="panel-next-action-faculdade"
-            className="p-3.5 rounded-xl bg-medusa-primary/10 backdrop-blur-sm border border-medusa-primary/30 flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass hover:border-[#71DBD2]/50"
-          >
-            <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{nextAction.title}</h4>
-            <p className="text-[11px] text-text-secondary">{selected.focusDuration} · {nextAction.code}</p>
-          </div>
+          {isPrimaryDiscipline && requestStartStudy ? (
+            <button
+              type="button"
+              id="panel-next-action-faculdade"
+              onClick={requestStartStudy}
+              className="w-full text-left p-3.5 rounded-xl bg-medusa-primary/10 backdrop-blur-sm border border-medusa-primary/30 flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass hover:border-[#71DBD2]/50 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{nextAction.title}</h4>
+              <p className="text-[11px] text-text-secondary">{selected.focusDuration} · {nextAction.code}</p>
+              <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[#18534B] dark:text-[#71DBD2]">
+                <span className="material-symbols-outlined text-[14px]">play_circle</span>
+                Continuar sessão
+              </span>
+            </button>
+          ) : (
+            <div
+              id="panel-next-action-faculdade"
+              className="p-3.5 rounded-xl bg-medusa-primary/10 backdrop-blur-sm border border-medusa-primary/30 flex flex-col gap-1"
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{nextAction.title}</h4>
+              <p className="text-[11px] text-text-secondary">{selected.focusDuration} · {nextAction.code}</p>
+              <p className="text-[10px] font-mono text-text-muted italic mt-1">
+                Sessão de estudo ainda não disponível para esta disciplina.
+              </p>
+            </div>
+          )}
         </ContextPanelSection>
       )}
 

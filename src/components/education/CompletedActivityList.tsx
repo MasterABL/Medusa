@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { TrackAccentClasses } from './trackAccent';
 
 export interface CompletedActivityItem {
   id: string;
@@ -19,6 +20,8 @@ interface CompletedActivityListProps {
   /** Id estável para seletor de QA (varia por trilha: my-lessons-history, enem-..., faculdade-...). */
   sectionId?: string;
   defaultOpen?: boolean;
+  /** Cor de identidade da trilha que renderiza esta lista (ver DESIGN.md §6.2). */
+  accent: TrackAccentClasses;
 }
 
 /**
@@ -27,7 +30,7 @@ interface CompletedActivityListProps {
  * simulados); este componente só cuida de como isso é apresentado e revisitado. Puramente
  * fixture — nenhuma persistência real por trás do botão "Rever".
  */
-export function CompletedActivityList({ title, items, sectionId, defaultOpen = false }: CompletedActivityListProps) {
+export function CompletedActivityList({ title, items, sectionId, defaultOpen = false, accent }: CompletedActivityListProps) {
   const [open, setOpen] = useState(defaultOpen);
   const { openReviewModal } = useEducationPanel();
 
@@ -77,7 +80,7 @@ export function CompletedActivityList({ title, items, sectionId, defaultOpen = f
                 type="button"
                 id={`btn-review-${item.id}`}
                 onClick={() => openReviewModal(item)}
-                className="flex-shrink-0 flex items-center gap-1 text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-1 rounded-full border border-[#71DBD2]/30 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                className={`flex-shrink-0 flex items-center gap-1 text-[11px] font-mono ${accent.text} ${accent.softBg} px-2.5 py-1 rounded-full border ${accent.softBorder} hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none`}
               >
                 <span className="material-symbols-outlined text-[13px]">replay</span>
                 Rever

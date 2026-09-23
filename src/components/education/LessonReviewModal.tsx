@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { useEscapeKey } from '@/lib/useEscapeKey';
 
 /**
  * Destino real do botão "Rever"/"Revisão" (Minhas Aulas + "Próximas Revisões" dos 3 Context
@@ -14,6 +15,7 @@ import { useEducationPanel } from '@/context/EducationPanelContext';
  */
 export function LessonReviewModal() {
   const { reviewModalItem, closeReviewModal } = useEducationPanel();
+  useEscapeKey(Boolean(reviewModalItem), closeReviewModal);
 
   if (!reviewModalItem) return null;
 
@@ -23,13 +25,13 @@ export function LessonReviewModal() {
       role="dialog"
       aria-modal="true"
       aria-label="Revisão da aula"
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1C2420]/40 backdrop-blur-[2px]"
+      className="modal-backdrop-enter fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onClick={closeReviewModal}
     >
       <div
         id="lesson-review-modal"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-surface rounded-2xl border border-border/70 shadow-island p-6 flex flex-col gap-5 study-summary-enter"
+        className="modal-pop-enter w-full max-w-md bg-surface rounded-2xl border border-border/70 shadow-island p-6 flex flex-col gap-5"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">

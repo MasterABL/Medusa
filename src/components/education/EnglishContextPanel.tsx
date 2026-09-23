@@ -22,7 +22,7 @@ const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2'] as const;
 export function EnglishContextPanel() {
   const trackDef = TRACK_DEFINITIONS.ingles;
   const { isVoiceActive, setVoiceActive } = useShell();
-  const { openReviewModal, isSessionCompleted, sessionResultMirror } = useEducationPanel();
+  const { openReviewModal, isSessionCompleted, sessionResultMirror, requestStartStudy } = useEducationPanel();
   const [isTeacherOpen, setIsTeacherOpen] = useState(false);
 
   const modulesWithLessons = trackDef.modules.filter((m) => m.lessons && m.lessons.length > 0);
@@ -97,13 +97,29 @@ export function EnglishContextPanel() {
       {/* 2. PRÓXIMA AÇÃO — protagonista do painel */}
       {currentModule && resumeLesson && (
         <ContextPanelSection label="Próxima Ação">
-          <div
-            id="panel-next-action-ingles"
-            className={`p-3.5 rounded-xl ${accent.softBg} backdrop-blur-sm border ${accent.softBorder} flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass ${accent.hoverBorder}`}
-          >
-            <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{resumeLesson.title}</h4>
-            <p className="text-[11px] text-text-secondary">{resumeLesson.durationMinutes} min · {currentModule.title}</p>
-          </div>
+          {requestStartStudy ? (
+            <button
+              type="button"
+              id="panel-next-action-ingles"
+              onClick={requestStartStudy}
+              className={`w-full text-left p-3.5 rounded-xl ${accent.softBg} backdrop-blur-sm border ${accent.softBorder} flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass ${accent.hoverBorder} focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none`}
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{resumeLesson.title}</h4>
+              <p className="text-[11px] text-text-secondary">{resumeLesson.durationMinutes} min · {currentModule.title}</p>
+              <span className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${accent.text}`}>
+                <span className="material-symbols-outlined text-[14px]">play_circle</span>
+                Continuar sessão
+              </span>
+            </button>
+          ) : (
+            <div
+              id="panel-next-action-ingles"
+              className={`p-3.5 rounded-xl ${accent.softBg} backdrop-blur-sm border ${accent.softBorder} flex flex-col gap-1`}
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{resumeLesson.title}</h4>
+              <p className="text-[11px] text-text-secondary">{resumeLesson.durationMinutes} min · {currentModule.title}</p>
+            </div>
+          )}
         </ContextPanelSection>
       )}
 

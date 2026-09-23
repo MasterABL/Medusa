@@ -6,6 +6,7 @@ import { TrackModuleList } from './TrackModuleList';
 import { EnemCronogramaView } from './EnemCronogramaView';
 import { CompletedActivityList } from './CompletedActivityList';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { getTrackAccent } from './trackAccent';
 
 interface EnemHubProps {
   trackDef: TrackDefinition;
@@ -30,6 +31,7 @@ const SIMULADO_STATUS_LABEL: Record<string, string> = {
  * e o que já foi concluído; "Cronograma" é a subexperiência própria de planejamento temporal.
  */
 export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
+  const accent = getTrackAccent(trackDef.id);
   const { enemView: view, setEnemView: setView } = useEducationPanel();
   const cronograma = trackDef.cronograma ?? [];
   const simulados = cronograma.filter((b) => b.activityType === 'simulado');
@@ -90,7 +92,7 @@ export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
                   <button
                     type="button"
                     onClick={() => setView('cronograma')}
-                    className="text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] hover:opacity-80 flex items-center gap-1"
+                    className={`text-[11px] font-mono ${accent.text} hover:opacity-80 flex items-center gap-1`}
                   >
                     Ver no Cronograma
                     <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
@@ -103,7 +105,7 @@ export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
                       className="p-3.5 rounded-xl border border-border/60 bg-surface/70 flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="material-symbols-outlined text-[18px] text-medusa-primary flex-shrink-0">
+                        <span className={`material-symbols-outlined text-[18px] ${accent.text} flex-shrink-0`}>
                           quiz
                         </span>
                         <div className="min-w-0">
@@ -126,11 +128,13 @@ export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
               title={`Conteúdos por Habilidade · ${trackDef.name}`}
               domainLabel={trackDef.domainLabel}
               items={trackItems}
+              accent={accent}
             />
 
             <CompletedActivityList
               sectionId="enem-completed-activities"
               title={`Aulas Concluídas · ${trackDef.name}`}
+              accent={accent}
               items={completedModules.map((m) => ({
                 id: m.id,
                 title: m.title,

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StudyTrack, TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
 import { TutorDrawer } from './TutorDrawer';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { useEscapeKey } from '@/lib/useEscapeKey';
 
 interface StudyModeViewProps {
   trackDef: TrackDefinition;
@@ -45,6 +46,7 @@ export function StudyModeView({
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(initialTimeSeconds);
   const [showInterruptConfirm, setShowInterruptConfirm] = useState(false);
+  useEscapeKey(showInterruptConfirm, () => setShowInterruptConfirm(false));
   const duration = lesson.actualDurationSeconds;
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5>(1);
   const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'vocabulary' | 'tutor'>('summary');
@@ -830,13 +832,13 @@ export function StudyModeView({
           role="dialog"
           aria-modal="true"
           aria-label="Confirmar interrupção da aula"
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1C2420]/40 backdrop-blur-[2px]"
+          className="modal-backdrop-enter fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           onClick={() => setShowInterruptConfirm(false)}
         >
           <div
             id="interrupt-lesson-confirm-dialog"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-surface rounded-2xl border border-border/70 shadow-island p-6 flex flex-col gap-4 study-summary-enter"
+            className="modal-pop-enter w-full max-w-md bg-surface rounded-2xl border border-border/70 shadow-island p-6 flex flex-col gap-4"
           >
             <div className="flex items-center gap-2.5">
               <span className="w-8 h-8 rounded-full bg-medusa-accent/25 border border-medusa-accent/50 flex items-center justify-center text-[#8A6D00] dark:text-medusa-accent flex-shrink-0">

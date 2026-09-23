@@ -29,7 +29,7 @@ const RECEDE_MS = 320;
 
 export function EducationContainer() {
   const { setIslandState, setMode, mode, setVoiceActive } = useShell();
-  const { setCurrentTrackMirror, setIsSessionCompletedMirror, setSessionResultMirror } = useEducationPanel();
+  const { setCurrentTrackMirror, setIsSessionCompletedMirror, setSessionResultMirror, setRequestStartStudyMirror } = useEducationPanel();
 
   // Trilha ativa no Learning OS (Faculdade, Inglês, Vestibular)
   const [currentTrack, setCurrentTrack] = useState<StudyTrack>('faculdade');
@@ -108,6 +108,14 @@ export function EducationContainer() {
     },
     [mode, setIslandState]
   );
+
+  // Espelha handleStartStudy pro card "Próxima Ação" dos 3 Context Panels (Round 5 §9) — só
+  // quando a Educação está no dashboard (mesma trava já usada por CronogramaOverlay logo
+  // abaixo): iniciar uma sessão nova a partir do painel enquanto já existe uma em andamento
+  // seria uma segunda sessão silenciosa por cima da atual.
+  useEffect(() => {
+    setRequestStartStudyMirror(sessionState === 'dashboard' ? () => handleStartStudy(false) : null);
+  }, [sessionState, handleStartStudy, setRequestStartStudyMirror]);
 
   // 2. Loading concluído com sucesso: loading -> ready
   const handleLoadingComplete = useCallback(() => {

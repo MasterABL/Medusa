@@ -16,7 +16,7 @@ const accent = getTrackAccent('vestibular');
  */
 export function EnemContextPanel() {
   const trackDef = TRACK_DEFINITIONS.vestibular;
-  const { openReviewModal, isSessionCompleted, sessionResultMirror, openCronogramaOverlay } = useEducationPanel();
+  const { openReviewModal, isSessionCompleted, sessionResultMirror, openCronogramaOverlay, requestStartStudy } = useEducationPanel();
   const cronograma = trackDef.cronograma ?? [];
 
   const completedModules = trackDef.modules.filter((m) => m.status === 'completed').length;
@@ -98,17 +98,37 @@ export function EnemContextPanel() {
       {/* 2. PRÓXIMA AÇÃO — protagonista do painel */}
       {(todayBlock || currentModule) && (
         <ContextPanelSection label="Próxima Ação">
-          <div
-            id="panel-next-action-enem"
-            className={`p-3.5 rounded-xl ${accent.softBg} backdrop-blur-sm border ${accent.softBorder} flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass ${accent.hoverBorder}`}
-          >
-            <h4 className="text-[13px] font-semibold text-text-primary leading-snug">
-              {todayBlock ? `${todayBlock.discipline} · ${todayBlock.topic}` : currentModule?.title}
-            </h4>
-            <p className="text-[11px] text-text-secondary">
-              {todayBlock ? todayBlock.nextAction : `${currentModule?.duration ?? ''}`}
-            </p>
-          </div>
+          {requestStartStudy ? (
+            <button
+              type="button"
+              id="panel-next-action-enem"
+              onClick={requestStartStudy}
+              className={`w-full text-left p-3.5 rounded-xl ${accent.softBg} backdrop-blur-sm border ${accent.softBorder} flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass ${accent.hoverBorder} focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none`}
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">
+                {todayBlock ? `${todayBlock.discipline} · ${todayBlock.topic}` : currentModule?.title}
+              </h4>
+              <p className="text-[11px] text-text-secondary">
+                {todayBlock ? todayBlock.nextAction : `${currentModule?.duration ?? ''}`}
+              </p>
+              <span className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${accent.text}`}>
+                <span className="material-symbols-outlined text-[14px]">play_circle</span>
+                Continuar sessão
+              </span>
+            </button>
+          ) : (
+            <div
+              id="panel-next-action-enem"
+              className={`p-3.5 rounded-xl ${accent.softBg} backdrop-blur-sm border ${accent.softBorder} flex flex-col gap-1`}
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">
+                {todayBlock ? `${todayBlock.discipline} · ${todayBlock.topic}` : currentModule?.title}
+              </h4>
+              <p className="text-[11px] text-text-secondary">
+                {todayBlock ? todayBlock.nextAction : `${currentModule?.duration ?? ''}`}
+              </p>
+            </div>
+          )}
         </ContextPanelSection>
       )}
 

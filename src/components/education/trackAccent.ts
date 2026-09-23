@@ -28,6 +28,11 @@ export interface TrackAccentClasses {
    * classe — por isso ela precisa existir pronta, por extenso, aqui.
    */
   hoverBorder: string;
+  /**
+   * Borda "em foco/ativo" a 50% de opacidade — mesma ressalva do `hoverBorder` acima: precisa
+   * existir por extenso porque o scanner do Tailwind não resolve concatenação em runtime.
+   */
+  activeBorder: string;
   /** Fundo sólido para CTA primário da trilha. */
   solidBg: string;
   /** Texto sobre o fundo sólido acima. */
@@ -40,6 +45,7 @@ const TRACK_ACCENT: Record<StudyTrack, TrackAccentClasses> = {
     softBg: 'bg-[#71DBD2]/15',
     softBorder: 'border-[#71DBD2]/30',
     hoverBorder: 'hover:border-[#71DBD2]/50',
+    activeBorder: 'border-[#71DBD2]/50',
     solidBg: 'bg-medusa-primary',
     solidText: 'text-[#1C2420]',
   },
@@ -48,6 +54,7 @@ const TRACK_ACCENT: Record<StudyTrack, TrackAccentClasses> = {
     softBg: 'bg-medusa-accent/15',
     softBorder: 'border-medusa-accent/30',
     hoverBorder: 'hover:border-medusa-accent/50',
+    activeBorder: 'border-medusa-accent/50',
     solidBg: 'bg-medusa-accent',
     solidText: 'text-[#4A3B00]',
   },
@@ -56,6 +63,7 @@ const TRACK_ACCENT: Record<StudyTrack, TrackAccentClasses> = {
     softBg: 'bg-medusa-tertiary/20',
     softBorder: 'border-medusa-tertiary/40',
     hoverBorder: 'hover:border-medusa-tertiary/50',
+    activeBorder: 'border-medusa-tertiary/50',
     solidBg: 'bg-medusa-tertiary',
     solidText: 'text-[#1C2420]',
   },

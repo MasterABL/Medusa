@@ -3,17 +3,12 @@
 import React from 'react';
 import { TrackDefinition, TrackModuleItem } from './types';
 import { CompletedActivityList } from './CompletedActivityList';
+import { getTrackAccent } from './trackAccent';
 
 interface EnglishHubProps {
   trackDef: TrackDefinition;
   trackItems: TrackModuleItem[];
 }
-
-const LESSON_STATUS_STYLE: Record<string, string> = {
-  completed: 'bg-medusa-support/20 text-[#1B502C] dark:text-medusa-support border-medusa-support/40',
-  current: 'bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] border-medusa-primary/40',
-  locked: 'bg-surface-secondary text-text-muted border-border/60',
-};
 
 const LESSON_STATUS_ICON: Record<string, string> = {
   completed: 'check',
@@ -29,6 +24,12 @@ const LESSON_STATUS_ICON: Record<string, string> = {
  * fluxo da aula, para não competir visualmente com a hierarquia de módulos.
  */
 export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
+  const accent = getTrackAccent(trackDef.id);
+  const lessonStatusStyle: Record<string, string> = {
+    completed: 'bg-medusa-support/20 text-[#1B502C] dark:text-medusa-support border-medusa-support/40',
+    current: `${accent.softBg} ${accent.text} ${accent.softBorder}`,
+    locked: 'bg-surface-secondary text-text-muted border-border/60',
+  };
   const modulesWithLessons = trackItems.filter((m) => m.lessons && m.lessons.length > 0);
 
   const allLessons = modulesWithLessons.flatMap((m) => m.lessons ?? []);
@@ -57,7 +58,7 @@ export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
         {/* Barra de progresso geral do curso (não por sessão isolada) */}
         <div className="h-1.5 rounded-full bg-surface-secondary/80 border border-border/40 overflow-hidden">
           <div
-            className="h-full rounded-full bg-medusa-primary transition-all duration-700 ease-out"
+            className={`h-full rounded-full ${accent.solidBg} transition-all duration-700 ease-out`}
             style={{ width: `${overallPercent}%` }}
           />
         </div>
@@ -76,7 +77,7 @@ export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
                 open={isActiveModule}
                 className={`group rounded-xl border transition-all ${
                   isActiveModule
-                    ? 'bg-surface border-medusa-primary/50 shadow-calm'
+                    ? `bg-surface ${accent.activeBorder} shadow-calm`
                     : isModCompleted
                     ? 'bg-surface/70 border-border/60'
                     : 'bg-surface-secondary/40 border-border/40 opacity-80'
@@ -89,7 +90,7 @@ export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
                         isModCompleted
                           ? 'bg-medusa-support/20 text-[#1B502C] dark:text-medusa-support border-medusa-support/40'
                           : isActiveModule
-                          ? 'bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] border-medusa-primary/40'
+                          ? `${accent.softBg} ${accent.text} ${accent.softBorder}`
                           : 'bg-surface-secondary text-text-muted border-border/60'
                       }`}
                     >
@@ -117,7 +118,7 @@ export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
 
                   <div className="flex items-center gap-3 flex-shrink-0">
                     {isActiveModule && resumeLesson && (
-                      <span className="hidden sm:inline text-[11px] font-semibold text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30">
+                      <span className={`hidden sm:inline text-[11px] font-semibold ${accent.text} ${accent.softBg} px-2.5 py-0.5 rounded-full border ${accent.softBorder}`}>
                         Retomar: {resumeLesson.title}
                       </span>
                     )}
@@ -133,13 +134,13 @@ export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
                       key={lesson.id}
                       className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border text-[13px] ${
                         lesson.status === 'current'
-                          ? 'border-medusa-primary/40 bg-medusa-primary/5'
+                          ? `${accent.softBorder} ${accent.softBg}`
                           : 'border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span
-                          className={`w-5 h-5 rounded-full flex items-center justify-center border flex-shrink-0 ${LESSON_STATUS_STYLE[lesson.status]}`}
+                          className={`w-5 h-5 rounded-full flex items-center justify-center border flex-shrink-0 ${lessonStatusStyle[lesson.status]}`}
                         >
                           <span className="material-symbols-outlined text-[12px]">
                             {LESSON_STATUS_ICON[lesson.status]}
@@ -169,6 +170,7 @@ export function EnglishHub({ trackDef, trackItems }: EnglishHubProps) {
       <CompletedActivityList
         sectionId="my-lessons-history"
         title="Minhas Aulas · Concluídas"
+        accent={accent}
         items={history.map((rec) => ({
           id: rec.id,
           title: rec.title,

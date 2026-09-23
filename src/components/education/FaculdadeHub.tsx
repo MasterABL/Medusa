@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TrackDefinition, TrackModuleItem } from './types';
 import { TrackModuleList } from './TrackModuleList';
 import { CompletedActivityList } from './CompletedActivityList';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { getTrackAccent } from './trackAccent';
 
 interface FaculdadeHubProps {
   trackDef: TrackDefinition;
@@ -21,8 +22,21 @@ interface FaculdadeHubProps {
  * aqui na área principal.
  */
 export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
-  const disciplines = trackDef.disciplines ?? [];
-  const { faculdadeDisciplineCode: selectedCode, setFaculdadeDisciplineCode: setSelectedCode } = useEducationPanel();
+  const accent = getTrackAccent(trackDef.id);
+  const {
+    faculdadeDisciplineCode: selectedCode,
+    setFaculdadeDisciplineCode: setSelectedCode,
+    facultyExtraDisciplines,
+    addFaculdadeDiscipline,
+  } = useEducationPanel();
+  // Fixture + disciplinas adicionadas nesta sessão (ver EducationPanelContext.tsx) — a mesma
+  // lista combinada que o Context Panel usa, para as duas superfícies nunca divergirem.
+  const disciplines = [...(trackDef.disciplines ?? []), ...facultyExtraDisciplines];
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newCode, setNewCode] = useState('');
+  const [newCredits, setNewCredits] = useState('4');
 
   const selected = disciplines.find((d) => d.code === selectedCode) ?? disciplines[0];
   // FIS-204 é a disciplina com sessão de estudo real (a que o hero "Continuar Sessão" do Hub
@@ -31,6 +45,37 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
   const isPrimaryDiscipline = selected?.code === trackDef.disciplines?.find((d) => d.isActive)?.code;
   const contentToShow = isPrimaryDiscipline ? trackItems : selected?.content ?? [];
   const completedContent = contentToShow.filter((m) => m.status === 'completed');
+
+  function resetForm() {
+    setNewTitle('');
+    setNewCode('');
+    setNewCredits('4');
+    setIsAdding(false);
+  }
+
+  function handleAddDiscipline(e: React.FormEvent) {
+    e.preventDefault();
+    const title = newTitle.trim();
+    const code = newCode.trim().toUpperCase() || title.slice(0, 3).toUpperCase();
+    if (!title || disciplines.some((d) => d.code === code)) return;
+
+    addFaculdadeDiscipline({
+      code,
+      title,
+      dateRange: 'Período letivo atual',
+      credits: Number(newCredits) || 4,
+      isActive: false,
+      focusTopic: 'Ainda sem tópico definido',
+      focusObjective: 'Adicione conteúdo e prazos assim que o plano da disciplina estiver definido.',
+      focusDuration: '—',
+      content: [],
+      notices: [],
+      materials: [],
+      deadlines: [],
+    });
+    setSelectedCode(code);
+    resetForm();
+  }
 
   if (!selected) return null;
 
@@ -44,7 +89,7 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
           <div className="h-px bg-border/60 w-16" />
         </div>
 
-        <div id="faculdade-discipline-selector" className="flex flex-wrap gap-2" role="tablist" aria-label="Selecionar disciplina">
+        <div id="faculdade-discipline-selector" className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Selecionar disciplina">
           {disciplines.map((d) => {
             const isSelected = d.code === selectedCode;
             return (
@@ -57,7 +102,7 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
                 onClick={() => setSelectedCode(d.code)}
                 className={`btn-interactive flex items-center gap-2.5 px-3.5 py-2 rounded-full border text-[12px] transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
                   isSelected
-                    ? 'bg-[#71DBD2]/15 border-[#71DBD2]/40 text-[#18534B] dark:text-[#71DBD2] font-semibold shadow-subtle scale-[1.02]'
+                    ? `${accent.softBg} ${accent.softBorder} ${accent.text} font-semibold shadow-subtle scale-[1.02]`
                     : 'bg-surface-secondary/50 border-border/50 text-text-secondary hover:text-text-primary hover:border-border/70'
                 }`}
               >
@@ -69,7 +114,79 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
               </button>
             );
           })}
+
+          <button
+            type="button"
+            id="btn-add-discipline"
+            onClick={() => setIsAdding((v) => !v)}
+            aria-expanded={isAdding}
+            aria-controls="add-discipline-form"
+            className={`btn-interactive flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-dashed text-[12px] font-medium transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
+              isAdding
+                ? `${accent.softBg} ${accent.softBorder} ${accent.text}`
+                : 'border-border/60 text-text-muted hover:text-text-primary hover:border-border/90'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            Adicionar disciplina
+          </button>
         </div>
+
+        {isAdding && (
+          <form
+            id="add-discipline-form"
+            onSubmit={handleAddDiscipline}
+            className="summary-item-rise flex flex-col sm:flex-row sm:items-end gap-3 p-4 rounded-xl bg-surface border border-border/70 shadow-subtle"
+          >
+            <label className="flex flex-col gap-1 flex-1 min-w-0">
+              <span className="text-[10px] font-mono uppercase tracking-wide text-text-muted">Nome da disciplina</span>
+              <input
+                autoFocus
+                required
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Ex.: Cálculo III"
+                className="px-3 py-2 rounded-lg bg-surface-secondary/60 border border-border/60 text-[13px] text-text-primary placeholder:text-text-muted focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1 w-full sm:w-28">
+              <span className="text-[10px] font-mono uppercase tracking-wide text-text-muted">Código</span>
+              <input
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value)}
+                placeholder="CAL-303"
+                className="px-3 py-2 rounded-lg bg-surface-secondary/60 border border-border/60 text-[13px] text-text-primary placeholder:text-text-muted focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1 w-full sm:w-24">
+              <span className="text-[10px] font-mono uppercase tracking-wide text-text-muted">Créditos</span>
+              <input
+                type="number"
+                min={1}
+                max={12}
+                value={newCredits}
+                onChange={(e) => setNewCredits(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-surface-secondary/60 border border-border/60 text-[13px] text-text-primary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+              />
+            </label>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="submit"
+                disabled={!newTitle.trim()}
+                className={`px-4 py-2 rounded-lg text-[12px] font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed ${accent.solidBg} ${accent.solidText}`}
+              >
+                Adicionar
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-3 py-2 rounded-lg text-[12px] text-text-muted hover:text-text-primary transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
       </section>
 
       {/*
@@ -86,7 +203,7 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
+              <span className={`w-1.5 h-1.5 rounded-full ${accent.solidBg} living-pulse`} />
               Sessão em Foco · {selected.title}
             </span>
             <span className="text-[10px] font-mono text-text-muted bg-surface-secondary px-2 py-0.5 rounded border border-border/60">
@@ -106,11 +223,13 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
           title={`Aulas & Conteúdos · ${selected.title}`}
           domainLabel={trackDef.domainLabel}
           items={contentToShow}
+          accent={accent}
         />
 
         <CompletedActivityList
           sectionId="faculdade-completed-activities"
           title={`Aulas Concluídas · ${selected.title}`}
+          accent={accent}
           items={completedContent.map((m) => ({
             id: m.id,
             title: m.title,

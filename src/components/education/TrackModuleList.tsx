@@ -2,11 +2,16 @@
 
 import React from 'react';
 import { TrackModuleItem } from './types';
+import { TrackAccentClasses } from './trackAccent';
 
 interface TrackModuleListProps {
   title: string;
   domainLabel: string;
   items: TrackModuleItem[];
+  /** Cor de identidade da trilha que está renderizando esta lista (ver DESIGN.md §6.2). Sem isso
+   * o estado "em foco"/"ativo" sempre caía no teal da Faculdade, mesmo quando a lista era
+   * renderizada pelo ENEM — bug real corrigido nesta rodada. */
+  accent: TrackAccentClasses;
 }
 
 /**
@@ -14,7 +19,7 @@ interface TrackModuleListProps {
  * (aulas/conteúdos da disciplina ativa), já que para essas duas trilhas o módulo plano é a unidade
  * correta. Inglês NÃO usa este componente: sua unidade é o módulo→aulas (ver EnglishHub.tsx).
  */
-export function TrackModuleList({ title, domainLabel, items }: TrackModuleListProps) {
+export function TrackModuleList({ title, domainLabel, items, accent }: TrackModuleListProps) {
   return (
     <section aria-label={title} className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -37,7 +42,7 @@ export function TrackModuleList({ title, domainLabel, items }: TrackModuleListPr
               key={item.id}
               className={`p-4 sm:p-5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                 isItemActive
-                  ? 'bg-surface border-medusa-primary/50 shadow-calm'
+                  ? `bg-surface ${accent.activeBorder} shadow-calm`
                   : isItemCompleted
                   ? 'bg-surface/70 border-border/60 hover:bg-surface'
                   : 'bg-surface-secondary/40 border-border/40 opacity-70'
@@ -49,7 +54,7 @@ export function TrackModuleList({ title, domainLabel, items }: TrackModuleListPr
                     isItemCompleted
                       ? 'bg-medusa-support/20 text-[#1B502C] dark:text-medusa-support border border-medusa-support/40'
                       : isItemActive
-                      ? 'bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] border border-medusa-primary/40'
+                      ? `${accent.softBg} ${accent.text} border ${accent.softBorder}`
                       : 'bg-surface-secondary text-text-muted border border-border/60'
                   }`}
                 >
@@ -80,7 +85,7 @@ export function TrackModuleList({ title, domainLabel, items }: TrackModuleListPr
                   </span>
                 )}
                 {isItemActive && (
-                  <span className="font-semibold text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30">
+                  <span className={`font-semibold ${accent.text} ${accent.softBg} px-2.5 py-0.5 rounded-full border ${accent.softBorder}`}>
                     Em Foco
                   </span>
                 )}

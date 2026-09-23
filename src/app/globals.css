@@ -3,29 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --color-bg: #FAFCFA;
-  --color-bg-rgb: 250 252 250;
-  /* Superfície de card — off-white quente (#FAFDF5), nunca #FFFFFF puro (ver DESIGN.md). */
-  --color-surface: #FAFDF5;
-  --color-surface-rgb: 250 253 245;
-  --color-surface-elevated: #FAFDF5;
-  --color-surface-elevated-rgb: 250 253 245;
-  --color-surface-secondary: #F4F8F5;
-  --color-surface-secondary-rgb: 244 248 245;
-  --color-surface-subtle: #F0F4F2;
-  --color-surface-subtle-rgb: 240 244 242;
+  /*
+   * Round 5 §18 — modo claro corrigido: os valores anteriores (bg #FAFCFA, surface #FAFDF5)
+   * ficavam acima de 250 nos 3 canais RGB, indistinguíveis de #FFFFFF a olho nu e quase sem
+   * separação de luminância entre bg/surface (a "elevação" do card mal aparecia). Os novos
+   * valores são um cinza quente/neutro de verdade — ainda claro e confortável, mas
+   * perceptivelmente não-branco, com bg mais fosco que surface para o card continuar "subindo"
+   * visualmente da página.
+   */
+  --color-bg: #F2EFE7;
+  --color-bg-rgb: 242 239 231;
+  --color-surface: #F8F5EE;
+  --color-surface-rgb: 248 245 238;
+  --color-surface-elevated: #FBF9F3;
+  --color-surface-elevated-rgb: 251 249 243;
+  --color-surface-secondary: #EAE6DA;
+  --color-surface-secondary-rgb: 234 230 218;
+  --color-surface-subtle: #E3DFD1;
+  --color-surface-subtle-rgb: 227 223 209;
   --color-text-primary: #1C2420;
   --color-text-primary-rgb: 28 36 32;
   --color-text-secondary: #586961;
   --color-text-secondary-rgb: 88 105 97;
   --color-text-muted: #889B93;
   --color-text-muted-rgb: 136 155 147;
-  --color-border: #E5EDE8;
-  --color-border-rgb: 229 237 232;
-  --color-border-subtle: #EDF3EF;
-  --color-border-subtle-rgb: 237 243 239;
-  --color-border-strong: #D2DFD8;
-  --color-border-strong-rgb: 210 223 216;
+  --color-border: #DDD8C9;
+  --color-border-rgb: 221 216 201;
+  --color-border-subtle: #E6E2D3;
+  --color-border-subtle-rgb: 230 226 211;
+  --color-border-strong: #CBC4B0;
+  --color-border-strong-rgb: 203 196 176;
   --color-primary: #71DBD2;
   --color-primary-rgb: 113 219 210;
   --color-on-primary: #1C2420;
@@ -55,28 +62,35 @@
 }
 
 html.sepia {
-  --color-bg: #F8F7F0;
-  --color-bg-rgb: 248 247 240;
-  --color-surface: #FFFDF7;
-  --color-surface-rgb: 255 253 247;
-  --color-surface-elevated: #FFFDF7;
-  --color-surface-elevated-rgb: 255 253 247;
-  --color-surface-secondary: #F3F1E8;
-  --color-surface-secondary-rgb: 243 241 232;
-  --color-surface-subtle: #EDEAE0;
-  --color-surface-subtle-rgb: 237 234 224;
-  --color-text-primary: #343A36;
-  --color-text-primary-rgb: 52 58 54;
-  --color-text-secondary: #65716A;
-  --color-text-secondary-rgb: 101 113 106;
-  --color-text-muted: #8C9991;
-  --color-text-muted-rgb: 140 153 145;
-  --color-border: #E4E5DA;
-  --color-border-rgb: 228 229 218;
-  --color-border-subtle: #ECEEE3;
-  --color-border-subtle-rgb: 236 238 227;
-  --color-border-strong: #D5D8CB;
-  --color-border-strong-rgb: 213 216 203;
+  /*
+   * Round 5 §19 — corrigido o problema oposto ao esperado: o sépia anterior (bg #F8F7F0,
+   * surface #FFFDF7) tinha luminância/matiz quase idêntico ao modo CLARO — na prática não
+   * existia diferenciação de temperatura entre os dois temas, então "sépia forte demais" nunca
+   * foi o problema real. Os valores novos são papel/madeira clara de verdade (matiz âmbar,
+   * ainda claro e de baixo contraste — nunca marrom escuro nem saturado).
+   */
+  --color-bg: #EFE4CC;
+  --color-bg-rgb: 239 228 204;
+  --color-surface: #F8F0DD;
+  --color-surface-rgb: 248 240 221;
+  --color-surface-elevated: #FBF5E7;
+  --color-surface-elevated-rgb: 251 245 231;
+  --color-surface-secondary: #E9DDBF;
+  --color-surface-secondary-rgb: 233 221 191;
+  --color-surface-subtle: #E2D4B0;
+  --color-surface-subtle-rgb: 226 212 176;
+  --color-text-primary: #3D3220;
+  --color-text-primary-rgb: 61 50 32;
+  --color-text-secondary: #6B5D42;
+  --color-text-secondary-rgb: 107 93 66;
+  --color-text-muted: #93876B;
+  --color-text-muted-rgb: 147 135 107;
+  --color-border: #DCCCA0;
+  --color-border-rgb: 220 204 160;
+  --color-border-subtle: #E5D7AF;
+  --color-border-subtle-rgb: 229 215 175;
+  --color-border-strong: #CBB786;
+  --color-border-strong-rgb: 203 183 134;
   --color-primary: #71DBD2;
   --color-primary-rgb: 113 219 210;
   --color-on-primary: #1C2420;
@@ -92,8 +106,8 @@ html.sepia {
   --color-alert-rgb: 196 91 91;
   --color-focus-ring: #2C6956;
   --color-focus-ring-rgb: 44 105 86;
-  --color-overlay: rgba(52, 58, 54, 0.35);
-  --color-overlay-rgb: 52 58 54;
+  --color-overlay: rgba(61, 50, 32, 0.35);
+  --color-overlay-rgb: 61 50 32;
 }
 
 html.dark {
@@ -508,6 +522,31 @@ html.theme-transitioning *::after {
     opacity: 0;
     transform: scale(0.985) translateY(-8px);
   }
+}
+
+/*
+ * MODAL (Round 5 §7/§24) — entrada/saída de diálogos CENTRADOS (confirmação, revisão). Antes,
+ * `interrupt-lesson-confirm-dialog`/`LessonReviewModal` reaproveitavam `study-summary-enter`
+ * (deslocamento horizontal, pensado para conteúdo lateral do painel), o que não fazia sentido
+ * pra um card centralizado na tela — e o backdrop usava `backdrop-blur-[2px]`, quase
+ * imperceptível, deixando o diálogo parecer "um quadrado borrado" solto sobre a interface em vez
+ * de uma camada de verdade. `.modal-backdrop-enter`/`.modal-pop-enter` alinham esses dois
+ * diálogos ao mesmo padrão já usado por `CronogramaOverlay`/`ContextPanel`/`Sidebar`
+ * (`bg-black/40 backdrop-blur-sm`), com o cartão entrando por fade+scale (nunca só opacity).
+ */
+@keyframes modalBackdropFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes modalPopIn {
+  0% { opacity: 0; transform: scale(0.96) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-backdrop-enter {
+  animation: modalBackdropFade 180ms var(--ease-smooth) forwards;
+}
+.modal-pop-enter {
+  animation: modalPopIn 220ms var(--ease-smooth) forwards;
 }
 
 .study-stage-enter {
