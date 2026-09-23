@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { DynamicIsland } from './DynamicIsland';
+import { SpotifyMusicWidget } from './SpotifyMusicWidget';
 import { Theme, ShellMode } from '@/types/shell';
 import { useClickOutside } from '@/lib/useClickOutside';
 
@@ -280,6 +281,13 @@ export function Header() {
               </div>
             )}
           </div>
+
+          {/* Música/Spotify (Round 5 §20) — ver auditoria de viabilidade completa em
+              SpotifyMusicWidget.tsx. Adjacente ao Island (mesma zona da Dynamic Island, "camada
+              viva" do cabeçalho) em vez de dentro dele, de propósito: modificar a máquina de
+              estados já testada do Island às cegas (sem conseguir verificar a integração real do
+              Spotify neste ambiente) era mais risco do que valia. */}
+          <SpotifyMusicWidget />
 
           {/* Toggle Context Panel (Apenas quando o painel regional for suportado no layout atual) */}
           {geometry.isContextAvailable && (
