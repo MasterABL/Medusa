@@ -12,6 +12,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { StudyTrack, SessionResult, DisciplineChip } from '@/components/education/types';
 import { CompletedActivityItem } from '@/components/education/CompletedActivityList';
+import { CronogramaPlan } from '@/components/education/cronogramaPlanner';
 
 type EnemView = 'visao-geral' | 'cronograma';
 
@@ -74,6 +75,17 @@ interface EducationPanelContextType {
   closeCronogramaOverlay: () => void;
 
   /**
+   * Onboarding do Cronograma (Round 5 §12-14) — assistente de tela cheia no primeiro acesso da
+   * SESSÃO (escopo de sessão, como o resto do app fixture: some ao recarregar a página). Uma vez
+   * visto, `openCronogramaOverlay` sempre vai direto pro Cronograma detalhado.
+   */
+  cronogramaOnboardingSeen: boolean;
+  markCronogramaOnboardingSeen: () => void;
+  /** Resultado real do onboarding (ou o plano genérico, se o usuário pulou) — ver cronogramaPlanner.ts. */
+  cronogramaPlan: CronogramaPlan | null;
+  setCronogramaPlan: (plan: CronogramaPlan | null) => void;
+
+  /**
    * Intervalo preferido entre blocos de estudo do ENEM — configuração REAL e alterável, mas
    * escopo de sessão (não persistida em backend, dito explicitamente na UI onde aparece). Não
    * existia nenhuma modelagem de "intervalo" antes desta rodada; nenhuma reagenda automática de
@@ -99,6 +111,8 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   const [reviewModalItem, setReviewModalItem] = useState<CompletedActivityItem | null>(null);
   const [isCronogramaOverlayOpen, setIsCronogramaOverlayOpen] = useState(false);
   const [studyIntervalMinutes, setStudyIntervalMinutes] = useState(10);
+  const [cronogramaOnboardingSeen, setCronogramaOnboardingSeen] = useState(false);
+  const [cronogramaPlan, setCronogramaPlan] = useState<CronogramaPlan | null>(null);
 
   const setCurrentTrackMirrorCb = useCallback((track: StudyTrack) => setCurrentTrackMirror(track), []);
   const setIsSessionCompletedMirrorCb = useCallback((value: boolean) => setIsSessionCompletedMirror(value), []);
@@ -115,6 +129,7 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   }, []);
   const openCronogramaOverlay = useCallback(() => setIsCronogramaOverlayOpen(true), []);
   const closeCronogramaOverlay = useCallback(() => setIsCronogramaOverlayOpen(false), []);
+  const markCronogramaOnboardingSeen = useCallback(() => setCronogramaOnboardingSeen(true), []);
 
   return (
     <EducationPanelContext.Provider
@@ -141,6 +156,10 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
         closeCronogramaOverlay,
         studyIntervalMinutes,
         setStudyIntervalMinutes,
+        cronogramaOnboardingSeen,
+        markCronogramaOnboardingSeen,
+        cronogramaPlan,
+        setCronogramaPlan,
       }}
     >
       {children}

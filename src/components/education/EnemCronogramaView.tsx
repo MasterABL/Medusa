@@ -4,12 +4,15 @@ import React, { useMemo, useState } from 'react';
 import { CronogramaBlock } from './types';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { getDisciplineColor, COLORED_DISCIPLINES } from './disciplineColor';
+import { CronogramaPlan, INTENSIDADE_LABEL } from './cronogramaPlanner';
 
 const INTERVAL_OPTIONS = [5, 10, 15, 20];
 
 interface EnemCronogramaViewProps {
   blocks: CronogramaBlock[];
   onStartStudy?: (simulateError?: boolean) => void;
+  /** Resultado do onboarding (Round 5 §12-15) — ausente quando aberto pela aba Cronograma do Hub, que não passa por esse fluxo. */
+  plan?: CronogramaPlan | null;
 }
 
 type Period = 'hoje' | 'semana' | 'mes';
@@ -50,7 +53,7 @@ const STATUS_LABEL: Record<CronogramaBlock['status'], string> = {
  * atividade × recurso × status, e cada bloco abre um painel de contexto sem navegar para
  * outra tela.
  */
-export function EnemCronogramaView({ blocks, onStartStudy }: EnemCronogramaViewProps) {
+export function EnemCronogramaView({ blocks, onStartStudy, plan }: EnemCronogramaViewProps) {
   const [period, setPeriod] = useState<Period>('semana');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('Todas');
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(
@@ -161,6 +164,28 @@ export function EnemCronogramaView({ blocks, onStartStudy }: EnemCronogramaViewP
 
   return (
     <div id="enem-cronograma-view" className="flex flex-col gap-4">
+      {/* Resumo do plano calculado no onboarding (Round 5 §12-15) — separado do cronograma
+          detalhado abaixo, de propósito: este resumo é derivado das respostas reais do usuário
+          (dias/horas/prazo/domínio); o cronograma detalhado continua sendo a mesma lista de
+          blocos curada de sempre, que não muda com essas respostas. Misturar os dois faria
+          parecer que os blocos foram gerados a partir do plano, o que não é verdade. */}
+      {plan && (
+        <div
+          id="cronograma-plan-summary"
+          className="p-3 rounded-xl bg-medusa-accent/10 border border-medusa-accent/30 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]"
+        >
+          <span className="flex items-center gap-1.5 font-semibold text-text-primary">
+            <span className="material-symbols-outlined text-[15px] text-[#8A6D00] dark:text-medusa-accent">auto_awesome</span>
+            Seu plano calculado
+          </span>
+          <span className="text-text-secondary">
+            {plan.semanasRestantes} semana{plan.semanasRestantes !== 1 ? 's' : ''} até a prova
+          </span>
+          <span className="text-text-secondary">{plan.horasSemanais}h/semana</span>
+          <span className="text-text-secondary">{INTENSIDADE_LABEL[plan.intensidade]}</span>
+        </div>
+      )}
+
       {/* Barra de período + resumo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div id="cronograma-period-switcher" className="flex items-center gap-1 p-1 bg-surface-secondary/70 border border-border/60 rounded-xl w-fit">

@@ -4,6 +4,8 @@ import React from 'react';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { EnemCronogramaView } from './EnemCronogramaView';
+import { CronogramaOnboarding } from './CronogramaOnboarding';
+import { CronogramaPlan } from './cronogramaPlanner';
 
 interface CronogramaOverlayProps {
   /**
@@ -24,8 +26,28 @@ interface CronogramaOverlayProps {
  * Sidebar — sem introduzir um terceiro sistema de overlay.
  */
 export function CronogramaOverlay({ onStartStudy }: CronogramaOverlayProps) {
-  const { isCronogramaOverlayOpen, closeCronogramaOverlay } = useEducationPanel();
+  const {
+    isCronogramaOverlayOpen,
+    closeCronogramaOverlay,
+    cronogramaOnboardingSeen,
+    markCronogramaOnboardingSeen,
+    cronogramaPlan,
+    setCronogramaPlan,
+  } = useEducationPanel();
   const cronograma = TRACK_DEFINITIONS.vestibular.cronograma ?? [];
+
+  const handleFinishOnboarding = (plan: CronogramaPlan) => {
+    setCronogramaPlan(plan);
+    markCronogramaOnboardingSeen();
+  };
+
+  // Round 5 §12: primeiro acesso da SESSÃO ao Cronograma mostra o assistente de tela cheia em
+  // vez do painel lateral — nunca os dois ao mesmo tempo. `isCronogramaOverlayOpen` continua
+  // controlando o backdrop/painel por baixo (que já existe montado, só escondido), então fechar
+  // o onboarding sem terminar não deixa a tela em branco.
+  if (isCronogramaOverlayOpen && !cronogramaOnboardingSeen) {
+    return <CronogramaOnboarding onFinish={handleFinishOnboarding} />;
+  }
 
   return (
     <>
@@ -69,7 +91,9 @@ export function CronogramaOverlay({ onStartStudy }: CronogramaOverlayProps) {
         )}
 
         <div className="flex-1 overflow-y-auto p-4">
-          {isCronogramaOverlayOpen && <EnemCronogramaView blocks={cronograma} onStartStudy={onStartStudy} />}
+          {isCronogramaOverlayOpen && (
+            <EnemCronogramaView blocks={cronograma} onStartStudy={onStartStudy} plan={cronogramaPlan} />
+          )}
         </div>
       </aside>
     </>
