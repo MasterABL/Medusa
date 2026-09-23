@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { CronogramaBlock } from './types';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { getDisciplineColor, COLORED_DISCIPLINES } from './disciplineColor';
 
 const INTERVAL_OPTIONS = [5, 10, 15, 20];
 
@@ -107,20 +108,25 @@ export function EnemCronogramaView({ blocks, onStartStudy }: EnemCronogramaViewP
 
   const renderBlockCard = (block: CronogramaBlock) => {
     const isSelected = block.id === selectedBlockId;
+    // Round 5 §16: acento de cor pequeno (borda esquerda, nunca o bloco inteiro) identifica a
+    // disciplina de relance ao rolar a lista — o texto uppercase sozinho exigia ler palavra por
+    // palavra pra achar um bloco de uma disciplina específica.
+    const subjectColor = getDisciplineColor(block.discipline);
     return (
       <button
         key={block.id}
         type="button"
         id={`cronograma-block-${block.id}`}
         onClick={() => setSelectedBlockId(block.id)}
-        className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
+        className={`w-full text-left p-3 rounded-lg border ${subjectColor.leftBorder} transition-all flex flex-col gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
           isSelected
             ? 'bg-surface border-medusa-primary/60 shadow-subtle'
             : 'bg-surface/70 border-border/50 hover:bg-surface hover:border-border/70'
         }`}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-mono uppercase tracking-wide text-text-muted truncate">
+          <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wide text-text-muted truncate">
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${subjectColor.dot}`} />
             {block.discipline}
           </span>
           <span
@@ -194,23 +200,29 @@ export function EnemCronogramaView({ blocks, onStartStudy }: EnemCronogramaViewP
         </div>
       </div>
 
-      {/* Filtro por disciplina */}
+      {/* Filtro por disciplina — cada chip ganha o ponto de cor da própria disciplina (Round 5
+          §16), então escolher "Física" no filtro já ensina qual cor procurar na lista de blocos
+          abaixo, sem precisar de uma legenda separada pra isso. */}
       <div id="cronograma-discipline-filter" className="flex flex-wrap gap-1.5">
-        {disciplines.map((d) => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => setDisciplineFilter(d)}
-            aria-pressed={disciplineFilter === d}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-              disciplineFilter === d
-                ? 'bg-medusa-primary/15 border-medusa-primary/40 text-[#18534B] dark:text-[#71DBD2] font-semibold'
-                : 'bg-surface-secondary/40 border-border/50 text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            {d}
-          </button>
-        ))}
+        {disciplines.map((d) => {
+          const subjectColor = getDisciplineColor(d);
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDisciplineFilter(d)}
+              aria-pressed={disciplineFilter === d}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                disciplineFilter === d
+                  ? 'bg-medusa-primary/15 border-medusa-primary/40 text-[#18534B] dark:text-[#71DBD2] font-semibold'
+                  : 'bg-surface-secondary/40 border-border/50 text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              {d !== 'Todas' && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${subjectColor.dot}`} />}
+              {d}
+            </button>
+          );
+        })}
       </div>
 
       {/* Intervalo entre blocos — configuração real, escopo de sessão (ver comentário acima).

@@ -30,6 +30,15 @@ implementação real (`src/app/globals.css` + `tailwind.config.ts`) de fato segu
 Todos os tokens têm variante `-rgb` (ex.: `--color-primary-rgb`) para uso com opacidade via
 Tailwind (`bg-medusa-primary/15` etc.) e existem nos 3 temas (`:root` claro, `.sepia`, `.dark`).
 
+**Extensão — Identidade de disciplina no Cronograma (Round 5 §16):** 7 tokens adicionais
+(`--color-subject-blue/violet/amber/moss/rose/cyan/clay`) existem SÓ para diferenciar disciplinas
+no Cronograma do ENEM (chip de filtro, ponto de legenda, borda esquerda de um bloco — nunca o
+fundo inteiro de um bloco). Decisão explícita do Abimael: ampliar a paleta em vez de reaproveitar
+um dos 7 tokens originais, porque cada um deles já tem um papel fixo na Gramática de Cor abaixo —
+usar `accent` (amarelo, "revisão") como "a cor da Física", por exemplo, quebraria esse significado
+em todo o resto do app. Ver `src/components/education/disciplineColor.ts`. Essa extensão não muda
+a gramática dos 7 tokens originais nem é usada fora do Cronograma.
+
 ### Regras inegociáveis
 
 - **Nunca** `#FFFFFF` como superfície dominante. `--color-surface`/`--color-surface-elevated`

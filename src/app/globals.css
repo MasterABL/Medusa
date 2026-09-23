@@ -51,6 +51,30 @@
   --color-overlay: rgba(28, 36, 32, 0.45);
   --color-overlay-rgb: 28 36 32;
 
+  /*
+   * Round 5 §16 — identidade de disciplina no Cronograma do ENEM. Extensão EXPLÍCITA da paleta
+   * oficial (não uma reinterpretação dela): os 7 tokens acima já têm papel fixo na "Gramática de
+   * Cor" do DESIGN.md (primary=ação, support=progresso, accent=revisão, alert=urgência...) — usar
+   * um deles como "cor da disciplina X" quebraria esse significado em todo o resto do app.
+   * Estes 7 tokens novos só existem para diferenciar disciplinas em elementos PEQUENOS (chip,
+   * legenda, ponto/borda de bloco no Cronograma) — nunca para pintar um bloco inteiro, e nunca
+   * usados fora do Cronograma. Mesmo valor nos 3 temas, como os tokens originais.
+   */
+  --color-subject-blue: #8FB4E0;
+  --color-subject-blue-rgb: 143 180 224;
+  --color-subject-violet: #B6A6E0;
+  --color-subject-violet-rgb: 182 166 224;
+  --color-subject-amber: #E0A868;
+  --color-subject-amber-rgb: 224 168 104;
+  --color-subject-moss: #7FAE7A;
+  --color-subject-moss-rgb: 127 174 122;
+  --color-subject-rose: #D99BA6;
+  --color-subject-rose-rgb: 217 155 166;
+  --color-subject-cyan: #7FC2C9;
+  --color-subject-cyan-rgb: 127 194 201;
+  --color-subject-clay: #C97B5F;
+  --color-subject-clay-rgb: 201 123 95;
+
   /* Canonical Motion System Tokens (Spatial Drawer & Organic Expansion) */
   --duration-micro: 100ms;
   --duration-island: 250ms;
@@ -108,6 +132,22 @@ html.sepia {
   --color-focus-ring-rgb: 44 105 86;
   --color-overlay: rgba(61, 50, 32, 0.35);
   --color-overlay-rgb: 61 50 32;
+
+  /* Identidade de disciplina do Cronograma (Round 5 §16) — mesmos valores nos 3 temas, ver :root. */
+  --color-subject-blue: #8FB4E0;
+  --color-subject-blue-rgb: 143 180 224;
+  --color-subject-violet: #B6A6E0;
+  --color-subject-violet-rgb: 182 166 224;
+  --color-subject-amber: #E0A868;
+  --color-subject-amber-rgb: 224 168 104;
+  --color-subject-moss: #7FAE7A;
+  --color-subject-moss-rgb: 127 174 122;
+  --color-subject-rose: #D99BA6;
+  --color-subject-rose-rgb: 217 155 166;
+  --color-subject-cyan: #7FC2C9;
+  --color-subject-cyan-rgb: 127 194 201;
+  --color-subject-clay: #C97B5F;
+  --color-subject-clay-rgb: 201 123 95;
 }
 
 html.dark {
@@ -150,6 +190,22 @@ html.dark {
   --color-focus-ring-rgb: 113 219 210;
   --color-overlay: rgba(8, 12, 10, 0.65);
   --color-overlay-rgb: 8 12 10;
+
+  /* Identidade de disciplina do Cronograma (Round 5 §16) — mesmos valores nos 3 temas, ver :root. */
+  --color-subject-blue: #8FB4E0;
+  --color-subject-blue-rgb: 143 180 224;
+  --color-subject-violet: #B6A6E0;
+  --color-subject-violet-rgb: 182 166 224;
+  --color-subject-amber: #E0A868;
+  --color-subject-amber-rgb: 224 168 104;
+  --color-subject-moss: #7FAE7A;
+  --color-subject-moss-rgb: 127 174 122;
+  --color-subject-rose: #D99BA6;
+  --color-subject-rose-rgb: 217 155 166;
+  --color-subject-cyan: #7FC2C9;
+  --color-subject-cyan-rgb: 127 194 201;
+  --color-subject-clay: #C97B5F;
+  --color-subject-clay-rgb: 201 123 95;
 }
 
 @layer base {

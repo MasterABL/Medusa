@@ -17,6 +17,16 @@ const config: Config = {
           tertiary: "rgb(var(--color-tertiary-rgb) / <alpha-value>)",
           accent: "rgb(var(--color-accent-rgb) / <alpha-value>)",
           alert: "rgb(var(--color-alert-rgb) / <alpha-value>)",
+          // Identidade de disciplina do Cronograma (Round 5 §16) — extensão explícita da
+          // paleta oficial, só usada em elementos pequenos do Cronograma do ENEM (ver
+          // disciplineColor.ts). Nunca usada fora dali.
+          subjectBlue: "rgb(var(--color-subject-blue-rgb) / <alpha-value>)",
+          subjectViolet: "rgb(var(--color-subject-violet-rgb) / <alpha-value>)",
+          subjectAmber: "rgb(var(--color-subject-amber-rgb) / <alpha-value>)",
+          subjectMoss: "rgb(var(--color-subject-moss-rgb) / <alpha-value>)",
+          subjectRose: "rgb(var(--color-subject-rose-rgb) / <alpha-value>)",
+          subjectCyan: "rgb(var(--color-subject-cyan-rgb) / <alpha-value>)",
+          subjectClay: "rgb(var(--color-subject-clay-rgb) / <alpha-value>)",
         },
         background: "rgb(var(--color-bg-rgb) / <alpha-value>)",
         surface: "rgb(var(--color-surface-rgb) / <alpha-value>)",
