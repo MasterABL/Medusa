@@ -111,10 +111,15 @@ layout sem transição intermediária.
 
 ### 5.3 Mobile/Tablet
 
-O Context Panel de desktop não é comprimido para mobile — ele simplesmente não existe fora do
-breakpoint desktop hoje (`breakpoint !== 'desktop' → return null` em `ContextPanel.tsx`). Uma
-versão mobile (bottom sheet/drawer) ainda não foi implementada; ver Evidence Report da Rodada 4
-para o que falta.
+O Context Panel de desktop **não é comprimido** para mobile/tablet — fora do breakpoint desktop
+(`breakpoint !== 'desktop'`), `ContextPanel.tsx` renderiza uma experiência própria: um bottom
+sheet (folha inferior) com handle, abertura via botão flutuante (`#btn-open-context-sheet`),
+fechamento via backdrop/botão/X, `max-h-[80vh]` com rolagem interna, e o MESMO conteúdo do
+painel de desktop (`ContextPanelBody`, componente compartilhado — as duas superfícies nunca
+divergem em conteúdo, só na moldura). Usa a mesma transição de painel (`panel-transition`,
+`translate-y-full ↔ translate-y-0`) e o mesmo padrão de backdrop já usado pelo drawer de
+navegação (`Sidebar.tsx`), sem introduzir um terceiro sistema de overlay. Gesto de arrastar para
+fechar (swipe-to-dismiss) não foi implementado — fechamento é só por toque (botão/backdrop).
 
 ---
 
