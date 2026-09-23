@@ -549,6 +549,21 @@ html.theme-transitioning *::after {
   animation: modalPopIn 220ms var(--ease-smooth) forwards;
 }
 
+/* Round 5 §24: o Tutor em overlay (`TutorDrawer`, variant="drawer") referenciava
+   `drawer-slide-in animate-slideLeft` — nenhuma das duas existia neste arquivo nem no
+   `tailwind.config.ts` (`animate-slideLeft` não é uma animação Tailwind padrão nem uma
+   registrada aqui), então o painel simplesmente aparecia sem nenhuma transição de entrada.
+   `drawer-slide-in` agora é real: desliza da borda direita (de onde ele fisicamente mora na
+   tela, "entra de dentro" da própria borda, não de lugar nenhum) combinando translateX+opacity,
+   nunca opacity sozinho. */
+@keyframes drawerSlideIn {
+  0% { opacity: 0; transform: translateX(24px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.drawer-slide-in {
+  animation: drawerSlideIn 320ms var(--ease-smooth) forwards;
+}
+
 .study-stage-enter {
   animation: studyStageSlideIn 480ms var(--ease-smooth) forwards;
 }

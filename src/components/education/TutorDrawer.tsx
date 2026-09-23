@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TutorMessage, TrackDefinition } from './types';
+import { useEscapeKey } from '@/lib/useEscapeKey';
 
 interface TutorDrawerProps {
   isOpen: boolean;
@@ -187,20 +188,41 @@ export function TutorDrawer({
     }, 900);
   };
 
+  // Round 5 §24: o overlay do Tutor (fora do Modo Dividido de Inglês) não tinha Esc nem
+  // backdrop — o hook só faz sentido registrado quando o overlay de verdade existe (`isOpen` e
+  // não-inline), mesmo padrão já usado em StudyModeView/LessonReviewModal/EnglishContextPanel.
+  useEscapeKey(isOpen && variant !== 'inline', onClose);
+
   if (!isOpen && variant !== 'inline') return null;
 
   const isInline = variant === 'inline';
 
   return (
-    <div
-      id={isInline ? 'tutor-inline' : 'tutor-drawer'}
-      aria-label="Tutor Contextual da Sessão"
-      className={
-        isInline
-          ? 'h-full w-full bg-surface flex flex-col'
-          : 'fixed inset-y-0 right-0 w-full sm:w-[420px] bg-surface border-l border-border/80 shadow-2xl z-50 flex flex-col drawer-slide-in animate-slideLeft'
-      }
-    >
+    <>
+      {/* Backdrop — Round 5 §24: o Tutor (fora do Modo Dividido) era um painel fixo à direita
+          SEM nada escurecendo o resto da tela e sem fechar ao clicar fora, diferente de todo
+          outro overlay do app (`CronogramaOverlay`, `ContextPanel` mobile, `Sidebar`, os modais
+          de Interromper Aula/Revisão). Mesmo padrão reaproveitado aqui: `bg-black/40
+          backdrop-blur-sm` + `modal-backdrop-enter`. */}
+      {!isInline && (
+        <div
+          id="tutor-drawer-backdrop"
+          aria-hidden="true"
+          onClick={onClose}
+          className="modal-backdrop-enter fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+        />
+      )}
+      <div
+        id={isInline ? 'tutor-inline' : 'tutor-drawer'}
+        aria-label="Tutor Contextual da Sessão"
+        role={isInline ? undefined : 'dialog'}
+        aria-modal={isInline ? undefined : true}
+        className={
+          isInline
+            ? 'h-full w-full bg-surface flex flex-col'
+            : 'fixed inset-y-0 right-0 w-full sm:w-[420px] bg-surface border-l border-border/80 shadow-2xl z-50 flex flex-col drawer-slide-in'
+        }
+      >
       {/* Header do Tutor */}
       <div className="p-4 border-b border-border/70 flex items-center justify-between bg-surface-secondary/40">
         <div className="flex items-center gap-2.5">
@@ -325,5 +347,6 @@ export function TutorDrawer({
         </button>
       </form>
     </div>
+    </>
   );
 }
