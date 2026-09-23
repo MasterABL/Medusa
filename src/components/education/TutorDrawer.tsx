@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TutorMessage, TrackDefinition } from './types';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface TutorDrawerProps {
   isOpen: boolean;
@@ -185,6 +186,10 @@ export function TutorDrawer({
         timestamp: 'Agora',
       };
       setMessages((prev) => [...prev, tutorReply]);
+      // Round 5 §10: a resposta do Tutor chega sem o usuário pedir NAQUELE instante (ele já
+      // mandou a pergunta e pode estar olhando outra coisa) — é exatamente o caso de uso de
+      // "notification", diferente de uma ação que o próprio clique já confirma visualmente.
+      playFeedback('notification');
     }, 900);
   };
 

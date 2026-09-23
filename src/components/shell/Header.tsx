@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { DynamicIsland } from './DynamicIsland';
 import { SpotifyMusicWidget } from './SpotifyMusicWidget';
+import { AudioSettingsWidget } from './AudioSettingsWidget';
 import { Theme, ShellMode } from '@/types/shell';
 import { useClickOutside } from '@/lib/useClickOutside';
 
@@ -288,6 +289,10 @@ export function Header() {
               estados já testada do Island às cegas (sem conseguir verificar a integração real do
               Spotify neste ambiente) era mais risco do que valia. */}
           <SpotifyMusicWidget />
+
+          {/* Feedback sonoro (Round 5 §10) — mesma zona da entrada de música, "camada viva" do
+              cabeçalho. */}
+          <AudioSettingsWidget />
 
           {/* Toggle Context Panel (Apenas quando o painel regional for suportado no layout atual) */}
           {geometry.isContextAvailable && (

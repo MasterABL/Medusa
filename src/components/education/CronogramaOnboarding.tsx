@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { getDisciplineColor } from './disciplineColor';
+import { playFeedback } from '@/lib/audioFeedback';
 import {
   WEEKDAYS,
   WEEKDAY_LABEL,
@@ -81,6 +82,10 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
       });
       setPlano(plan);
       setStep('resultado');
+      // Round 5 §10: fecha o ciclo de uma ação que o próprio usuário disparou (clicou em
+      // "Calcular meu plano") — categoria "action", não "completion" (guardada pra marcos
+      // maiores como concluir uma sessão de estudo inteira).
+      playFeedback('action');
     }, 1400);
   };
 

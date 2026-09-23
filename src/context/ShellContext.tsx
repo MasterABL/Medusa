@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { Theme, ShellMode, IslandState, Breakpoint, ShellGeometry, calculateShellGeometry } from '@/types/shell';
+import { unlockAudioOnFirstGesture } from '@/lib/audioFeedback';
 
 interface ShellContextValue {
   theme: Theme;
@@ -52,6 +53,11 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
     const savedTheme = (localStorage.getItem('medusa-theme-v2') as Theme) || 'light';
     setThemeState(savedTheme);
     applyThemeToDOM(savedTheme);
+
+    // Feedback sonoro (Round 5 §10): o AudioContext nasce suspenso até um gesto real do
+    // usuário — registrado aqui, no provedor raiz, porque é o único lugar que garante cobrir
+    // o app inteiro desde o primeiro clique/tecla, não só uma tela específica.
+    unlockAudioOnFirstGesture();
 
     // Persistência local do Context Panel (sobrevive a reload sem persistência no servidor)
     const savedContext = localStorage.getItem('medusa-context-panel-open');

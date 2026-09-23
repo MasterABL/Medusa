@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SessionResult, TrackDefinition } from './types';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface StudyCompletionViewProps {
   result: SessionResult;
@@ -15,6 +16,12 @@ export function StudyCompletionView({
   onReturnToEducation,
 }: StudyCompletionViewProps) {
   const { lesson } = trackDef;
+
+  // Round 5 §10: fechar uma sessão de estudo é o tipo de marco que justifica um som — curto,
+  // uma vez só (mount), nunca repetido enquanto o usuário permanece nesta tela.
+  useEffect(() => {
+    playFeedback('completion');
+  }, []);
 
   return (
     <div
