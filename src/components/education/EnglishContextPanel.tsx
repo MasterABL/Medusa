@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { ContextPanelSection } from '@/components/shell/ContextPanelSection';
 import { useShell } from '@/context/ShellContext';
@@ -8,6 +8,8 @@ import { useEducationPanel } from '@/context/EducationPanelContext';
 import { MasteryBars } from './MasteryBars';
 import { TutorDrawer } from './TutorDrawer';
 import { getTrackAccent } from './trackAccent';
+import { useEscapeKey } from '@/lib/useEscapeKey';
+import { useClickOutside } from '@/lib/useClickOutside';
 
 const accent = getTrackAccent('ingles');
 
@@ -24,6 +26,13 @@ export function EnglishContextPanel() {
   const { isVoiceActive, setVoiceActive } = useShell();
   const { openReviewModal, isSessionCompleted, sessionResultMirror, requestStartStudy } = useEducationPanel();
   const [isTeacherOpen, setIsTeacherOpen] = useState(false);
+  const teacherPanelRef = useRef<HTMLDivElement>(null);
+  // Round 5 §8: o Tutor precisa ocupar 100% do painel lateral (não coexistir com Contexto/
+  // Domínio/Revisões), fechar ao clicar fora e responder a Esc — nenhum dos três existia antes
+  // (era um acordeão de altura fixa embutido entre as outras seções, ver `justCompletedReview`
+  // abaixo e o restante das seções, que continuam intocadas quando o professor está fechado).
+  useClickOutside(teacherPanelRef, () => setIsTeacherOpen(false), isTeacherOpen);
+  useEscapeKey(isTeacherOpen, () => setIsTeacherOpen(false));
 
   const modulesWithLessons = trackDef.modules.filter((m) => m.lessons && m.lessons.length > 0);
   const allLessons = modulesWithLessons.flatMap((m) => m.lessons ?? []);
@@ -69,6 +78,46 @@ export function EnglishContextPanel() {
     .filter((m) => levelOf(m.title) === currentLevel)
     .flatMap((m) => m.lessons ?? [])
     .filter((l) => l.status !== 'completed').length;
+
+  // Round 5 §8: quando o Tutor está aberto, ele SUBSTITUI todo o corpo do painel (Contexto,
+  // Próxima Ação, Domínio, Revisões) em vez de coexistir dentro de um acordeão — a troca usa a
+  // mesma animação de entrada já usada para conteúdo lateral (`study-summary-enter`), não uma
+  // nova.
+  if (isTeacherOpen) {
+    return (
+      <div
+        ref={teacherPanelRef}
+        id="context-panel-track-ingles"
+        className="study-summary-enter flex flex-col gap-3 min-h-[65vh]"
+      >
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/60">
+          <span className="flex items-center gap-2 text-[12px] font-semibold text-text-primary">
+            <span className={`material-symbols-outlined text-[17px] ${accent.text}`}>record_voice_over</span>
+            Professor de Inglês (IA)
+          </span>
+          <button
+            type="button"
+            id="btn-close-english-teacher"
+            onClick={() => setIsTeacherOpen(false)}
+            aria-label="Fechar professor de Inglês"
+            title="Fechar (Esc)"
+            className="btn-interactive p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+        <div className="flex-1 min-h-0 rounded-xl border border-border/60 overflow-hidden">
+          <TutorDrawer
+            isOpen
+            onClose={() => setIsTeacherOpen(false)}
+            trackDef={trackDef}
+            variant="inline"
+            onVoiceActiveChange={setVoiceActive}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="context-panel-track-ingles" className="flex flex-col gap-6">
@@ -240,37 +289,22 @@ export function EnglishContextPanel() {
         </p>
       </ContextPanelSection>
 
-      {/* PROFESSOR IA — embutido de verdade no painel, não um redirecionamento */}
+      {/* PROFESSOR IA — embutido de verdade no painel, não um redirecionamento. Abrir troca o
+          corpo INTEIRO do painel pelo Tutor (ver bloco `if (isTeacherOpen)` acima, Round 5 §8) —
+          não expande mais um acordeão coexistindo com o resto das seções. */}
       <ContextPanelSection label="Professor de Inglês (IA)" noBorder>
         <button
           type="button"
           id="btn-toggle-english-teacher"
-          onClick={() => setIsTeacherOpen((v) => !v)}
+          onClick={() => setIsTeacherOpen(true)}
           className="btn-interactive w-full flex items-center justify-between gap-2 p-3 rounded-xl bg-surface-secondary/70 border border-border/60 hover:border-medusa-primary/50 transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
         >
           <span className="flex items-center gap-2 text-[12px] font-semibold text-text-primary">
             <span className="material-symbols-outlined text-[17px] text-medusa-primary">record_voice_over</span>
             Conversar com o professor
           </span>
-          <span className={`material-symbols-outlined text-[16px] text-text-muted transition-transform ${isTeacherOpen ? 'rotate-180' : ''}`}>
-            expand_more
-          </span>
+          <span className="material-symbols-outlined text-[16px] text-text-muted">arrow_forward</span>
         </button>
-
-        {isTeacherOpen && (
-          <div
-            id="english-teacher-inline-wrapper"
-            className="mt-2 h-[420px] rounded-xl border border-border/60 overflow-hidden study-summary-enter"
-          >
-            <TutorDrawer
-              isOpen={isTeacherOpen}
-              onClose={() => setIsTeacherOpen(false)}
-              trackDef={trackDef}
-              variant="inline"
-              onVoiceActiveChange={setVoiceActive}
-            />
-          </div>
-        )}
       </ContextPanelSection>
     </div>
   );

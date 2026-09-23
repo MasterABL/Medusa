@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { DynamicIsland } from './DynamicIsland';
 import { Theme, ShellMode } from '@/types/shell';
+import { useClickOutside } from '@/lib/useClickOutside';
 
 export function Header() {
   const {
@@ -25,19 +26,9 @@ export function Header() {
   const modeRef = useRef<HTMLDivElement>(null);
   const themeRef = useRef<HTMLDivElement>(null);
 
-  // Fechar dropdowns ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modeRef.current && !modeRef.current.contains(event.target as Node)) {
-        setModeDropdownOpen(false);
-      }
-      if (themeRef.current && !themeRef.current.contains(event.target as Node)) {
-        setThemeDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // Fechar dropdowns ao clicar fora (hook reutilizável — ver src/lib/useClickOutside.ts)
+  useClickOutside(modeRef, () => setModeDropdownOpen(false));
+  useClickOutside(themeRef, () => setThemeDropdownOpen(false));
 
   const getThemeLabel = (t: Theme) => {
     switch (t) {
