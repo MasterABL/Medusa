@@ -50,13 +50,24 @@ export function StudyModeView({
   const duration = lesson.actualDurationSeconds;
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5>(1);
   const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'vocabulary' | 'tutor'>('summary');
-  // Somente Inglês: controla a COMPOSIÇÃO da tela da aula — quanto espaço o palco ocupa e se a
-  // região lateral está presente. Não controla mais "o que" toca no palco (isso não muda entre
-  // os 3 modos); controla apenas a proporção e a presença do painel lateral.
-  const [lessonViewMode, setLessonViewMode] = useState<'aula' | 'aula-resumo' | 'dividido'>('aula-resumo');
+  // Inglês e Faculdade: controla a COMPOSIÇÃO da tela da aula — quanto espaço o palco ocupa e se a
+  // região lateral está presente. Não controla "o que" toca no palco (isso não muda entre os
+  // modos); controla apenas a proporção e a presença/domínio de cada lado.
+  // Inglês usa 'dividido' (Tutor inline); Faculdade usa 'resumo' (Round 5 §6 — Modo B: o resumo
+  // estruturado da aula ocupa a tela sozinho, vídeo recolhido). Times de composição distintos por
+  // trilha porque o conteúdo do lado companheiro é diferente (Tutor de voz vs. resumo em texto) —
+  // não faria sentido Faculdade ganhar uma aba "Tutor" que não existe para essa trilha.
+  const [lessonViewMode, setLessonViewMode] = useState<'aula' | 'aula-resumo' | 'dividido' | 'resumo'>('aula-resumo');
+  const hasModeSwitcher = isIngles || isFaculdade;
   // Modo "Aula" (foco total no vídeo) — usado para recolher chrome redundante ao redor do palco
   // (Refinamento Visual §7.2: o vídeo não pode exigir rolar a página para ver os controles).
-  const isAulaFocusMode = isIngles && lessonViewMode === 'aula';
+  const isAulaFocusMode = hasModeSwitcher && lessonViewMode === 'aula';
+  // Modo "Resumo" (Round 5 §6, Modo B) — o inverso do "Aula": o palco de vídeo recolhe e o
+  // resumo estruturado (painel companheiro) ocupa a tela inteira. Só existe para Faculdade —
+  // chamado de "Resumo" (não "aula gerada por IA", como o pedido original nomeou) porque o
+  // conteúdo aqui é fixture estático desta tela, não uma geração de IA em tempo real; nomear como
+  // IA seria apresentar como real algo que não é (Round 5 §27).
+  const isResumoFocusMode = isFaculdade && lessonViewMode === 'resumo';
   const [newNoteText, setNewNoteText] = useState('');
   const [noteSavedFeedback, setNoteSavedFeedback] = useState<string | null>(null);
   const [summaryPoints, setSummaryPoints] = useState<LiveSummaryPoint[]>(
@@ -302,52 +313,70 @@ export function StudyModeView({
       )}
 
       {/* Palco Central: ~50% Conteúdo da Aula + ~50% Companheiro da Sessão (Resumo/Vocabulário/
-          Notas/Tutor) nas trilhas de Faculdade/ENEM. Em Inglês, o usuário controla a composição
-          via 3 modos (Aula / Aula + Resumo / Dividido). Em vez de uma largura fixa por modo,
-          o painel lateral usa `flex-basis: clamp(mín, alvo, máx)` — um sistema fluido que nunca
-          deixa a lateral "microscópica" nem trava exatamente em 60/40 em toda largura de tela —
-          e o palco (`flex: 1`) preenche o restante. Nenhum dos dois lados é desmontado: a
+          Notas/Tutor) no ENEM (única trilha sem modos de composição ainda — fora do escopo desta
+          rodada, ver Round 5 §6/§9). Em Inglês e Faculdade, o usuário controla a composição via
+          modos (Aula / Aula + Resumo / Dividido ou Resumo, por trilha). Em vez de uma largura fixa
+          por modo, o painel lateral usa `flex-basis: clamp(mín, alvo, máx)` — um sistema fluido
+          que nunca deixa a lateral "microscópica" nem trava exatamente em 60/40 em toda largura de
+          tela — e o palco (`flex: 1`) preenche o restante. Nenhum dos dois lados é desmontado: a
           sensação é de "mudar como estudo esta aula", não de navegar para outra tela. */}
       <div
         className={
-          isIngles
+          hasModeSwitcher
             ? 'flex flex-col lg:flex-row gap-5 items-stretch'
             : 'grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch'
         }
         style={
-          isIngles
+          hasModeSwitcher
             ? ({
                 '--aside-basis':
                   lessonViewMode === 'aula'
                     ? '0px'
+                    : lessonViewMode === 'resumo'
+                    ? '100%'
                     : lessonViewMode === 'dividido'
                     ? 'clamp(360px, 40%, 480px)'
-                    : 'clamp(320px, 36%, 420px)',
+                    // Modo "Aula + Resumo": 40% para o resumo / 60% para o vídeo (Round 5 §6 — nunca
+                    // 50/50). O vídeo continua sendo o elemento dominante do palco.
+                    : 'clamp(340px, 40%, 460px)',
               } as React.CSSProperties)
             : undefined
         }
       >
-        {/* ================= COLUNA PRINCIPAL: PLAYER DE CONTEÚDO (~50-100%) ================= */}
+        {/* ================= COLUNA PRINCIPAL: PLAYER DE CONTEÚDO (~0-100%) ================= */}
         <section
           id="lesson-stage"
           aria-label="Conteúdo da Aula"
-          className={`flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full min-w-0 ${
-            isIngles ? 'lg:flex-1 lg:basis-0 transition-[flex-basis] duration-500 ease-out' : ''
+          aria-hidden={isResumoFocusMode}
+          className={`flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full min-w-0 transition-[flex-basis,opacity,max-height] duration-500 ease-out ${
+            hasModeSwitcher ? 'lg:flex-1 lg:basis-0' : ''
+          } ${
+            isResumoFocusMode
+              ? 'max-h-0 lg:max-h-0 opacity-0 pointer-events-none'
+              : 'max-h-[3000px] lg:max-h-none opacity-100'
           }`}
         >
-          {/* Somente Inglês: os 3 modos de composição da aula — controlam QUANTO espaço o palco
-              ocupa e se/como a região lateral aparece. O conteúdo da aula em si não muda entre
-              os modos (isso não é um seletor de "fonte" de conteúdo). */}
-          {isIngles && (
+          {/* Inglês e Faculdade: os modos de composição da aula — controlam QUANTO espaço o palco
+              ocupa e se/como a região lateral aparece (e, no caso de Faculdade "Resumo", qual dos
+              dois lados domina). O conteúdo da aula em si não muda entre os modos (isso não é um
+              seletor de "fonte" de conteúdo). */}
+          {hasModeSwitcher && (
             <div
               id="lesson-composition-switcher"
               className="flex items-center gap-1 p-2 border-b border-border/60 bg-surface-secondary/40"
             >
-              {([
-                { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Aula em foco total' },
-                { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Aula com pontos-chave ao lado' },
-                { id: 'dividido', label: 'Dividido', icon: 'vertical_split', title: 'Aula dividida com Tutor ou Resumo' },
-              ] as const).map((m) => (
+              {(isIngles
+                ? ([
+                    { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Aula em foco total' },
+                    { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Aula com pontos-chave ao lado' },
+                    { id: 'dividido', label: 'Dividido', icon: 'vertical_split', title: 'Aula dividida com Tutor ou Resumo' },
+                  ] as const)
+                : ([
+                    { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Vídeo em foco total' },
+                    { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Vídeo com resumo ao lado (60/40)' },
+                    { id: 'resumo', label: 'Resumo', icon: 'subject', title: 'Resumo estruturado da aula, em foco total' },
+                  ] as const)
+              ).map((m) => (
                 <button
                   key={m.id}
                   type="button"
@@ -597,13 +626,22 @@ export function StudyModeView({
               aria-label="Companheiro da Sessão de Estudo"
               aria-hidden={isAulaCollapsed}
               className={`study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full transition-[flex-basis,opacity,max-height] duration-500 ease-out ${
-                isIngles ? 'lg:basis-[var(--aside-basis)] lg:flex-none' : ''
+                hasModeSwitcher ? 'lg:basis-[var(--aside-basis)] lg:flex-none' : ''
               } ${
                 isAulaCollapsed
                   ? 'max-h-0 lg:max-h-0 opacity-0 pointer-events-none'
                   : 'max-h-[2000px] lg:max-h-none opacity-100 min-h-[480px] lg:min-h-[480px]'
               }`}
             >
+          {/* Aviso do Modo "Resumo" (Round 5 §6, Modo B): explica por que o vídeo sumiu — sem
+              isso, o palco recolhido pareceria um erro de carregamento em vez de uma escolha do
+              usuário. */}
+          {isResumoFocusMode && (
+            <div className="mx-4 mt-3.5 px-3 py-2 rounded-lg bg-medusa-primary/10 border border-medusa-primary/30 flex items-center gap-2 text-[11px] text-text-secondary">
+              <span className="material-symbols-outlined text-[15px] text-[#18534B] dark:text-medusa-primary">subject</span>
+              <span>Modo Resumo: a aula em texto estruturado, sem o vídeo. Volte para &quot;Aula&quot; ou &quot;Aula + Resumo&quot; a qualquer momento.</span>
+            </div>
+          )}
           {/* Roteiro da Sessão — visão rápida do que será coberto, igual nas 3 trilhas */}
           <div id="session-roteiro" className="px-4 pt-3.5 pb-2.5 border-b border-border/60">
             <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Roteiro da sessão</span>
