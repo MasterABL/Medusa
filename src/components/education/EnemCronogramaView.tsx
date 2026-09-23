@@ -2,6 +2,9 @@
 
 import React, { useMemo, useState } from 'react';
 import { CronogramaBlock } from './types';
+import { useEducationPanel } from '@/context/EducationPanelContext';
+
+const INTERVAL_OPTIONS = [5, 10, 15, 20];
 
 interface EnemCronogramaViewProps {
   blocks: CronogramaBlock[];
@@ -89,6 +92,18 @@ export function EnemCronogramaView({ blocks, onStartStudy }: EnemCronogramaViewP
 
   const completedCount = filtered.filter((b) => b.status === 'concluido').length;
   const lateCount = filtered.filter((b) => b.status === 'atrasado').length;
+
+  // Intervalo entre blocos — configuração REAL e alterável (ver EducationPanelContext), mas
+  // escopo de sessão. Não existe motor de agendamento: o efeito honesto e visível é limitado ao
+  // tempo total estimado do período filtrado (soma das durações + intervalos entre os blocos).
+  const { studyIntervalMinutes, setStudyIntervalMinutes } = useEducationPanel();
+  const totalBlockMinutes = filtered.reduce((sum, b) => sum + b.durationMinutes, 0);
+  const totalIntervalMinutes = filtered.length > 1 ? (filtered.length - 1) * studyIntervalMinutes : 0;
+  const totalEstimatedMinutes = totalBlockMinutes + totalIntervalMinutes;
+  const totalEstimatedLabel =
+    totalEstimatedMinutes >= 60
+      ? `${Math.floor(totalEstimatedMinutes / 60)}h${(totalEstimatedMinutes % 60).toString().padStart(2, '0')}`
+      : `${totalEstimatedMinutes}min`;
 
   const renderBlockCard = (block: CronogramaBlock) => {
     const isSelected = block.id === selectedBlockId;
@@ -198,6 +213,35 @@ export function EnemCronogramaView({ blocks, onStartStudy }: EnemCronogramaViewP
         ))}
       </div>
 
+      {/* Intervalo entre blocos — configuração real, escopo de sessão (ver comentário acima).
+          Efeito visível: tempo total estimado do período, não uma reagenda automática. */}
+      {filtered.length > 0 && (
+        <div
+          id="cronograma-interval-setting"
+          className="flex items-center justify-between gap-3 text-[11px] p-2.5 rounded-xl bg-surface-secondary/40 border border-border/50"
+        >
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[14px] text-text-muted">timer</span>
+            <label htmlFor="cronograma-interval-select" className="text-text-secondary font-medium">
+              Intervalo entre blocos
+            </label>
+            <select
+              id="cronograma-interval-select"
+              value={studyIntervalMinutes}
+              onChange={(e) => setStudyIntervalMinutes(Number(e.target.value))}
+              className="bg-surface border border-border/60 rounded-lg px-1.5 py-0.5 text-[11px] font-mono text-text-primary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            >
+              {INTERVAL_OPTIONS.map((m) => (
+                <option key={m} value={m}>{m} min</option>
+              ))}
+            </select>
+          </div>
+          <span className="font-mono text-text-muted">
+            Total estimado: <strong className="text-text-primary">{totalEstimatedLabel}</strong>
+          </span>
+        </div>
+      )}
+
       {/* Corpo temporal: colunas por dia na Semana (rolagem horizontal — cada dia mantém largura
           legível em vez de espremer 7 colunas no container), lista agrupada em Hoje/Mês. */}
       <div
@@ -278,16 +322,23 @@ export function EnemCronogramaView({ blocks, onStartStudy }: EnemCronogramaViewP
               <span className="font-semibold text-text-primary">Próximo passo: </span>
               {selectedBlock.nextAction}
             </p>
-            {selectedBlock.isToday ? (
+            {selectedBlock.isToday && onStartStudy ? (
               <button
                 type="button"
                 id="btn-cronograma-start-today"
-                onClick={() => onStartStudy?.(false)}
+                onClick={() => onStartStudy(false)}
                 className="btn-interactive flex-shrink-0 bg-medusa-primary hover:opacity-95 text-[#1C2420] px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">play_circle</span>
                 Iniciar Sessão
               </button>
+            ) : selectedBlock.isToday ? (
+              // `onStartStudy` ausente = overlay aberto de DENTRO de uma sessão já em andamento
+              // (ver CronogramaOverlay.tsx) — nunca mostrar um botão clicável que silenciosamente
+              // não faz nada quando clicado.
+              <span className="flex-shrink-0 text-[11px] font-mono text-text-muted italic">
+                Conclua ou interrompa a aula atual para iniciar este bloco
+              </span>
             ) : (
               <span className="flex-shrink-0 text-[11px] font-mono text-text-muted italic">
                 Fora da sessão de hoje

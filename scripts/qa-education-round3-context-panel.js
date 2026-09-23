@@ -93,8 +93,13 @@ async function goToEducacao(page) {
     check('[Painel ENEM] Hub começa em Visão Geral', await exists(page, '#enem-tab-visao-geral[aria-selected="true"]'));
     await click(page, '#btn-panel-open-cronograma');
     await wait(400);
-    check('[Painel ENEM] Atalho do painel abre o Cronograma no Hub (mesmo estado compartilhado)', await exists(page, '#enem-tab-cronograma[aria-selected="true"]'));
-    check('[Painel ENEM] Cronograma realmente montou', await exists(page, '#enem-cronograma-view'));
+    // Comportamento atualizado no Refinamento Visual §10: o atalho do painel agora abre o
+    // Cronograma como overlay em contexto (funciona também de dentro do Study Mode, onde a aba
+    // do Hub não existe) — não troca mais a aba interna do Hub. A aba do Hub continua existindo
+    // e funcionando (ver qa_enemhub_tab_regression.js), só não é mais o alvo deste atalho.
+    check('[Painel ENEM] Hub NÃO troca de aba (o atalho agora abre um overlay, não a aba)', await exists(page, '#enem-tab-visao-geral[aria-selected="true"]'));
+    check('[Painel ENEM] Overlay de Cronograma abre em contexto', await exists(page, '#cronograma-overlay-panel[aria-hidden="false"]'));
+    check('[Painel ENEM] Cronograma realmente montou dentro do overlay', await exists(page, '#enem-cronograma-view'));
     await page.close();
   }
 

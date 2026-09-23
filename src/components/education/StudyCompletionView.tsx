@@ -67,7 +67,9 @@ export function StudyCompletionView({
             <span className="text-[11px] text-text-muted">Calculado a partir das suas respostas</span>
           </div>
 
-          {/* Métrica 3: Próxima Revisão Sugerida */}
+          {/* Métrica 3: Próxima Revisão Sugerida — é uma SUGESTÃO de agenda, não um portão: o
+              usuário pode abrir a revisão a qualquer momento pelo painel lateral (ver
+              "Recém-concluída" em Próximas Revisões), "revisar amanhã" nunca bloqueia hoje. */}
           <div className="p-4 rounded-xl bg-surface-secondary/70 border border-border/60 flex flex-col items-center text-center gap-1">
             <span className="text-[10px] font-mono uppercase text-text-muted">
               Próxima Revisão
@@ -76,7 +78,7 @@ export function StudyCompletionView({
               {result.nextReviewDate}
             </span>
             <span className="text-[11px] text-[#1B502C] dark:text-medusa-support font-medium">
-              Sugestão de ciclo de revisão
+              Sugestão de agenda · disponível no painel a qualquer momento
             </span>
           </div>
         </div>

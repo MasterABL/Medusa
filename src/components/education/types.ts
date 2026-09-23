@@ -83,8 +83,16 @@ export interface VocabularyItem {
   example: string;
 }
 
+/**
+ * Tipo pedagógico do exercício de voz — usado só como rótulo visual (ver Refinamento Visual
+ * §7.4), não muda a máquina de estados do exercício (Idle→Listening→Processing→Resposta é a
+ * mesma para todos os tipos).
+ */
+export type VoicePromptType = 'repeticao' | 'resposta_curta' | 'pergunta_resposta' | 'role_play' | 'pronuncia' | 'resposta_contextual';
+
 export interface VoicePrompt {
   id: string;
+  type: VoicePromptType;
   instruction: string;
   targetPhrase: string;
   simulatedTranscript: string;

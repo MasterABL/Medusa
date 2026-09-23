@@ -121,9 +121,53 @@ divergem em conteúdo, só na moldura). Usa a mesma transição de painel (`pane
 navegação (`Sidebar.tsx`), sem introduzir um terceiro sistema de overlay. Gesto de arrastar para
 fechar (swipe-to-dismiss) não foi implementado — fechamento é só por toque (botão/backdrop).
 
+## 6. Glass e Microinteração de Hover (Refinamento Visual)
+
+### 6.1 Glass
+
+Transparência controlada, não um efeito de vidro genérico. Aplicado seletivamente aos cards
+prioritários (hero "Próxima Ação" de cada trilha, "Próxima Ação" do Context Panel) — nunca em
+toda a interface:
+
+- `bg-surface/80 backdrop-blur-xl` (ou `/10` sobre a cor de identidade da trilha, ver §6.2) —
+  transparência suficiente para dar profundidade, nunca a ponto de comprometer contraste de texto.
+- `shadow-glass`/`shadow-glass-dark` (tokens em `tailwind.config.ts`, mesmo padrão de
+  `island`/`island-dark` já existente) — sombra muito sutil em repouso.
+- `shadow-glass-hover`/`shadow-glass-hover-dark` no hover — sombra mais presente, nunca abrupta.
+
+### 6.2 Cor de Identidade por Trilha
+
+Cada trilha da Educação tem uma cor de identidade contextual, reaproveitando os tokens já
+existentes da paleta (nenhuma cor nova) e centralizada em `trackAccent.ts`:
+
+| Trilha | Token | Papel anterior do token |
+|---|---|---|
+| Faculdade | `primary` (`#71DBD2`) | Já era a cor de ação/foco do produto — reforça, não introduz |
+| ENEM | `accent` (`#FFF18C`) | Já usado para revisão/atenção leve |
+| Inglês | `tertiary` (`#D0EAA3`) | Já era o `accentColor` da fixture da trilha, nunca lido por nenhum componente até esta rodada |
+
+Aparece em: indicador ativo do seletor de trilha, ícone de contexto do painel, badge "Sessão
+Pronta"/pill de status, borda do card de Próxima Ação, CTA principal do hero. Nunca pinta a
+interface inteira — a superfície base continua sendo o off-white neutro (`#FAFDF5`).
+
+### 6.3 Hover — "o produto respondeu à minha presença"
+
+Recipe único, reutilizado (não uma animação por componente): `transition-all duration-220
+hover:-translate-y-0.5 hover:shadow-glass hover:{cor-de-borda-da-trilha}`. Aplicado só aos cards
+que já carregam a Próxima Ação (nunca indiscriminadamente). Automaticamente respeita
+`prefers-reduced-motion` porque o bloco global de acessibilidade (`globals.css`) já força
+`transform: none !important` e restringe `transition` a opacity/cor/borda em qualquer elemento —
+o hover continua dando uma resposta visual (sombra/borda), só sem o deslocamento.
+
 ---
 
 ## Histórico
 
-- Rodada 4 (este documento): criação do contrato formal + correção de `--color-surface`
+- Rodada 4: criação do contrato formal + correção de `--color-surface`
   (`#FFFFFF` → `#FAFDF5`) + correção da regra de ícone + adição do token `alert` (`#C45B5B`).
+- Rodada de Refinamento Visual: glass seletivo + cor de identidade por trilha (§6); piso de
+  altura do palco do Study Mode reduzido de 640px para caber em 1440×900/1280×800 sem rolagem
+  (§7.2, ver `StudyModeView.tsx`); Cronograma do ENEM em contexto via overlay, acionável também
+  de dentro do Study Mode (`CronogramaOverlay.tsx`); tiles reais no painel do ENEM; remoção de
+  métricas decorativas sem valor de decisão ("Tempo Nominal do Ciclo", "Matriz de Referência ·
+  Habilidades 01 a 04").

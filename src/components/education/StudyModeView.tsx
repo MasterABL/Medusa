@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StudyTrack, TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
 import { TutorDrawer } from './TutorDrawer';
+import { useEducationPanel } from '@/context/EducationPanelContext';
 
 interface StudyModeViewProps {
   trackDef: TrackDefinition;
@@ -38,6 +39,7 @@ export function StudyModeView({
   const { lesson, summaryPoints: initialSummaryPoints, voiceEmphasis } = trackDef;
   const isIngles = trackDef.id === 'ingles';
   const isFaculdade = trackDef.id === 'faculdade';
+  const { openCronogramaOverlay } = useEducationPanel();
 
   // Player state
   const [isPlaying, setIsPlaying] = useState(true);
@@ -50,6 +52,9 @@ export function StudyModeView({
   // região lateral está presente. Não controla mais "o que" toca no palco (isso não muda entre
   // os 3 modos); controla apenas a proporção e a presença do painel lateral.
   const [lessonViewMode, setLessonViewMode] = useState<'aula' | 'aula-resumo' | 'dividido'>('aula-resumo');
+  // Modo "Aula" (foco total no vídeo) — usado para recolher chrome redundante ao redor do palco
+  // (Refinamento Visual §7.2: o vídeo não pode exigir rolar a página para ver os controles).
+  const isAulaFocusMode = isIngles && lessonViewMode === 'aula';
   const [newNoteText, setNewNoteText] = useState('');
   const [noteSavedFeedback, setNoteSavedFeedback] = useState<string | null>(null);
   const [summaryPoints, setSummaryPoints] = useState<LiveSummaryPoint[]>(
@@ -165,7 +170,7 @@ export function StudyModeView({
   return (
     <div
       id="study-mode-container"
-      className="study-stage-enter w-full flex flex-col gap-4 max-w-7xl mx-auto pb-14"
+      className="study-stage-enter w-full flex flex-col gap-4 max-w-7xl mx-auto pb-8"
     >
       {/* Topo da Sessão de Estudo & Contexto da Trilha */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
@@ -218,6 +223,20 @@ export function StudyModeView({
             <span>Interromper aula</span>
           </button>
 
+          {/* Somente ENEM: abre o cronograma em contexto (Refinamento Visual §10) — o usuário
+              vê o mapa de preparação sem sair da aula, o mesmo overlay usado pelo Context Panel. */}
+          {trackDef.id === 'vestibular' && (
+            <button
+              type="button"
+              id="btn-open-cronograma-from-study-mode"
+              onClick={openCronogramaOverlay}
+              className="btn-interactive bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            >
+              <span className="material-symbols-outlined text-[16px] text-[#8A6D00] dark:text-medusa-accent">calendar_month</span>
+              <span>Ver Cronograma</span>
+            </button>
+          )}
+
           <button
             type="button"
             id="btn-trigger-tutor"
@@ -250,7 +269,10 @@ export function StudyModeView({
         "o mesmo Study Mode reorganiza o conteúdo", não de duas telas diferentes.
       */}
       <div key={trackDef.id} id="track-content-region" className="study-stage-enter flex flex-col gap-4">
-      {/* Faixa Contextual: Objetivo da Sessão */}
+      {/* Faixa Contextual: Objetivo da Sessão — recolhida no modo "Aula" (Refinamento Visual
+          §7.2): o usuário já escolheu foco total no vídeo, então essa faixa (que duplica
+          informação do cabeçalho acima) só consome altura vertical que o player precisa. */}
+      {!isAulaFocusMode && (
       <div
         id="session-objective-banner"
         className="bg-surface rounded-xl p-3 sm:p-4 border border-border/70 shadow-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[12px]"
@@ -275,6 +297,7 @@ export function StudyModeView({
           </span>
         </div>
       </div>
+      )}
 
       {/* Palco Central: ~50% Conteúdo da Aula + ~50% Companheiro da Sessão (Resumo/Vocabulário/
           Notas/Tutor) nas trilhas de Faculdade/ENEM. Em Inglês, o usuário controla a composição
@@ -347,13 +370,18 @@ export function StudyModeView({
             </div>
           )}
           {/* Canvas / Visualizador Adaptado à Trilha — flex-1 preenche a altura do palco.
-              Achado de auditoria: a escada de min-h fixos parava em 640px no desktop, então em
-              telas mais altas (1440×1200 testado) sobravam ~240px de espaço vazio abaixo do
-              player em vez de a aula continuar sendo a protagonista. O termo `calc(100vh-...)`
-              cresce além de 640px quando o viewport é mais alto que ~960px, sem reduzir o piso
-              já testado em telas mais baixas (max() nunca fica abaixo dos valores existentes). */}
+              Em telas mais altas (1440×1200), o termo `calc(100vh-480px)` cresce além do piso
+              para a aula continuar sendo a protagonista, sem sobrar espaço vazio abaixo do
+              player.
+
+              BUG REAL CORRIGIDO (Refinamento Visual §7.2): o piso fixo de 640px no desktop
+              (`lg`/`xl`) ignorava a altura real do viewport — em 1440×900/1280×800 (os tamanhos
+              de desktop mais comuns, e os pedidos explicitamente para validação), 640px de
+              vídeo sozinho já excedia o espaço restante depois do cabeçalho/faixa/controles,
+              obrigando a rolar a página só para ver os controles do player. Reduzido para um
+              piso que cabe nesses viewports sem cortar o vídeo a um tamanho inutilizável. */}
           <div
-            className={`relative w-full flex-1 min-h-[380px] sm:min-h-[460px] lg:min-h-[560px] xl:min-h-[max(640px,calc(100vh-320px))] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none ${
+            className={`relative w-full flex-1 min-h-[320px] sm:min-h-[380px] lg:min-h-[380px] xl:min-h-[max(380px,calc(100vh-480px))] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none ${
               isFaculdade ? 'bg-[#0B1120]' : 'bg-[#0E1311]'
             }`}
           >
@@ -550,20 +578,28 @@ export function StudyModeView({
         {/* ================= COLUNA COMPANHEIRA: ROTEIRO, RESUMO, VOCABULÁRIO & NOTAS (~50%) =================
             No mobile, o Modo "Aula" precisa recolher a ALTURA real do painel (não só a opacidade)
             — senão sobra um espaço vazio abaixo do vídeo antes do rodapé, já que em coluna a
-            largura não é o eixo que "some". `max-height` cai para 0 junto com a opacidade; em
-            telas lg+ isso não importa porque a largura (`basis`) já cuida do recolhimento. */}
+            largura não é o eixo que "some". `max-height` cai para 0 junto com a opacidade.
+
+            BUG REAL CORRIGIDO (Refinamento Visual §7.2): em telas lg+, `lg:max-h-none` era
+            aplicado incondicionalmente (não só fora do modo "Aula"), então mesmo com a largura
+            (`flex-basis`) recolhida a ~2px, o conteúdo de texto do painel (Roteiro/Resumo) ainda
+            calculava uma altura intrínseca enorme ao ser espremido nessa largura mínima — e
+            `align-items: stretch` da linha flex propagava essa altura para o palco de vídeo
+            irmão, forçando um vídeo de milhares de pixels de altura e uma rolagem vertical
+            gigante exatamente no modo que deveria ser o mais compacto. `lg:max-h-0` agora
+            também recolhe no modo "Aula" — a largura sozinha não bastava. */}
         {(() => {
-          const isAulaCollapsed = isIngles && lessonViewMode === 'aula';
+          const isAulaCollapsed = isAulaFocusMode;
           return (
             <aside
               aria-label="Companheiro da Sessão de Estudo"
               aria-hidden={isAulaCollapsed}
-              className={`study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full lg:min-h-[480px] transition-[flex-basis,opacity,max-height] duration-500 ease-out ${
-                isIngles ? 'lg:basis-[var(--aside-basis)] lg:flex-none lg:max-h-none' : ''
+              className={`study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full transition-[flex-basis,opacity,max-height] duration-500 ease-out ${
+                isIngles ? 'lg:basis-[var(--aside-basis)] lg:flex-none' : ''
               } ${
                 isAulaCollapsed
-                  ? 'max-h-0 opacity-0 pointer-events-none'
-                  : 'max-h-[2000px] opacity-100 min-h-[480px]'
+                  ? 'max-h-0 lg:max-h-0 opacity-0 pointer-events-none'
+                  : 'max-h-[2000px] lg:max-h-none opacity-100 min-h-[480px] lg:min-h-[480px]'
               }`}
             >
           {/* Roteiro da Sessão — visão rápida do que será coberto, igual nas 3 trilhas */}

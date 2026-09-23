@@ -758,9 +758,15 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         example: 'Give me ten minutes to wrap up this email.',
       },
     ],
+    // Expandido (Refinamento Visual §7.4) de 2 para 6 itens, cobrindo tipos pedagógicos
+    // diferentes sobre o MESMO tema da aula (turn-taking, phrasal verbs, pedidos educados,
+    // connected speech já estabelecidos em `summaryPoints`) — não conteúdo novo desconectado só
+    // para aumentar a contagem. A arquitetura (`VoiceExerciseView.tsx`) já era genérica sobre
+    // `prompts.length`; o limite de 2 era só o tamanho desta lista.
     voicePrompts: [
       {
         id: 'ing-voice-1',
+        type: 'repeticao',
         instruction: 'Leia a frase em voz alta, com atenção à entonação natural.',
         targetPhrase: 'I was wondering if you could tell me what time the meeting starts.',
         simulatedTranscript: '"I was wondering if you could tell me what time the meeting starts."',
@@ -768,10 +774,43 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       },
       {
         id: 'ing-voice-2',
+        type: 'resposta_curta',
         instruction: 'Agora pratique um pedido de esclarecimento educado.',
         targetPhrase: 'Sorry, I didn\'t quite catch that. Could you say it again?',
         simulatedTranscript: '"Sorry, I didn\'t quite catch that. Could you say it again?"',
         feedback: 'Você foi compreendido. Essa é exatamente a forma natural de pedir para repetir.',
+      },
+      {
+        id: 'ing-voice-3',
+        type: 'pergunta_resposta',
+        instruction: 'Responda com uma frase completa: "What time do you usually catch up with friends during the week?"',
+        targetPhrase: 'I usually catch up with friends on Friday evenings, after work.',
+        simulatedTranscript: '"I usually catch up with friends on Friday evenings, after work."',
+        feedback: 'Ótima resposta completa — você usou "catch up" exatamente como praticamos no resumo da aula.',
+      },
+      {
+        id: 'ing-voice-4',
+        type: 'role_play',
+        instruction: 'Role-play: um colega pede para você revisar um relatório antes da reunião das 14h. Responda educadamente aceitando, mas peça 20 minutos.',
+        targetPhrase: 'Sure, I\'d be happy to. Just give me twenty minutes to wrap up what I\'m working on.',
+        simulatedTranscript: '"Sure, I\'d be happy to. Just give me twenty minutes to wrap up what I\'m working on."',
+        feedback: 'Muito natural — tom cordial e prazo claro, exatamente como em um ambiente profissional real.',
+      },
+      {
+        id: 'ing-voice-5',
+        type: 'pronuncia',
+        instruction: 'Foco em connected speech: uma consoante final conectando com a vogal seguinte.',
+        targetPhrase: 'Could you pick it up on your way home?',
+        simulatedTranscript: '"Could you pick it up on your way home?"',
+        feedback: 'Boa conexão entre "pick" e "it up" — soou como "pi-ki-tup", igual à fala nativa.',
+      },
+      {
+        id: 'ing-voice-6',
+        type: 'resposta_contextual',
+        instruction: 'Contexto: você está em uma videochamada com ruído e perdeu o último ponto do colega. Responda de forma natural e educada.',
+        targetPhrase: 'I\'m sorry, could you repeat that last part? The connection is a bit rough on my end.',
+        simulatedTranscript: '"I\'m sorry, could you repeat that last part? The connection is a bit rough on my end."',
+        feedback: 'Perfeito — você contextualizou o motivo do pedido, o que soa ainda mais natural em inglês profissional.',
       },
     ],
     immersionScenario: {
@@ -803,9 +842,13 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
     // campo `name` (usado em cabeçalhos/rótulos de sessão em toda a UI) ainda dizia
     // "Vestibular". O id interno permanece `vestibular` (StudyTrack) sem mudança de tipo.
     name: 'ENEM',
-    tagline: 'ENEM · Ciências da Natureza & Tecnologias',
-    domainLabel: 'Matriz de Referência ENEM · Habilidades 01 a 04',
-    accentColor: '#18534B',
+    // Simplificado (Refinamento Visual): "Matriz de Referência · Habilidades 01 a 04" era
+    // jargão de taxonomia interna do exame, sem valor de decisão para o usuário (mesmo
+    // problema de "Tempo Nominal do Ciclo" na Faculdade). "ENEM ·" também foi removido da
+    // tagline por já estar redundante com o `h1` (que já mostra "ENEM").
+    tagline: 'Ciências da Natureza & Tecnologias',
+    domainLabel: 'Preparação para o Vestibular',
+    accentColor: '#FFF18C',
     lesson: {
       track: 'vestibular',
       trackLabel: 'ENEM · Ciências da Natureza',

@@ -23,12 +23,13 @@ import { FlashcardsView } from './FlashcardsView';
 import { StudyCompletionView } from './StudyCompletionView';
 import { TutorDrawer } from './TutorDrawer';
 import { LessonReviewModal } from './LessonReviewModal';
+import { CronogramaOverlay } from './CronogramaOverlay';
 
 const RECEDE_MS = 320;
 
 export function EducationContainer() {
   const { setIslandState, setMode, mode, setVoiceActive } = useShell();
-  const { setCurrentTrackMirror, setIsSessionCompletedMirror } = useEducationPanel();
+  const { setCurrentTrackMirror, setIsSessionCompletedMirror, setSessionResultMirror } = useEducationPanel();
 
   // Trilha ativa no Learning OS (Faculdade, Inglês, Vestibular)
   const [currentTrack, setCurrentTrack] = useState<StudyTrack>('faculdade');
@@ -72,6 +73,9 @@ export function EducationContainer() {
   useEffect(() => {
     setIsSessionCompletedMirror(isSessionCompleted);
   }, [isSessionCompleted, setIsSessionCompletedMirror]);
+  useEffect(() => {
+    setSessionResultMirror(sessionResult);
+  }, [sessionResult, setSessionResultMirror]);
 
   // Definição da trilha ativa (Derivado de currentTrack + FIXTURE)
   const trackDef = TRACK_DEFINITIONS[currentTrack];
@@ -425,6 +429,11 @@ export function EducationContainer() {
       {/* Destino real de "Rever"/"Revisão" — Minhas Aulas (Hub) e "Próximas Revisões" (Context
           Panel) abrem o mesmo modal, ver LessonReviewModal.tsx */}
       <LessonReviewModal />
+
+      {/* Cronograma do ENEM em contexto (Refinamento Visual §10) — acionável tanto do Context
+          Panel quanto de dentro do Study Mode; "Iniciar Sessão" só é oferecido quando estamos no
+          dashboard (nunca por cima de uma sessão já em andamento, ver CronogramaOverlay.tsx). */}
+      <CronogramaOverlay onStartStudy={sessionState === 'dashboard' ? handleStartStudy : undefined} />
     </main>
   );
 }

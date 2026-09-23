@@ -11,6 +11,15 @@ interface VoiceExerciseViewProps {
 
 type VoicePhase = 'idle' | 'listening' | 'processing' | 'response';
 
+const VOICE_TYPE_LABEL: Record<string, string> = {
+  repeticao: 'Repetição',
+  resposta_curta: 'Resposta Curta',
+  pergunta_resposta: 'Pergunta & Resposta',
+  role_play: 'Role-Play',
+  pronuncia: 'Pronúncia',
+  resposta_contextual: 'Resposta Contextual',
+};
+
 /**
  * Exercício de Voz — etapa dedicada do fluxo de Inglês (Aula -> Exercício de Voz -> Live
  * Immersion -> Exercícios -> Flashcards -> Resultado). Reaproveita o MESMO mecanismo de
@@ -87,12 +96,29 @@ export function VoiceExerciseView({ trackDef, onFinish }: VoiceExerciseViewProps
       className="study-stage-enter w-full flex flex-col gap-4 max-w-3xl mx-auto pb-14"
     >
       <div className="flex flex-col gap-1 border-b border-border/70 pb-4">
-        <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30 w-fit">
-          Exercício de Voz · {promptIndex + 1} de {prompts.length}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30 w-fit">
+            Exercício de Voz · {promptIndex + 1} de {prompts.length}
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted bg-surface-secondary px-2.5 py-0.5 rounded-full border border-border/60 w-fit">
+            {VOICE_TYPE_LABEL[currentPrompt.type] ?? currentPrompt.type}
+          </span>
+        </div>
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
           Prática de Pronúncia
         </h1>
+        {/* Trilha de progresso — 6 itens deixam de caber num único rótulo "X de Y" só de texto;
+            pontos dão a sensação de sequência sem exigir contagem mental. */}
+        <div className="flex items-center gap-1.5 pt-1" aria-hidden="true">
+          {prompts.map((p, i) => (
+            <span
+              key={p.id}
+              className={`h-1.5 rounded-full transition-all ${
+                i === promptIndex ? 'w-6 bg-medusa-primary' : i < promptIndex ? 'w-1.5 bg-medusa-support' : 'w-1.5 bg-border'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="bg-surface rounded-2xl p-6 sm:p-8 border border-border/70 shadow-calm flex flex-col items-center text-center gap-6">

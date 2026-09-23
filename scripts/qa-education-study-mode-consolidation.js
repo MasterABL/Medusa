@@ -259,9 +259,11 @@ async function scanForbiddenTerms(page, rootSelector) {
     check('[Voz] Feedback usa linguagem humana (não métrica técnica)', /pronúncia|compreendido|entonação|tentar novamente/i.test(feedbackText));
     check('[Voz] Feedback NÃO expõe métricas técnicas (%, WPM, latência)', !/\d+%|\bwpm\b|latência/i.test(feedbackText));
 
-    // Percorre os prompts de voz restantes até Live Immersion
+    // Percorre os prompts de voz restantes até Live Immersion. Expandido de 2 para 6 prompts no
+    // Refinamento Visual §7.4 (variedade de exercícios: repetição/resposta curta/pergunta e
+    // resposta/role-play/pronúncia/resposta contextual) — o limite do loop precisa cobrir todos.
     let reachedImmersion = false;
-    for (let i = 0; i < 4 && !reachedImmersion; i++) {
+    for (let i = 0; i < 10 && !reachedImmersion; i++) {
       await click(page, '#btn-voice-exercise-continue');
       await wait(400);
       if (await exists(page, '#live-immersion-container')) { reachedImmersion = true; break; }

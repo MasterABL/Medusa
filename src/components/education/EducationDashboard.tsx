@@ -7,6 +7,7 @@ import { EnglishHub } from './EnglishHub';
 import { EnemHub } from './EnemHub';
 import { FaculdadeHub } from './FaculdadeHub';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { getTrackAccent } from './trackAccent';
 
 // Ordem espacial fixa das trilhas (DESIGN.md §5.1): ENEM(0) → Faculdade(1) → Inglês(2).
 // Controla a DIREÇÃO do carrossel — não é o mesmo índice usado como StudyTrack.
@@ -88,6 +89,7 @@ export function EducationDashboard({
 
   const trackDef = TRACK_DEFINITIONS[currentTrack];
   const { lesson, modules } = trackDef;
+  const accent = getTrackAccent(currentTrack);
 
   // BUG REAL CORRIGIDO: o hero "Próxima Ação" mostrava sempre Física II (trackDef.lesson fixo),
   // mesmo quando o usuário tinha selecionado outra disciplina no seletor da Faculdade logo
@@ -197,11 +199,11 @@ export function EducationDashboard({
         {/* ================= 2. CARTÃO DE PRÓXIMA AÇÃO OPERACIONAL (HERO DA TRILHA) ================= */}
         <div
           id="education-next-action-card"
-          className="bg-surface rounded-2xl p-6 sm:p-7 border border-border/70 shadow-calm flex flex-col gap-6 transition-all hover:border-medusa-primary/50"
+          className={`bg-surface/80 backdrop-blur-xl rounded-2xl p-6 sm:p-7 border border-border/70 shadow-glass dark:shadow-glass-dark flex flex-col gap-6 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass-hover dark:hover:shadow-glass-hover-dark ${accent.hoverBorder}`}
         >
           <div className="flex items-center justify-between border-b border-border/60 pb-3">
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
+              <span className={`w-1.5 h-1.5 rounded-full ${accent.solidBg} living-pulse`} />
               <h3 className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
                 {isSessionCompleted ? 'Próxima Ação Desbloqueada' : 'Próxima Ação Recomendada'}
               </h3>
@@ -218,14 +220,14 @@ export function EducationDashboard({
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-medusa-primary/20 border border-medusa-primary/40 flex items-center justify-center text-medusa-primary flex-shrink-0 mt-0.5 shadow-subtle">
-                <span className="material-symbols-outlined text-[22px] text-[#18534B] dark:text-[#71DBD2]">
+              <div className={`w-10 h-10 rounded-xl ${accent.softBg} border ${accent.softBorder} flex items-center justify-center ${accent.text} flex-shrink-0 mt-0.5 shadow-subtle`}>
+                <span className={`material-symbols-outlined text-[22px] ${accent.text}`}>
                   {currentTrack === 'ingles' ? 'record_voice_over' : currentTrack === 'faculdade' ? 'functions' : 'waves'}
                 </span>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2 py-0.5 rounded border border-[#71DBD2]/30">
+                  <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider ${accent.text} ${accent.softBg} px-2 py-0.5 rounded border ${accent.softBorder}`}>
                     {isSessionCompleted ? 'Próximo Bloco' : 'Sessão Pronta'}
                   </span>
                   <span className="text-[11px] font-mono text-text-muted">
@@ -282,7 +284,7 @@ export function EducationDashboard({
                   type="button"
                   id="btn-start-study-session"
                   onClick={() => onStartStudy(qaSimulateFailure)}
-                  className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                  className={`btn-interactive ${accent.solidBg} hover:opacity-95 ${accent.solidText} px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none`}
                 >
                   <span className="material-symbols-outlined text-[18px]">play_circle</span>
                   <span>
@@ -302,18 +304,10 @@ export function EducationDashboard({
             </div>
           </div>
 
-          {/* Métricas da Trilha (Fixture) + Progresso Real (Local State) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border/60">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-mono uppercase text-text-muted">
-                Tempo Nominal do Ciclo
-              </span>
-              <div className="text-base font-bold text-text-primary tabular-nums">
-                {isSessionCompleted ? '28h 45m' : '28h 00m'}
-              </div>
-              <p className="text-[11px] text-text-muted">Horas acumuladas na trilha</p>
-            </div>
-
+          {/* Métricas da Trilha — Progresso Real (Local State). "Tempo Nominal do Ciclo" foi
+              removido (Refinamento Visual §6.1): era "28h 00m" fixo, idêntico nas 3 trilhas,
+              não ajudava nenhuma decisão — puro ruído decorativo. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-border/60">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono uppercase text-text-muted">
                 Progresso Curricular

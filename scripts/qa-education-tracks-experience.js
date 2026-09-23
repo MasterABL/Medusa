@@ -140,13 +140,17 @@ async function getPlayerHeight(page) {
     const overflowTall = await pageTall.evaluate(() => document.body.scrollWidth > document.body.clientWidth + 1);
     await pageTall.close();
 
+    // Piso reduzido no Refinamento Visual §7.2 (640px -> 480px no xl): o piso de 640px, fixo,
+    // ignorava a altura real do viewport e obrigava a rolar a página em 1440x900/1280x800 (os
+    // tamanhos de desktop mais comuns) só para ver os controles do player — bug real corrigido,
+    // com evidência em qa_round4_interrupt.js e nas capturas de tela da Rodada de Refinamento.
     check(
-      '[Palco] altura do palco em 1440x960 é a esperada (~640px, piso já validado)',
-      heightNormal !== null && Math.abs(heightNormal - 640) <= 2,
+      '[Palco] altura do palco em 1440x960 é a esperada (~480px, piso ajustado no Refinamento Visual)',
+      heightNormal !== null && Math.abs(heightNormal - 480) <= 2,
       `height=${heightNormal}`
     );
     check(
-      '[Palco] altura do palco CRESCE em 1440x1200 em vez de ficar presa em 640px',
+      '[Palco] altura do palco CRESCE em 1440x1200 em vez de ficar presa no piso',
       heightTall !== null && heightTall > heightNormal + 100,
       `normal=${heightNormal} tall=${heightTall}`
     );

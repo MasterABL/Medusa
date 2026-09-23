@@ -13,6 +13,16 @@ const MATERIAL_ICON: Record<string, string> = {
   imagem: 'image',
 };
 
+// Cor por TIPO de arquivo (identidade funcional, não decoração — ver Refinamento Visual §6.2:
+// "os ícones de materiais podem possuir cor. Não colorir todos automaticamente"). Cada cor já
+// existe no DESIGN.md; nenhuma nova introduzida.
+const MATERIAL_COLOR: Record<string, string> = {
+  pdf: 'text-[#18534B] dark:text-[#71DBD2]',
+  slides: 'text-[#3D4C1D] dark:text-[#D0EAA3]',
+  planilha: 'text-[#1B502C] dark:text-medusa-support',
+  imagem: 'text-[#8A6D00] dark:text-medusa-accent',
+};
+
 const NOTICE_STYLE: Record<NoticeSeverity, { icon: string; className: string }> = {
   informativo: { icon: 'info', className: 'text-medusa-primary' },
   atencao: { icon: 'error_outline', className: 'text-[#8A6D00] dark:text-medusa-accent' },
@@ -60,7 +70,7 @@ interface SessionUploadedFile {
  */
 export function FaculdadeContextPanel() {
   const trackDef = TRACK_DEFINITIONS.faculdade;
-  const { faculdadeDisciplineCode, openReviewModal } = useEducationPanel();
+  const { faculdadeDisciplineCode, openReviewModal, isSessionCompleted, sessionResultMirror } = useEducationPanel();
   const disciplines = trackDef.disciplines ?? [];
   const selected = disciplines.find((d) => d.code === faculdadeDisciplineCode) ?? disciplines[0];
 
@@ -107,6 +117,19 @@ export function FaculdadeContextPanel() {
   const nextAction = contentToShow.find((m) => m.status !== 'completed');
   const reviewCandidates = contentToShow.filter((m) => m.status === 'completed').slice(0, 2);
 
+  // Revisão gerada pela sessão recém-concluída (ver Refinamento Visual §8) — só existe para a
+  // disciplina primária (FIS-204), a única com sessão de estudo real nesta fase.
+  const isPrimaryDiscipline = selected.code === disciplines.find((d) => d.isActive)?.code;
+  const justCompletedReview =
+    isSessionCompleted && isPrimaryDiscipline && sessionResultMirror?.track === 'faculdade'
+      ? {
+          id: 'just-completed-faculdade',
+          title: trackDef.lesson.topic,
+          subtitle: selected.title,
+          nextReviewDate: sessionResultMirror.nextReviewDate,
+        }
+      : null;
+
   const notices: { text: string; severity: NoticeSeverity }[] =
     selected.noticeDetails ?? selected.notices.map((text) => ({ text, severity: 'informativo' as NoticeSeverity }));
 
@@ -115,7 +138,9 @@ export function FaculdadeContextPanel() {
       {/* 1. CONTEXTO DA TRILHA — compacto */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="material-symbols-outlined text-[16px] text-medusa-primary flex-shrink-0">school</span>
+          <span className="w-6 h-6 rounded-lg bg-[#71DBD2]/15 border border-[#71DBD2]/30 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-[14px] text-[#18534B] dark:text-[#71DBD2]">school</span>
+          </span>
           <span className="text-[11px] font-semibold text-text-primary truncate">
             {selected.code} · {selected.title}
           </span>
@@ -124,10 +149,13 @@ export function FaculdadeContextPanel() {
       </div>
       <p className="text-[11px] text-text-secondary -mt-4">{selected.dateRange}</p>
 
-      {/* 2. PRÓXIMA AÇÃO — protagonista do painel */}
+      {/* 2. PRÓXIMA AÇÃO — protagonista do painel: glass + hover (ver Refinamento Visual §3/§6.3) */}
       {nextAction && (
         <ContextPanelSection label="Próxima Ação">
-          <div id="panel-next-action-faculdade" className="p-3.5 rounded-xl bg-medusa-primary/10 border border-medusa-primary/30 flex flex-col gap-1">
+          <div
+            id="panel-next-action-faculdade"
+            className="p-3.5 rounded-xl bg-medusa-primary/10 backdrop-blur-sm border border-medusa-primary/30 flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass hover:border-[#71DBD2]/50"
+          >
             <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{nextAction.title}</h4>
             <p className="text-[11px] text-text-secondary">{selected.focusDuration} · {nextAction.code}</p>
           </div>
@@ -136,11 +164,11 @@ export function FaculdadeContextPanel() {
 
       {/* 3. DOMÍNIO — calculado ao vivo a partir do progresso real de conteúdos da disciplina */}
       <ContextPanelSection label="Domínio da Disciplina Ativa">
-        <div className="flex items-baseline justify-between">
+        <div className="p-3 rounded-xl bg-surface/60 border border-border/50 flex items-baseline justify-between">
           <span className="text-2xl font-bold tracking-tight text-text-primary tabular-nums">{masteryPercent}%</span>
           <span className="text-[11px] text-text-secondary">{completedCount}/{totalCount} conteúdos</span>
         </div>
-        <div className="w-full bg-surface-subtle h-1.5 rounded-full overflow-hidden">
+        <div className="w-full bg-surface-subtle h-1.5 rounded-full overflow-hidden mt-1.5">
           <div
             className={`${masteryPercent >= 70 ? 'bg-medusa-support' : 'bg-medusa-accent'} h-full rounded-full transition-all duration-500`}
             style={{ width: `${masteryPercent}%` }}
@@ -149,9 +177,39 @@ export function FaculdadeContextPanel() {
       </ContextPanelSection>
 
       {/* 4. PRÓXIMAS REVISÕES — destino real: mesmo modal usado por "Aulas Concluídas" no Hub */}
-      {reviewCandidates.length > 0 && (
+      {(justCompletedReview || reviewCandidates.length > 0) && (
         <ContextPanelSection label="Próximas Revisões">
           <div id="panel-reviews-faculdade" className="flex flex-col gap-2">
+            {justCompletedReview && (
+              <div
+                id="panel-review-just-completed"
+                className="p-3 rounded-xl bg-medusa-support/10 border border-medusa-support/40 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-[#1B502C] dark:text-medusa-support">Recém-concluída</span>
+                  <h5 className="text-[12px] font-semibold text-text-primary truncate">{justCompletedReview.title}</h5>
+                  <p className="text-[11px] text-text-muted truncate">
+                    Revisão agendada: {justCompletedReview.nextReviewDate} · pode revisar antes
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="btn-panel-review-just-completed"
+                  onClick={() =>
+                    openReviewModal({
+                      id: justCompletedReview.id,
+                      title: justCompletedReview.title,
+                      subtitle: justCompletedReview.subtitle,
+                      completedAt: 'Agora',
+                      durationMinutes: undefined,
+                    })
+                  }
+                  className="flex-shrink-0 text-[11px] font-mono text-[#1B502C] dark:text-medusa-support bg-medusa-support/20 px-2.5 py-1 rounded-full border border-medusa-support/40 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Revisar agora
+                </button>
+              </div>
+            )}
             {reviewCandidates.map((m) => (
               <div key={m.id} className="p-3 rounded-xl bg-surface/70 border border-border/50 flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -265,9 +323,9 @@ export function FaculdadeContextPanel() {
 
         <div className="flex flex-col gap-1.5 mt-2">
           {selected.materials.map((mat) => (
-            <div key={mat.id} className="flex items-center justify-between gap-2 text-[12px]">
+            <div key={mat.id} className="flex items-center justify-between gap-2 text-[12px] p-1.5 -mx-1.5 rounded-lg transition-colors hover:bg-surface-secondary/60">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="material-symbols-outlined text-[15px] text-text-muted flex-shrink-0">
+                <span className={`material-symbols-outlined text-[15px] flex-shrink-0 ${MATERIAL_COLOR[mat.kind]}`}>
                   {MATERIAL_ICON[mat.kind]}
                 </span>
                 <span className="text-text-secondary truncate">{mat.name}</span>
@@ -286,7 +344,7 @@ export function FaculdadeContextPanel() {
               title="Abrir arquivo enviado nesta sessão"
             >
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="material-symbols-outlined text-[15px] text-medusa-primary flex-shrink-0">
+                <span className={`material-symbols-outlined text-[15px] flex-shrink-0 ${MATERIAL_COLOR[file.kind]}`}>
                   {MATERIAL_ICON[file.kind]}
                 </span>
                 <span className="text-text-primary truncate underline-offset-2 group-hover:underline">{file.name}</span>
