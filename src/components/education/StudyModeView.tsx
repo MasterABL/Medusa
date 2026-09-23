@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudyTrack, TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
 import { TutorDrawer } from './TutorDrawer';
 
@@ -13,6 +13,15 @@ interface StudyModeViewProps {
   onSelectTrack?: (track: StudyTrack) => void;
   /** Reaproveita o mesmo mecanismo do Dynamic Island (nunca duplicado) para o Tutor inline do Modo Dividido. */
   onVoiceActiveChange?: (active: boolean) => void;
+  /**
+   * Interromper a aula: salva o instante atual (segundos) e devolve o controle para o dashboard
+   * de Educação — reaproveita a MESMA máquina de estados de sessão já existente em
+   * EducationContainer (dashboard/loading/ready/study/...), sem criar um segundo mecanismo de
+   * sessão paralelo.
+   */
+  onInterruptLesson: (currentTimeSeconds: number) => void;
+  /** Retomar de onde parou (ver "Continuar aula" no hero do dashboard) — 240s (04:00) por padrão. */
+  initialTimeSeconds?: number;
 }
 
 export function StudyModeView({
@@ -23,6 +32,8 @@ export function StudyModeView({
   onSaveNote,
   onSelectTrack,
   onVoiceActiveChange,
+  onInterruptLesson,
+  initialTimeSeconds = 240,
 }: StudyModeViewProps) {
   const { lesson, summaryPoints: initialSummaryPoints, voiceEmphasis } = trackDef;
   const isIngles = trackDef.id === 'ingles';
@@ -30,7 +41,8 @@ export function StudyModeView({
 
   // Player state
   const [isPlaying, setIsPlaying] = useState(true);
-  const [currentTime, setCurrentTime] = useState(240); // 04:00
+  const [currentTime, setCurrentTime] = useState(initialTimeSeconds);
+  const [showInterruptConfirm, setShowInterruptConfirm] = useState(false);
   const duration = lesson.actualDurationSeconds;
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5>(1);
   const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'vocabulary' | 'tutor'>('summary');
@@ -44,8 +56,17 @@ export function StudyModeView({
     initialSummaryPoints.slice(0, 3)
   );
 
-  // Sincronizar summary points quando a trilha mudar
+  // Sincronizar summary points quando a trilha REALMENTE mudar (troca de trilha em pleno Study
+  // Mode via `onSelectTrack`) — nunca no mount inicial, para preservar `initialTimeSeconds` de um
+  // "Continuar aula" retomado. Compara a identidade da trilha (não "é a primeira chamada do
+  // efeito?"), porque o React 18 Strict Mode invoca efeitos duas vezes em desenvolvimento — um
+  // guard de "primeira execução" dispararia o reset na segunda chamada mesmo sem troca real.
+  const mountedTrackIdRef = useRef(trackDef.id);
   useEffect(() => {
+    if (trackDef.id === mountedTrackIdRef.current) {
+      return;
+    }
+    mountedTrackIdRef.current = trackDef.id;
     setSummaryPoints(initialSummaryPoints);
     setCurrentTime(240);
     setLessonViewMode('aula-resumo');
@@ -185,6 +206,17 @@ export function StudyModeView({
               ))}
             </div>
           )}
+
+          <button
+            type="button"
+            id="btn-interrupt-lesson"
+            onClick={() => setShowInterruptConfirm(true)}
+            title="Salvar progresso e sair da aula"
+            className="btn-interactive bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-medusa-alert px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+          >
+            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <span>Interromper aula</span>
+          </button>
 
           <button
             type="button"
@@ -754,6 +786,53 @@ export function StudyModeView({
         })()}
       </div>
       </div>
+
+      {/* Confirmação de Interrupção — a sessão nunca é destruída silenciosamente ao sair. */}
+      {showInterruptConfirm && (
+        <div
+          id="interrupt-lesson-confirm-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmar interrupção da aula"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1C2420]/40 backdrop-blur-[2px]"
+          onClick={() => setShowInterruptConfirm(false)}
+        >
+          <div
+            id="interrupt-lesson-confirm-dialog"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm bg-surface rounded-2xl border border-border/70 shadow-island p-6 flex flex-col gap-4 study-summary-enter"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-full bg-medusa-accent/25 border border-medusa-accent/50 flex items-center justify-center text-[#8A6D00] dark:text-medusa-accent flex-shrink-0">
+                <span className="material-symbols-outlined text-[18px]">save</span>
+              </span>
+              <h3 className="text-[14px] font-semibold text-text-primary">Salvar progresso e sair?</h3>
+            </div>
+            <p className="text-[12px] text-text-secondary leading-relaxed">
+              Seu progresso até {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} desta aula fica salvo — você pode continuar de onde parou.
+            </p>
+            <div className="flex items-center gap-2.5 justify-end pt-1">
+              <button
+                type="button"
+                id="btn-interrupt-cancel"
+                onClick={() => setShowInterruptConfirm(false)}
+                className="btn-interactive px-4 py-2 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-interrupt-confirm"
+                onClick={() => onInterruptLesson(currentTime)}
+                className="btn-interactive px-4 py-2 rounded-full text-[12px] font-semibold bg-medusa-primary hover:opacity-95 text-[#1C2420] transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[15px]">logout</span>
+                Salvar e sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

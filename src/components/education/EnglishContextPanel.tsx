@@ -1,19 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { ContextPanelSection } from '@/components/shell/ContextPanelSection';
 import { useShell } from '@/context/ShellContext';
+import { useEducationPanel } from '@/context/EducationPanelContext';
+import { MasteryBars } from './MasteryBars';
+import { TutorDrawer } from './TutorDrawer';
+
+const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2'] as const;
 
 /**
- * Painel contextual do Inglês — dashboard compacto do curso (progresso, módulo atual, quantas
- * aulas já foram feitas, próxima revisão). Não duplica o acordeão de módulos do Hub; complementa
- * com o que cabe numa extensão lateral. Sem Flashcards aqui também — a mesma regra da home vale
- * para o painel.
+ * Painel contextual do Inglês — segue a composição-base dos 3 painéis (Contexto → Próxima Ação →
+ * Domínio → Revisões → Cronograma, ver DESIGN.md), com o "cronograma" do Inglês expresso como a
+ * linha do tempo de níveis CEFR (A1→A2→B1→B2), e um Professor IA embutido de verdade (não um
+ * redirecionamento) reaproveitando o mesmo `TutorDrawer` do Modo Dividido, variant="inline".
  */
 export function EnglishContextPanel() {
   const trackDef = TRACK_DEFINITIONS.ingles;
-  const { isVoiceActive } = useShell();
+  const { isVoiceActive, setVoiceActive } = useShell();
+  const { openReviewModal } = useEducationPanel();
+  const [isTeacherOpen, setIsTeacherOpen] = useState(false);
 
   const modulesWithLessons = trackDef.modules.filter((m) => m.lessons && m.lessons.length > 0);
   const allLessons = modulesWithLessons.flatMap((m) => m.lessons ?? []);
@@ -23,13 +30,39 @@ export function EnglishContextPanel() {
 
   const currentModule = trackDef.modules.find((m) => m.status === 'in_progress');
   const resumeLesson = currentModule?.lessons?.find((l) => l.status === 'current');
-  const historyCount = trackDef.completedLessonsHistory?.length ?? 0;
+  const history = trackDef.completedLessonsHistory ?? [];
+  const reviewCandidates = history.slice(0, 2);
+
+  // Nível CEFR derivado do prefixo do título do módulo ("A1 Fundamentals...", "B1 Spoken...") —
+  // dado real já existente na fixture, não uma segunda fonte de verdade sobre o nível do aluno.
+  const levelOf = (title: string) => CEFR_LEVELS.find((l) => title.startsWith(l));
+  const levelStatus = (level: string): 'completed' | 'current' | 'locked' => {
+    const modulesInLevel = trackDef.modules.filter((m) => levelOf(m.title) === level);
+    if (modulesInLevel.length === 0) return 'locked';
+    if (modulesInLevel.every((m) => m.status === 'completed')) return 'completed';
+    if (modulesInLevel.some((m) => m.status === 'in_progress')) return 'current';
+    return 'locked';
+  };
+  const currentLevel = CEFR_LEVELS.find((l) => levelStatus(l) === 'current') ?? 'A1';
+  const nextLevel = CEFR_LEVELS[CEFR_LEVELS.indexOf(currentLevel) + 1];
+  const lessonsRemainingInLevel = trackDef.modules
+    .filter((m) => levelOf(m.title) === currentLevel)
+    .flatMap((m) => m.lessons ?? [])
+    .filter((l) => l.status !== 'completed').length;
 
   return (
     <div id="context-panel-track-ingles" className="flex flex-col gap-6">
-      <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-[16px] text-medusa-primary">translate</span>
-        <span className="text-[11px] font-semibold text-text-primary">Curso de Inglês</span>
+      {/* 1. CONTEXTO DA TRILHA — compacto */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="material-symbols-outlined text-[16px] text-medusa-primary flex-shrink-0">translate</span>
+          <span className="text-[11px] font-semibold text-text-primary truncate">
+            INGLÊS / {currentLevel} · {currentModule?.title.replace(/^[A-Z]\d\s/, '') ?? 'Curso'}
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-text-muted tabular-nums flex-shrink-0">
+          {completedLessons}/{totalLessons} aulas
+        </span>
       </div>
 
       {isVoiceActive && (
@@ -39,35 +72,134 @@ export function EnglishContextPanel() {
         </div>
       )}
 
-      <ContextPanelSection label="Progresso Geral">
-        <div className="flex items-baseline justify-between">
-          <span className="text-2xl font-bold tracking-tight text-text-primary tabular-nums">{percent}%</span>
-          <span className="text-[11px] text-text-secondary">{completedLessons}/{totalLessons} aulas</span>
-        </div>
-        <div className="w-full bg-surface-subtle h-1 rounded-full overflow-hidden">
-          <div className="bg-medusa-primary h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }} />
-        </div>
-      </ContextPanelSection>
-
-      {currentModule && (
-        <ContextPanelSection label="Módulo Atual">
-          <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{currentModule.title}</h4>
-          {resumeLesson && (
-            <p className="text-[12px] text-text-secondary">Retomar: {resumeLesson.title}</p>
-          )}
+      {/* 2. PRÓXIMA AÇÃO — protagonista do painel */}
+      {currentModule && resumeLesson && (
+        <ContextPanelSection label="Próxima Ação">
+          <div id="panel-next-action-ingles" className="p-3.5 rounded-xl bg-medusa-primary/10 border border-medusa-primary/30 flex flex-col gap-1">
+            <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{resumeLesson.title}</h4>
+            <p className="text-[11px] text-text-secondary">{resumeLesson.durationMinutes} min · {currentModule.title}</p>
+          </div>
         </ContextPanelSection>
       )}
 
-      <ContextPanelSection label="Minhas Aulas" rightSlot={<span className="text-[10px] font-mono text-text-muted tabular-nums">{historyCount}</span>}>
-        <p className="text-[12px] text-text-secondary">
-          {historyCount > 0
-            ? `${historyCount} concluída${historyCount !== 1 ? 's' : ''}, prontas para revisão.`
-            : 'Nenhuma aula concluída ainda.'}
+      {/* 3. DOMÍNIO / MASTERY */}
+      {trackDef.masteryDomains && (
+        <ContextPanelSection label="Domínio por Habilidade">
+          <MasteryBars domains={trackDef.masteryDomains} />
+        </ContextPanelSection>
+      )}
+
+      {/* 4. PRÓXIMAS REVISÕES — destino real: abre o registro salvo em Minhas Aulas */}
+      {reviewCandidates.length > 0 && (
+        <ContextPanelSection label="Próximas Revisões">
+          <div id="panel-reviews-ingles" className="flex flex-col gap-2">
+            {reviewCandidates.map((item) => (
+              <div
+                key={item.id}
+                className="p-3 rounded-xl bg-surface/70 border border-border/50 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <h5 className="text-[12px] font-semibold text-text-primary truncate">{item.title}</h5>
+                  <p className="text-[11px] text-text-muted truncate">{item.moduleTitle} · Próxima revisão: {trackDef.nextReviewSuggestion}</p>
+                </div>
+                <button
+                  type="button"
+                  id={`btn-panel-review-${item.id}`}
+                  onClick={() =>
+                    openReviewModal({
+                      id: item.id,
+                      title: item.title,
+                      subtitle: item.moduleTitle,
+                      completedAt: item.completedAt,
+                      durationMinutes: item.durationMinutes,
+                    })
+                  }
+                  className="flex-shrink-0 text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-1 rounded-full border border-[#71DBD2]/30 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Revisão
+                </button>
+              </div>
+            ))}
+          </div>
+        </ContextPanelSection>
+      )}
+
+      {/* 5. CRONOGRAMA DO INGLÊS = linha do tempo de níveis CEFR (A1→A2→B1→B2) */}
+      <ContextPanelSection label="Trajetória de Nível">
+        <div id="panel-english-level-timeline" className="flex items-center gap-1">
+          {CEFR_LEVELS.map((level, i) => {
+            const status = levelStatus(level);
+            return (
+              <React.Fragment key={level}>
+                {i > 0 && (
+                  <div
+                    className={`h-px flex-1 ${
+                      CEFR_LEVELS.indexOf(currentLevel) > i - 1 ? 'bg-medusa-support' : 'bg-border/60'
+                    }`}
+                  />
+                )}
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-mono font-semibold flex-shrink-0 border ${
+                    status === 'completed'
+                      ? 'bg-medusa-support/25 border-medusa-support text-[#1B502C] dark:text-medusa-support'
+                      : status === 'current'
+                        ? 'bg-medusa-primary border-medusa-primary text-[#1C2420]'
+                        : 'bg-surface-subtle border-border/60 text-text-muted'
+                  }`}
+                  title={level}
+                >
+                  {status === 'completed' ? (
+                    <span className="material-symbols-outlined text-[15px]">check</span>
+                  ) : (
+                    level
+                  )}
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-text-secondary pt-1">
+          Nível atual <strong className="text-text-primary">{currentLevel}</strong>
+          {nextLevel && (
+            <>
+              {' '}· faltam <strong className="text-text-primary">{lessonsRemainingInLevel}</strong> aula
+              {lessonsRemainingInLevel !== 1 ? 's' : ''} para {nextLevel}
+            </>
+          )}
         </p>
       </ContextPanelSection>
 
-      <ContextPanelSection label="Próxima Revisão" noBorder>
-        <p className="text-[13px] font-semibold text-text-primary">{trackDef.nextReviewSuggestion}</p>
+      {/* PROFESSOR IA — embutido de verdade no painel, não um redirecionamento */}
+      <ContextPanelSection label="Professor de Inglês (IA)" noBorder>
+        <button
+          type="button"
+          id="btn-toggle-english-teacher"
+          onClick={() => setIsTeacherOpen((v) => !v)}
+          className="btn-interactive w-full flex items-center justify-between gap-2 p-3 rounded-xl bg-surface-secondary/70 border border-border/60 hover:border-medusa-primary/50 transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+        >
+          <span className="flex items-center gap-2 text-[12px] font-semibold text-text-primary">
+            <span className="material-symbols-outlined text-[17px] text-medusa-primary">record_voice_over</span>
+            Conversar com o professor
+          </span>
+          <span className={`material-symbols-outlined text-[16px] text-text-muted transition-transform ${isTeacherOpen ? 'rotate-180' : ''}`}>
+            expand_more
+          </span>
+        </button>
+
+        {isTeacherOpen && (
+          <div
+            id="english-teacher-inline-wrapper"
+            className="mt-2 h-[420px] rounded-xl border border-border/60 overflow-hidden study-summary-enter"
+          >
+            <TutorDrawer
+              isOpen={isTeacherOpen}
+              onClose={() => setIsTeacherOpen(false)}
+              trackDef={trackDef}
+              variant="inline"
+              onVoiceActiveChange={setVoiceActive}
+            />
+          </div>
+        )}
       </ContextPanelSection>
     </div>
   );

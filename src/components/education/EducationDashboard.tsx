@@ -25,6 +25,9 @@ interface EducationDashboardProps {
   onStartStudy: (simulateError?: boolean) => void;
   isSessionCompleted: boolean;
   completedScore?: number;
+  /** Aula interrompida (ver "Interromper aula" no Study Mode) — usada para oferecer "Continuar aula" no hero. */
+  interruptedSession?: { track: StudyTrack; currentTimeSeconds: number } | null;
+  onResumeInterruptedSession?: () => void;
 }
 
 export function EducationDashboard({
@@ -33,6 +36,8 @@ export function EducationDashboard({
   onStartStudy,
   isSessionCompleted,
   completedScore = 80,
+  interruptedSession,
+  onResumeInterruptedSession,
 }: EducationDashboardProps) {
   const [qaSimulateFailure, setQaSimulateFailure] = useState(false);
   const [qaPanelOpen, setQaPanelOpen] = useState(false);
@@ -259,7 +264,20 @@ export function EducationDashboard({
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0">
-              {isPrimaryFaculdadeDiscipline ? (
+              {interruptedSession?.track === currentTrack ? (
+                <button
+                  type="button"
+                  id="btn-resume-interrupted-session"
+                  onClick={onResumeInterruptedSession}
+                  className="btn-interactive bg-medusa-accent hover:opacity-95 text-[#4A3B00] px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                  <span>
+                    Continuar aula ·{' '}
+                    {Math.max(0, Math.round((lesson.actualDurationSeconds - interruptedSession.currentTimeSeconds) / 60))} min restantes
+                  </span>
+                </button>
+              ) : isPrimaryFaculdadeDiscipline ? (
                 <button
                   type="button"
                   id="btn-start-study-session"

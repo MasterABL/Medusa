@@ -332,6 +332,12 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
           'Professor alterou o prazo da lista de exercícios para sexta-feira.',
           'Nova mensagem da monitoria sobre a Questão 3.',
         ],
+        // Referência fixa da semana letiva (ver comentário do cronograma do ENEM mais abaixo):
+        // hoje = Terça-feira, 22/Set. Usado para classificar severidade sem inventar datas novas.
+        noticeDetails: [
+          { text: 'Professor alterou o prazo da lista de exercícios para sexta-feira.', severity: 'atencao' },
+          { text: 'Nova mensagem da monitoria sobre a Questão 3.', severity: 'informativo' },
+        ],
         materials: [
           { id: 'fis-mat-1', name: 'Slides · Oscilações e MHS', kind: 'slides', sizeLabel: '2.4 MB' },
           { id: 'fis-mat-2', name: 'Lista de Exercícios 3', kind: 'pdf', sizeLabel: '340 KB' },
@@ -353,6 +359,10 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         focusDuration: '40 min',
         content: FACULDADE_MAT215_MODULES,
         notices: ['Lista 3 liberada — prazo de entrega na próxima terça.'],
+        // "próxima terça" cai em cima de "hoje" (Terça 22/Set) — urgência real, não decorativa.
+        noticeDetails: [
+          { text: 'Lista 3 liberada — prazo de entrega na próxima terça.', severity: 'urgente' },
+        ],
         materials: [
           { id: 'mat-mat-1', name: 'Slides · Métodos Iterativos', kind: 'slides', sizeLabel: '1.8 MB' },
           { id: 'mat-mat-2', name: 'Lista 3 · Bisseção e Newton-Raphson', kind: 'pdf', sizeLabel: '280 KB' },
@@ -370,6 +380,9 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         focusDuration: '50 min',
         content: FACULDADE_MEC130_MODULES,
         notices: ['Laboratório remarcado para quinta-feira, mesmo horário.'],
+        noticeDetails: [
+          { text: 'Laboratório remarcado para quinta-feira, mesmo horário.', severity: 'informativo' },
+        ],
         materials: [
           { id: 'mec-mat-1', name: 'Apostila · Flexão em Vigas', kind: 'pdf', sizeLabel: '3.1 MB' },
           { id: 'mec-mat-2', name: 'Planilha · Diagramas de Esforços', kind: 'planilha', sizeLabel: '95 KB' },
@@ -387,6 +400,9 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         focusDuration: '40 min',
         content: FACULDADE_CMP102_MODULES,
         notices: ['Monitoria extra marcada para tirar dúvidas do projeto final.'],
+        noticeDetails: [
+          { text: 'Monitoria extra marcada para tirar dúvidas do projeto final.', severity: 'informativo' },
+        ],
         materials: [
           { id: 'cmp-mat-1', name: 'Slides · Árvores Balanceadas', kind: 'slides', sizeLabel: '2.0 MB' },
           { id: 'cmp-mat-2', name: 'Especificação do Projeto Final', kind: 'pdf', sizeLabel: '410 KB' },
@@ -698,6 +714,12 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       'Olá! Sou seu parceiro de conversação e treinador de idioma. Posso ajudar você a praticar respostas, tirar dúvidas de vocabulário ou exercitar pronúncia e conversação oral.',
     voiceEmphasis: true,
     nextReviewSuggestion: 'Amanhã às 08:30',
+    masteryDomains: [
+      { id: 'ing-mastery-speaking', label: 'Speaking', percent: 62 },
+      { id: 'ing-mastery-listening', label: 'Listening', percent: 74 },
+      { id: 'ing-mastery-reading', label: 'Reading', percent: 81 },
+      { id: 'ing-mastery-writing', label: 'Writing', percent: 55 },
+    ],
     vocabulary: [
       {
         id: 'ing-voc-1',
@@ -1048,6 +1070,12 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       'Olá! Sou seu mentor estratégico para o ENEM. Vamos analisar as questões pela Matriz de Referência, identificar os distratores clássicos e reforçar a fundamentação para garantir sua pontuação.',
     voiceEmphasis: false,
     nextReviewSuggestion: 'Amanhã às 07:30',
+    masteryDomains: [
+      { id: 'enem-mastery-natureza', label: 'Ciências da Natureza', percent: 78 },
+      { id: 'enem-mastery-matematica', label: 'Matemática', percent: 58 },
+      { id: 'enem-mastery-linguagens', label: 'Linguagens', percent: 70 },
+      { id: 'enem-mastery-humanas', label: 'Ciências Humanas', percent: 66 },
+    ],
     // Semana de referência: Seg 21/Set a Dom 27/Set · Hoje = Ter 22/Set (weekOffset 0).
     // weekOffset 1 = semana seguinte, só aparece no filtro "Mês" do Cronograma.
     cronograma: [

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useEducationPanel } from '@/context/EducationPanelContext';
 
 export interface CompletedActivityItem {
   id: string;
@@ -28,6 +29,7 @@ interface CompletedActivityListProps {
  */
 export function CompletedActivityList({ title, items, sectionId, defaultOpen = false }: CompletedActivityListProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const { openReviewModal } = useEducationPanel();
 
   if (items.length === 0) return null;
 
@@ -73,7 +75,9 @@ export function CompletedActivityList({ title, items, sectionId, defaultOpen = f
               </div>
               <button
                 type="button"
-                className="flex-shrink-0 flex items-center gap-1 text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-1 rounded-full border border-[#71DBD2]/30 hover:opacity-80 transition-opacity"
+                id={`btn-review-${item.id}`}
+                onClick={() => openReviewModal(item)}
+                className="flex-shrink-0 flex items-center gap-1 text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-1 rounded-full border border-[#71DBD2]/30 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
               >
                 <span className="material-symbols-outlined text-[13px]">replay</span>
                 Rever

@@ -22,6 +22,7 @@ import { StudyExercisesView } from './StudyExercisesView';
 import { FlashcardsView } from './FlashcardsView';
 import { StudyCompletionView } from './StudyCompletionView';
 import { TutorDrawer } from './TutorDrawer';
+import { LessonReviewModal } from './LessonReviewModal';
 
 const RECEDE_MS = 320;
 
@@ -42,6 +43,16 @@ export function EducationContainer() {
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
   const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
+
+  // Aula interrompida (ver seção "Interromper aula" do Study Mode) — guarda só o instante em
+  // segundos da trilha em que o usuário estava, para o hero do dashboard oferecer "Continuar
+  // aula". Estado local em memória (mesmo nível de auditoria de `notes`/`isSessionCompleted`):
+  // some ao recarregar a página (F5).
+  const [interruptedSession, setInterruptedSession] = useState<{ track: StudyTrack; currentTimeSeconds: number } | null>(null);
+  // Instante a retomar na sessão ATIVA (só populado ao clicar "Continuar aula") — desacoplado de
+  // `interruptedSession` para que StudyModeView receba o valor certo mesmo depois que o marcador
+  // do dashboard já foi limpo ao entrar em loading/ready.
+  const [activeResumeTimeSeconds, setActiveResumeTimeSeconds] = useState<number | null>(null);
 
   // Tutor Contextual
   const [isTutorOpen, setIsTutorOpen] = useState(false);
@@ -197,6 +208,7 @@ export function EducationContainer() {
   // Restaura o modo normal do shell (Painel Regional Global volta à tela)
   const handleReturnToEducation = useCallback(() => {
     setIsSessionCompleted(true);
+    setActiveResumeTimeSeconds(null);
     setSessionState('dashboard');
     setIslandState('idle');
     setMode(previousShellMode || 'amplo');
@@ -215,6 +227,30 @@ export function EducationContainer() {
     setIslandState('idle');
     setMode(previousShellMode || 'amplo');
   }, [previousShellMode, setIslandState, setMode]);
+
+  // Interromper aula: study -> dashboard, reaproveitando EXATAMENTE a mesma transição de saída
+  // de `handleReturnToDashboard` (sem inventar um segundo caminho de "sair"), só que guardando
+  // antes o instante da trilha para permitir "Continuar aula" no hero do dashboard.
+  const handleInterruptLesson = useCallback(
+    (currentTimeSeconds: number) => {
+      setInterruptedSession({ track: currentTrack, currentTimeSeconds });
+      setSessionState('dashboard');
+      setIslandState('idle');
+      setMode(previousShellMode || 'amplo');
+    },
+    [currentTrack, previousShellMode, setIslandState, setMode]
+  );
+
+  // Retomar a aula interrompida: entra pelo MESMO fluxo de início de sessão (loading -> ready ->
+  // study) que qualquer outra sessão nova — StudyModeView recebe o instante salvo via
+  // `initialTimeSeconds` para retomar exatamente de onde parou, em vez de reiniciar do zero.
+  const handleResumeInterruptedSession = useCallback(() => {
+    if (interruptedSession && interruptedSession.track === currentTrack) {
+      setActiveResumeTimeSeconds(interruptedSession.currentTimeSeconds);
+      setInterruptedSession(null);
+    }
+    handleStartStudy(false);
+  }, [interruptedSession, currentTrack, handleStartStudy]);
 
   // Abrir Tutor a partir do conteúdo
   const handleOpenTutorFromVideo = useCallback((timestamp: number) => {
@@ -285,6 +321,8 @@ export function EducationContainer() {
           onStartStudy={handleStartStudy}
           isSessionCompleted={isSessionCompleted}
           completedScore={sessionResult?.scorePercentage ?? 80}
+          interruptedSession={interruptedSession}
+          onResumeInterruptedSession={handleResumeInterruptedSession}
         />
       )}
 
@@ -329,6 +367,8 @@ export function EducationContainer() {
             onSaveNote={handleSaveNote}
             onSelectTrack={handleSelectTrack}
             onVoiceActiveChange={setVoiceActive}
+            onInterruptLesson={handleInterruptLesson}
+            initialTimeSeconds={activeResumeTimeSeconds ?? undefined}
           />
         </div>
       )}
@@ -381,6 +421,10 @@ export function EducationContainer() {
         videoTimestamp={currentVideoTimestamp}
         onVoiceActiveChange={setVoiceActive}
       />
+
+      {/* Destino real de "Rever"/"Revisão" — Minhas Aulas (Hub) e "Próximas Revisões" (Context
+          Panel) abrem o mesmo modal, ver LessonReviewModal.tsx */}
+      <LessonReviewModal />
     </main>
   );
 }

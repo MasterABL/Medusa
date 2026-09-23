@@ -11,6 +11,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { StudyTrack } from '@/components/education/types';
+import { CompletedActivityItem } from '@/components/education/CompletedActivityList';
 
 type EnemView = 'visao-geral' | 'cronograma';
 
@@ -29,6 +30,13 @@ interface EducationPanelContextType {
   // Estado real: só o FaculdadeHub e o painel da Faculdade leem/escrevem isto.
   faculdadeDisciplineCode: string;
   setFaculdadeDisciplineCode: (code: string) => void;
+
+  // Destino real do botão "Rever"/"Revisão" — compartilhado entre `CompletedActivityList` (Hub)
+  // e a seção "Próximas Revisões" de cada Context Panel, para que os dois pontos de entrada
+  // abram exatamente o mesmo item, em vez de duas implementações divergentes de "revisão".
+  reviewModalItem: CompletedActivityItem | null;
+  openReviewModal: (item: CompletedActivityItem) => void;
+  closeReviewModal: () => void;
 }
 
 const EducationPanelContext = createContext<EducationPanelContextType | undefined>(undefined);
@@ -40,9 +48,12 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   // FIS-204 é a disciplina ativa por fixture (ver educationFixtures.ts) — mesmo default usado
   // antes desta mudança, quando a seleção ainda era estado local do FaculdadeHub.
   const [faculdadeDisciplineCode, setFaculdadeDisciplineCode] = useState('FIS-204');
+  const [reviewModalItem, setReviewModalItem] = useState<CompletedActivityItem | null>(null);
 
   const setCurrentTrackMirrorCb = useCallback((track: StudyTrack) => setCurrentTrackMirror(track), []);
   const setIsSessionCompletedMirrorCb = useCallback((value: boolean) => setIsSessionCompletedMirror(value), []);
+  const openReviewModal = useCallback((item: CompletedActivityItem) => setReviewModalItem(item), []);
+  const closeReviewModal = useCallback(() => setReviewModalItem(null), []);
 
   return (
     <EducationPanelContext.Provider
@@ -55,6 +66,9 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
         setEnemView,
         faculdadeDisciplineCode,
         setFaculdadeDisciplineCode,
+        reviewModalItem,
+        openReviewModal,
+        closeReviewModal,
       }}
     >
       {children}

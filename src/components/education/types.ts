@@ -167,6 +167,14 @@ export interface DisciplineDeadline {
   date: string;
 }
 
+/** Semântica visual de um aviso — ver DESIGN.md §2 (gramática de cor). Nunca todo aviso vira "urgente". */
+export type NoticeSeverity = 'informativo' | 'atencao' | 'urgente';
+
+export interface DisciplineNotice {
+  text: string;
+  severity: NoticeSeverity;
+}
+
 export interface DisciplineChip {
   code: string;
   title: string;
@@ -181,9 +189,27 @@ export interface DisciplineChip {
   /** Aulas/conteúdos desta disciplina — reaproveita o mesmo shape de módulo curado. */
   content: TrackModuleItem[];
   notices: string[];
+  /**
+   * Mesmos avisos de `notices`, com severidade semântica classificada (ver DESIGN.md §2) para o
+   * Context Panel. Opcional — quando ausente, o painel trata todo item de `notices` como
+   * "informativo" (nunca assume urgência sem essa classificação explícita).
+   */
+  noticeDetails?: DisciplineNotice[];
   /** Materiais já disponibilizados da disciplina — fixture de leitura, sem upload/IA real. */
   materials: DisciplineMaterial[];
   deadlines: DisciplineDeadline[];
+}
+
+/**
+ * Indicador de domínio/mastery por competência ou área — usado nos Context Panels (ver
+ * DESIGN.md §Motion/Cardificação e Rodada 4 §12). FIXTURE ilustrativa: não existe, nesta fase,
+ * um motor de avaliação real que produza esses percentuais — o valor é estático, do mesmo modo
+ * que outras métricas já expostas na Educação (ex.: `nextReviewSuggestion`).
+ */
+export interface MasteryDomain {
+  id: string;
+  label: string;
+  percent: number;
 }
 
 export interface TrackDefinition {
@@ -214,6 +240,13 @@ export interface TrackDefinition {
   cronograma?: CronogramaBlock[];
   /** Somente Faculdade: disciplinas ativas do período letivo. */
   disciplines?: DisciplineChip[];
+  /**
+   * Domínio por competência/área — Inglês (Speaking/Writing/Listening/Reading) e ENEM (Ciências
+   * da Natureza/Matemática/Linguagens/Ciências Humanas). A Faculdade não usa este campo: seu
+   * domínio é calculado ao vivo a partir de `disciplines[].content` (dado real de progresso),
+   * não uma métrica por habilidade separada.
+   */
+  masteryDomains?: MasteryDomain[];
 }
 
 export interface SessionResult {
