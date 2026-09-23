@@ -335,7 +335,12 @@ export function StudyModeView({
                     : lessonViewMode === 'resumo'
                     ? '100%'
                     : lessonViewMode === 'dividido'
-                    ? 'clamp(360px, 40%, 480px)'
+                    // "Tutor ao Vivo" (id interno continua 'dividido'): precisa de mais espaço que
+                    // o resumo estático porque hospeda uma conversa de chat inteira, não só uma
+                    // lista de pontos — Round 5 §23 apontou que a proporção quase idêntica à de
+                    // "Aula + Resumo" (antes 40% vs 36%, uma diferença pequena demais pra perceber)
+                    // reforçava a sensação de modo redundante. 46% cria uma diferença visível.
+                    ? 'clamp(380px, 46%, 520px)'
                     // Modo "Aula + Resumo": 40% para o resumo / 60% para o vídeo (Round 5 §6 — nunca
                     // 50/50). O vídeo continua sendo o elemento dominante do palco.
                     : 'clamp(340px, 40%, 460px)',
@@ -369,7 +374,13 @@ export function StudyModeView({
                 ? ([
                     { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Aula em foco total' },
                     { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Aula com pontos-chave ao lado' },
-                    { id: 'dividido', label: 'Dividido', icon: 'vertical_split', title: 'Aula dividida com Tutor ou Resumo' },
+                    // Round 5 §23: "Dividido" e "Aula + Resumo" eram quase indistinguíveis (mesmo
+                    // ícone genérico de layout, ambos mostram vídeo + painel lateral). O rótulo e
+                    // o ícone agora nomeiam a função real e distinta deste modo — conversar com o
+                    // Tutor ao vivo lado a lado — em vez de descrever só a geometria da tela. O
+                    // `id` interno continua 'dividido' (não é usado como texto visível em nenhum
+                    // outro lugar do app).
+                    { id: 'dividido', label: 'Tutor ao Vivo', icon: 'record_voice_over', title: 'Vídeo com o Tutor de conversação lado a lado' },
                   ] as const)
                 : ([
                     { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Vídeo em foco total' },
@@ -381,7 +392,12 @@ export function StudyModeView({
                   key={m.id}
                   type="button"
                   id={`btn-lesson-mode-${m.id}`}
-                  onClick={() => setLessonViewMode(m.id)}
+                  onClick={() => {
+                    setLessonViewMode(m.id);
+                    // O modo se chama "Tutor ao Vivo" agora (Round 5 §23) — entrar nele já deveria
+                    // mostrar o Tutor, sem exigir um segundo clique na aba além do já feito aqui.
+                    if (m.id === 'dividido') setActiveTab('tutor');
+                  }}
                   title={m.title}
                   aria-label={m.label}
                   className={`flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
@@ -410,11 +426,27 @@ export function StudyModeView({
               de desktop mais comuns, e os pedidos explicitamente para validação), 640px de
               vídeo sozinho já excedia o espaço restante depois do cabeçalho/faixa/controles,
               obrigando a rolar a página só para ver os controles do player. Reduzido para um
-              piso que cabe nesses viewports sem cortar o vídeo a um tamanho inutilizável. */}
+              piso que cabe nesses viewports sem cortar o vídeo a um tamanho inutilizável.
+
+              Round 5 §22/§25: no Modo "Aula" (vídeo em foco total), a faixa de objetivo e o
+              painel lateral recolhem e sobra espaço vertical real que o cálculo de
+              `calc(100vh-480px)` (pensado para os outros modos, com mais chrome ao redor) não
+              reclamava — o palco ficava menor do que precisava, com uma faixa vazia abaixo dele.
+
+              BUG REAL medido nesta rodada em 1280×800 (um dos dois viewports de desktop exigidos
+              pela validação): o piso de 380px do modo padrão, multiplicado pelo `items-stretch`
+              da linha com o painel lateral, resultava em ~468px de chrome ao redor do palco — a
+              soma ultrapassava os 800px de altura da tela e forçava rolagem vertical, o oposto do
+              pedido. Os pisos (300px no modo padrão, 400px no modo Aula) agora ficam abaixo do
+              valor que `calc(100vh-…)` calcularia nos dois viewports testados, então quem decide
+              a altura de verdade é sempre o cálculo relativo à tela — o piso só evita um palco
+              minúsculo numa tela hipotética bem mais baixa que as testadas. */}
           <div
-            className={`relative w-full flex-1 min-h-[320px] sm:min-h-[380px] lg:min-h-[380px] xl:min-h-[max(380px,calc(100vh-480px))] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none ${
-              isFaculdade ? 'bg-[#0B1120]' : 'bg-[#0E1311]'
-            }`}
+            className={`relative w-full flex-1 min-h-[320px] sm:min-h-[380px] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none transition-[min-height] duration-500 ease-out ${
+              isAulaFocusMode
+                ? 'lg:min-h-[400px] xl:min-h-[max(400px,calc(100vh-380px))]'
+                : 'lg:min-h-[300px] xl:min-h-[max(300px,calc(100vh-480px))]'
+            } ${isFaculdade ? 'bg-[#0B1120]' : 'bg-[#0E1311]'}`}
           >
             {/* Visualização de Fundo por Trilha — a composição (Aula/Aula+Resumo/Dividido) muda
                 a proporção do palco, não o que toca nele: mesma cena visual nos 3 modos. */}
