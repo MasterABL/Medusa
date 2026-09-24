@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { EnemCronogramaView } from './EnemCronogramaView';
@@ -9,21 +9,27 @@ import { CronogramaPlan } from './cronogramaPlanner';
 
 interface CronogramaOverlayProps {
   /**
-   * Repassado para o "Iniciar Sessão" de um bloco do cronograma. Omitido quando o overlay é
-   * aberto de DENTRO do Study Mode — iniciar uma segunda sessão por cima da atual sem passar
-   * pelo fluxo de "Interromper aula" destruiria o progresso em silêncio, o que a Rodada 4 já
-   * proibiu explicitamente. Nesse caso o overlay fica só-leitura (ver o mapa, fechar, continuar
-   * a aula), que já resolve o pedido real: "ver o cronograma sem sair do material".
+   * Repassado para o "Iniciar Sessão" de um bloco do cronograma. Presente quando o overlay é
+   * aberto a partir do DASHBOARD (Context Panel do ENEM) — nesse caso o Cronograma não abre mais
+   * como drawer (Round 6 §20: "não abrir uma cópia dentro de um drawer de 640px"), navega direto
+   * pra aba Cronograma real do EnemHub (`enemView`), que já existe como experiência principal.
+   * Omitido quando aberto de DENTRO do Study Mode — aí não há Hub montado pra navegar (o Shell
+   * está em modo foco), então o overlay continua sendo a única forma de consultar o cronograma
+   * sem sair da aula (ver o mapa, fechar, continuar — nunca inicia uma segunda sessão por cima).
    */
   onStartStudy?: (simulateError?: boolean) => void;
 }
 
 /**
- * Cronograma do ENEM em contexto (Refinamento Visual §10) — abre como um painel deslizante por
- * cima da tela atual (Dashboard OU Study Mode), nunca uma navegação para outra página. Reaproveita
- * o mesmo `EnemCronogramaView` já usado na aba "Cronograma" do Hub (não duplica a UI), e a mesma
- * transição de painel (`panel-transition`, translateX) já usada pelo Context Panel mobile e pela
- * Sidebar — sem introduzir um terceiro sistema de overlay.
+ * Cronograma do ENEM — dois comportamentos distintos por contexto (Round 6 §20):
+ *
+ * 1. A partir do Dashboard (Context Panel, `onStartStudy` presente): o gate de onboarding (se
+ *    ainda não visto) mostra o assistente de tela cheia; assim que ele termina (ou já tinha sido
+ *    visto antes), a navegação é pra aba Cronograma REAL do `EnemHub` (`setEnemView`), não uma
+ *    cópia dentro de um drawer — "Ver Cronograma completo" leva à experiência principal.
+ * 2. De DENTRO de uma sessão de estudo ativa (`onStartStudy` ausente): não existe Hub montado
+ *    pra navegar (Shell em modo foco) — o overlay continua sendo um painel deslizante read-only,
+ *    exatamente como antes, pra consultar sem perder o progresso da aula.
  */
 export function CronogramaOverlay({ onStartStudy }: CronogramaOverlayProps) {
   const {
@@ -33,20 +39,43 @@ export function CronogramaOverlay({ onStartStudy }: CronogramaOverlayProps) {
     markCronogramaOnboardingSeen,
     cronogramaPlan,
     setCronogramaPlan,
+    setEnemView,
   } = useEducationPanel();
   const cronograma = TRACK_DEFINITIONS.vestibular.cronograma ?? [];
+  const isDashboardContext = Boolean(onStartStudy);
 
   const handleFinishOnboarding = (plan: CronogramaPlan) => {
     setCronogramaPlan(plan);
     markCronogramaOnboardingSeen();
   };
 
-  // Round 5 §12: primeiro acesso da SESSÃO ao Cronograma mostra o assistente de tela cheia em
-  // vez do painel lateral — nunca os dois ao mesmo tempo. `isCronogramaOverlayOpen` continua
-  // controlando o backdrop/painel por baixo (que já existe montado, só escondido), então fechar
-  // o onboarding sem terminar não deixa a tela em branco.
+  // Round 6 §20/§21: no contexto do Dashboard, assim que o onboarding é resolvido (terminado
+  // agora, ou já tinha sido visto numa visita anterior desta sessão), a "abertura" do overlay se
+  // resolve navegando pra aba real do Hub em vez de mostrar um drawer por cima — o usuário sabe
+  // que chegou no cronograma de verdade, não numa cópia. Só dispara quando o overlay está aberto
+  // (nunca navega sozinho em segundo plano) e só no contexto de dashboard (in-session mantém o
+  // drawer, ver docblock acima).
+  useEffect(() => {
+    if (isCronogramaOverlayOpen && isDashboardContext && cronogramaOnboardingSeen) {
+      setEnemView('cronograma');
+      closeCronogramaOverlay();
+    }
+  }, [isCronogramaOverlayOpen, isDashboardContext, cronogramaOnboardingSeen, setEnemView, closeCronogramaOverlay]);
+
+  // Primeiro acesso da SESSÃO ao Cronograma mostra o assistente de tela cheia em vez do painel
+  // lateral — nunca os dois ao mesmo tempo. `isCronogramaOverlayOpen` continua controlando o
+  // backdrop/painel por baixo (que já existe montado, só escondido), então fechar o onboarding
+  // sem terminar não deixa a tela em branco.
   if (isCronogramaOverlayOpen && !cronogramaOnboardingSeen) {
     return <CronogramaOnboarding onFinish={handleFinishOnboarding} />;
+  }
+
+  // Contexto de dashboard com onboarding já resolvido: o efeito acima já disparou a navegação e
+  // fechou o overlay no mesmo ciclo — não há nada visível pra renderizar aqui (o `EnemHub`,
+  // aba Cronograma, é quem mostra o conteúdo agora). Evita um frame do drawer "piscando" aberto
+  // antes do `useEffect` rodar.
+  if (isDashboardContext && cronogramaOnboardingSeen) {
+    return null;
   }
 
   return (
