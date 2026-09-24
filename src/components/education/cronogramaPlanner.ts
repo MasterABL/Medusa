@@ -44,6 +44,14 @@ export interface CronogramaAnswers {
   horasPorDia: number;
   dataProva: string; // "YYYY-MM-DD"
   dominio: Partial<Record<string, DomainLevel>>;
+  /**
+   * Round 6 §16 (Bloco 3 — Outras Atividades): soma de horas/semana já comprometidas com
+   * atividades recorrentes fora do estudo (academia, cursos, compromissos fixos) que o
+   * onboarding coleta. Sai da conta ANTES de distribuir horas entre disciplinas — é o que faz
+   * "tenho academia 3x por semana" mudar o plano de verdade, em vez de só ser uma pergunta
+   * decorativa. Nunca negativo no resultado final (`Math.max(0, ...)`).
+   */
+  horasComprometidasSemana?: number;
 }
 
 export type Intensidade = 'longo-prazo' | 'moderado' | 'intensivo' | 'critico';
@@ -104,7 +112,8 @@ export function gerarPlano(answers: CronogramaAnswers, hoje: Date = new Date()):
   const dataProva = new Date(`${answers.dataProva}T00:00:00`);
   const semanasRestantes = calcularSemanasRestantes(hoje, dataProva);
   const intensidade = calcularIntensidade(semanasRestantes);
-  const horasSemanais = answers.diasDisponiveis.length * answers.horasPorDia;
+  const horasBrutas = answers.diasDisponiveis.length * answers.horasPorDia;
+  const horasSemanais = Math.max(0, horasBrutas - (answers.horasComprometidasSemana ?? 0));
 
   const pesos = CRONOGRAMA_DISCIPLINES.map((disciplina) => {
     const dominio = answers.dominio[disciplina] ?? 'medio';
@@ -135,4 +144,73 @@ export function gerarPlanoGenerico(hoje: Date = new Date()): CronogramaPlan {
     },
     hoje
   );
+}
+
+/**
+ * Mini-diagnóstico adaptativo (Round 6 §17) — 3 questões de dificuldade crescente (fácil,
+ * intermediária, difícil), a mesma estrutura pedida explicitamente. Não é dividido por
+ * disciplina (21 perguntas — 3 por cada uma das 7 — inflaria o onboarding sem uma base de
+ * conteúdo real por trás pra validar cada resposta corretamente) — é um recorte único de
+ * raciocínio geral, usado só como um AJUSTE FINO sobre a autoavaliação por disciplina que o
+ * usuário já deu, nunca como substituto dela. Rotulado na UI como "Estimativa inicial de
+ * domínio", nunca como precisão científica (§17 explícito).
+ */
+export interface DiagnosticoQuestao {
+  id: string;
+  dificuldade: 'facil' | 'media' | 'dificil';
+  pergunta: string;
+  opcoes: string[];
+  respostaCorretaIndex: number;
+}
+
+export const DIAGNOSTICO_QUESTOES: DiagnosticoQuestao[] = [
+  {
+    id: 'q1',
+    dificuldade: 'facil',
+    pergunta: 'Se um produto custava R$ 80 e teve um desconto de 25%, qual o novo preço?',
+    opcoes: ['R$ 55', 'R$ 60', 'R$ 65', 'R$ 70'],
+    respostaCorretaIndex: 1,
+  },
+  {
+    id: 'q2',
+    dificuldade: 'media',
+    pergunta: 'Uma torneira enche um tanque em 6 horas. Outra torneira, sozinha, enche o mesmo tanque em 3 horas. Trabalhando juntas, em quanto tempo enchem o tanque?',
+    opcoes: ['1,5 hora', '2 horas', '3 horas', '4,5 horas'],
+    respostaCorretaIndex: 1,
+  },
+  {
+    id: 'q3',
+    dificuldade: 'dificil',
+    pergunta: 'Numa progressão geométrica, o 2º termo é 6 e o 5º termo é 162. Qual é a razão da progressão?',
+    opcoes: ['2', '3', '4', '9'],
+    respostaCorretaIndex: 1,
+  },
+];
+
+/**
+ * Aplica o resultado do diagnóstico como um pequeno ajuste sobre a autoavaliação (Round 6 §18 —
+ * as respostas precisam realmente alterar o plano, não só decorar a tela). Regra deliberadamente
+ * conservadora e unidirecional por faixa de acerto — nunca inventa precisão que 3 perguntas não
+ * têm:
+ * - 3/3 acertos: sinal de que o autorrelato pode estar subestimado — "baixo" sobe pra "medio"
+ *   (nunca pula direto pra "alto": o diagnóstico é genérico, não valida a disciplina específica).
+ * - 0/3 acertos: sinal oposto — "alto" desce pra "medio" (mesma lógica, nunca derruba até "baixo").
+ * - 1-2/3: nenhum ajuste — resultado ambíguo demais pra alterar o que o usuário já disse sobre
+ *   si mesmo.
+ */
+export function ajustarDominioPorDiagnostico(
+  dominio: Partial<Record<string, DomainLevel>>,
+  acertos: number
+): Partial<Record<string, DomainLevel>> {
+  if (acertos === DIAGNOSTICO_QUESTOES.length) {
+    return Object.fromEntries(
+      Object.entries(dominio).map(([disciplina, nivel]) => [disciplina, nivel === 'baixo' ? 'medio' : nivel])
+    );
+  }
+  if (acertos === 0) {
+    return Object.fromEntries(
+      Object.entries(dominio).map(([disciplina, nivel]) => [disciplina, nivel === 'alto' ? 'medio' : nivel])
+    );
+  }
+  return dominio;
 }

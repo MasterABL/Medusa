@@ -15,13 +15,44 @@ import {
   gerarPlanoGenerico,
   INTENSIDADE_LABEL,
   INTENSIDADE_DESCRICAO,
+  DIAGNOSTICO_QUESTOES,
+  ajustarDominioPorDiagnostico,
 } from './cronogramaPlanner';
 
-type Step = 'intro' | 'rotina' | 'disponibilidade' | 'objetivo' | 'dominio' | 'revelando' | 'resultado';
+type Step =
+  | 'intro'
+  | 'rotina'
+  | 'disponibilidade'
+  | 'outras-atividades'
+  | 'objetivo'
+  | 'dominio'
+  | 'diagnostico'
+  | 'revelando'
+  | 'resultado';
 
-const STEP_ORDER: Step[] = ['intro', 'rotina', 'disponibilidade', 'objetivo', 'dominio', 'revelando', 'resultado'];
+const STEP_ORDER: Step[] = [
+  'intro',
+  'rotina',
+  'disponibilidade',
+  'outras-atividades',
+  'objetivo',
+  'dominio',
+  'diagnostico',
+  'revelando',
+  'resultado',
+];
 
 const HORAS_OPCOES = [1, 2, 3, 4, 5, 6];
+
+/** Bloco 3 do questionário (Round 6 §16) — atividades recorrentes comuns fora do estudo. Lista
+ * fechada de propósito (nunca texto livre): cada uma já carrega uma estimativa de horas/semana
+ * típica, e o usuário só ajusta quantas dessas atividades valem pra rotina dele. */
+const ATIVIDADES_RECORRENTES = [
+  { id: 'academia', label: 'Academia / esporte', icon: 'fitness_center', horasSemanaTipica: 3 },
+  { id: 'curso', label: 'Curso ou aula extra', icon: 'school', horasSemanaTipica: 4 },
+  { id: 'trabalho-extra', label: 'Trabalho / estágio', icon: 'work', horasSemanaTipica: 20 },
+  { id: 'compromisso', label: 'Compromisso fixo semanal', icon: 'event_repeat', horasSemanaTipica: 2 },
+] as const;
 
 interface CronogramaOnboardingProps {
   onFinish: (plan: CronogramaPlan) => void;
@@ -45,9 +76,30 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
   const [step, setStep] = useState<Step>('intro');
   const [diasDisponiveis, setDiasDisponiveis] = useState<Weekday[]>([]);
   const [horasPorDia, setHorasPorDia] = useState<number | null>(null);
+  const [atividadesSelecionadas, setAtividadesSelecionadas] = useState<Set<string>>(new Set());
   const [dataProva, setDataProva] = useState('');
   const [dominio, setDominio] = useState<Partial<Record<string, DomainLevel>>>({});
+  const [diagnosticoRespostas, setDiagnosticoRespostas] = useState<Record<string, number>>({});
   const [plano, setPlano] = useState<CronogramaPlan | null>(null);
+
+  const horasComprometidasSemana = ATIVIDADES_RECORRENTES.filter((a) => atividadesSelecionadas.has(a.id)).reduce(
+    (soma, a) => soma + a.horasSemanaTipica,
+    0
+  );
+
+  const toggleAtividade = (id: string) => {
+    setAtividadesSelecionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const acertosDiagnostico = DIAGNOSTICO_QUESTOES.filter(
+    (q) => diagnosticoRespostas[q.id] === q.respostaCorretaIndex
+  ).length;
+  const diagnosticoCompleto = Object.keys(diagnosticoRespostas).length === DIAGNOSTICO_QUESTOES.length;
 
   const stepIndex = STEP_ORDER.indexOf(step);
 
@@ -74,11 +126,16 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
     // cálculo em si é instantâneo (função pura, sem I/O); a pausa é só a experiência de "seu
     // plano está sendo montado", igual ao padrão já usado em StudyReadyState.tsx.
     setTimeout(() => {
+      // Round 6 §18: o diagnóstico e as outras atividades precisam realmente alterar o plano,
+      // não só existir na tela. `ajustarDominioPorDiagnostico` só muda algo em 3/3 ou 0/3 acertos
+      // (ver cronogramaPlanner.ts) — resultado ambíguo (1-2/3) mantém a autoavaliação como está.
+      const dominioAjustado = ajustarDominioPorDiagnostico(dominio, acertosDiagnostico);
       const plan = gerarPlano({
         diasDisponiveis,
         horasPorDia: horasPorDia ?? 2,
         dataProva,
-        dominio,
+        dominio: dominioAjustado,
+        horasComprometidasSemana,
       });
       setPlano(plan);
       setStep('resultado');
@@ -108,7 +165,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
         <div className="flex items-center gap-2">
           {step !== 'intro' && step !== 'revelando' && step !== 'resultado' && (
             <div className="flex items-center gap-1" aria-hidden="true">
-              {STEP_ORDER.slice(1, 5).map((s, i) => (
+              {STEP_ORDER.slice(1, 7).map((s, i) => (
                 <span
                   key={s}
                   className={`h-1 rounded-full transition-all duration-300 ${
@@ -239,9 +296,65 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                 <button
                   type="button"
                   id="btn-onboarding-next-disponibilidade"
-                  onClick={() => goTo('objetivo')}
+                  onClick={() => goTo('outras-atividades')}
                   disabled={!horasPorDia}
                   className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Continuar
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 'outras-atividades' && (
+            <>
+              <h2 className="text-xl font-bold tracking-tight text-text-primary">Você tem outros compromissos recorrentes?</h2>
+              <p className="text-[12px] text-text-secondary max-w-sm">
+                Isso tira horas da sua disponibilidade real — o plano desconta antes de distribuir entre as disciplinas.
+              </p>
+              <div id="onboarding-atividades-list" className="w-full flex flex-col gap-2">
+                {ATIVIDADES_RECORRENTES.map((a) => {
+                  const isSelected = atividadesSelecionadas.has(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      id={`onboarding-atividade-${a.id}`}
+                      onClick={() => toggleAtividade(a.id)}
+                      aria-pressed={isSelected}
+                      className={`w-full flex items-center justify-between gap-3 p-3 rounded-xl border text-left transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
+                        isSelected
+                          ? 'bg-medusa-primary/15 border-medusa-primary/50'
+                          : 'bg-surface-secondary/40 border-border/50 hover:border-border/80'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5 text-[12px] font-semibold text-text-primary">
+                        <span className="material-symbols-outlined text-[18px] text-text-muted">{a.icon}</span>
+                        {a.label}
+                      </span>
+                      <span className="text-[10px] font-mono text-text-muted flex-shrink-0">~{a.horasSemanaTipica}h/sem</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {horasComprometidasSemana > 0 && (
+                <p className="text-[11px] font-mono text-text-muted">
+                  {horasComprometidasSemana}h/semana já comprometidas com outras atividades
+                </p>
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => goTo('disponibilidade')}
+                  className="btn-interactive px-4 py-2 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  id="btn-onboarding-next-atividades"
+                  onClick={() => goTo('objetivo')}
+                  className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
                 >
                   Continuar
                 </button>
@@ -268,7 +381,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => goTo('disponibilidade')}
+                  onClick={() => goTo('outras-atividades')}
                   className="btn-interactive px-4 py-2 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
                 >
                   Voltar
@@ -336,9 +449,65 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                 </button>
                 <button
                   type="button"
+                  id="btn-onboarding-next-dominio"
+                  onClick={() => goTo('diagnostico')}
+                  disabled={Object.keys(dominio).length < CRONOGRAMA_DISCIPLINES.length}
+                  className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Continuar
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 'diagnostico' && (
+            <>
+              <h2 className="text-xl font-bold tracking-tight text-text-primary">Estimativa inicial de domínio</h2>
+              <p className="text-[12px] text-text-secondary max-w-sm">
+                3 perguntas rápidas de raciocínio geral, dificuldade crescente — não é um
+                diagnóstico científico, é só um ajuste fino sobre o que você disse acima.
+              </p>
+              <div id="onboarding-diagnostico-list" className="w-full flex flex-col gap-3 text-left">
+                {DIAGNOSTICO_QUESTOES.map((q, qi) => (
+                  <div key={q.id} className="p-3.5 rounded-xl bg-surface-secondary/40 border border-border/50">
+                    <span className="text-[10px] font-mono uppercase tracking-wide text-text-muted">
+                      Questão {qi + 1} · {q.dificuldade}
+                    </span>
+                    <p className="text-[12px] font-medium text-text-primary mt-1 mb-2.5">{q.pergunta}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {q.opcoes.map((opcao, oi) => (
+                        <button
+                          key={oi}
+                          type="button"
+                          id={`onboarding-diagnostico-${q.id}-${oi}`}
+                          onClick={() => setDiagnosticoRespostas((prev) => ({ ...prev, [q.id]: oi }))}
+                          aria-pressed={diagnosticoRespostas[q.id] === oi}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
+                            diagnosticoRespostas[q.id] === oi
+                              ? 'bg-surface text-text-primary shadow-subtle border border-medusa-primary/50'
+                              : 'bg-surface/60 text-text-muted hover:text-text-primary border border-border/50'
+                          }`}
+                        >
+                          {opcao}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => goTo('dominio')}
+                  className="btn-interactive px-4 py-2 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
                   id="btn-onboarding-calcular"
                   onClick={handleCalcular}
-                  disabled={Object.keys(dominio).length < CRONOGRAMA_DISCIPLINES.length}
+                  disabled={!diagnosticoCompleto}
                   className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex items-center gap-2"
                 >
                   <span>Calcular meu plano</span>
