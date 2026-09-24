@@ -74,7 +74,21 @@ function readActiveTask() {
     process.exit(EXIT.NO_ACTIVE_TASK);
   }
 
-  return { taskId: idMatch[1], content };
+  // Achado real de review: o TASK ID extraído aqui vira parte de um nome de arquivo em
+  // saveRun() (`${timestamp}-${taskId}.json` dentro de RUNS_DIR). `\S+` no regex acima aceita
+  // qualquer caractere não-espaço, incluindo `/` e `..` — um ACTIVE_TASK.md malformado (ou editado
+  // à mão com um valor inesperado) poderia gravar fora de `.ai/runs`. Trava o formato ao mesmo
+  // padrão já usado nos IDs reais deste projeto (ex.: TASK-CI-001).
+  const taskId = idMatch[1];
+  if (!/^[A-Za-z0-9._-]+$/.test(taskId)) {
+    console.error(
+      `[agent-orchestrator] ERRO: TASK ID "${taskId}" tem formato inválido (só letras, números, ` +
+        `"." "_" "-" são aceitos) — recusado por segurança antes de virar nome de arquivo.`
+    );
+    process.exit(EXIT.NO_ACTIVE_TASK);
+  }
+
+  return { taskId, content };
 }
 
 function readHandoff(taskId) {
@@ -86,7 +100,14 @@ function readHandoff(taskId) {
     process.exit(EXIT.NO_ACTIVE_TASK);
   }
   const content = fs.readFileSync(HANDOFF_PATH, 'utf8');
-  if (!content.includes(taskId)) {
+  // Achado real de review: `content.includes(taskId)` é um match de SUBSTRING — TASK ID "TASK-1"
+  // "casa" dentro de "TASK-10" ou "TASK-1B", então um HANDOFF.md pra uma tarefa diferente passava
+  // na checagem de consistência sem erro nenhum. taskId já é validado (regex de formato em
+  // readActiveTask) só com [A-Za-z0-9._-], então dá pra usar ele dentro de uma regex com fronteira
+  // sem precisar de um escape geral de metacaracteres.
+  const boundary = '(?:^|[^A-Za-z0-9._-])';
+  const taskIdPattern = new RegExp(`${boundary}${taskId.replace(/[.]/g, '\\.')}(?:$|[^A-Za-z0-9._-])`);
+  if (!taskIdPattern.test(content)) {
     console.error(
       `[agent-orchestrator] ERRO: .ai/HANDOFF.md não menciona o TASK ID ativo (${taskId}). ` +
         'ACTIVE_TASK.md e HANDOFF.md precisam ser consistentes antes de delegar ao executor.'

@@ -86,6 +86,24 @@ async function getViewRegionStyle(page) {
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
+  // Tudo que segue roda dentro de um try/finally: se qualquer assertion/evaluate lançar no meio
+  // do fluxo (achado real de review — antes disso o browser.close() só rodava no caminho feliz,
+  // vazando o processo do Chromium a cada falha), o browser é sempre fechado.
+  try {
+    await runChecks(browser);
+  } finally {
+    await browser.close();
+  }
+
+  console.log(`\n${pass} PASSOU | ${fail} FALHOU`);
+  if (failures.length) {
+    console.log('\nFalhas:');
+    failures.forEach((f) => console.log(' - ' + f));
+    process.exit(1);
+  }
+})();
+
+async function runChecks(browser) {
   // ===== 1. Troca de view: transição real (amostra em plena transição) =====
   {
     const page = await freshPage(browser, 1440, 960);
@@ -346,13 +364,4 @@ async function getViewRegionStyle(page) {
 
     await page.close();
   }
-
-  await browser.close();
-
-  console.log(`\n${pass} PASSOU | ${fail} FALHOU`);
-  if (failures.length) {
-    console.log('\nFalhas:');
-    failures.forEach((f) => console.log(' - ' + f));
-    process.exit(1);
-  }
-})();
+}

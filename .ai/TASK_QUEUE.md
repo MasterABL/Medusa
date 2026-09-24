@@ -188,18 +188,26 @@ DO NOT TOUCH:
     (Vercel já cobre isso). Nenhuma permissão de workflow além do mínimo de leitura do repositório.
 
 ACCEPTANCE CRITERIA:
-  1. Workflow roda automaticamente em PRs contra main — a testar no push desta tarefa (PR #3).
-  2. Roda exatamente typecheck + build — nada mais.
+  1. Workflow roda automaticamente em PRs contra main — PROVADO (E-023: run real em PR #3,
+     conclusion "success", commit 131d098).
+  2. Roda exatamente typecheck + build — nada mais — PROVADO (E-023).
   3. Nenhum segredo novo é necessário nem introduzido — PROVADO (workflow não referencia nenhum).
   4. Nenhum arquivo de produto (src/**) é alterado — PROVADO (`git diff --stat -- src/` vazio).
 
 QA REQUIREMENTS:
-  Verificar que o workflow de fato dispara e passa na própria PR #3 após o push desta tarefa.
+  Verificar que o workflow de fato dispara e passa na própria PR #3 após o push desta tarefa —
+  PROVADO (E-023).
 
 EXPECTED EVIDENCE:
-  Link do workflow run com resultado real, registrado em EVIDENCE.md.
+  Link do workflow run com resultado real, registrado em EVIDENCE.md — ver E-023
+  (https://github.com/MasterABL/Medusa/actions/runs/35548493868).
 
-STATUS: READY — sem decisão humana pendente (D-011).
+STATUS: PROVADO — os 4 ACCEPTANCE CRITERIA e o QA REQUIREMENT têm evidência real (EVIDENCE.md →
+  E-023). Corrigido nesta rodada: esta linha dizia "READY — sem decisão humana pendente" mesmo
+  depois do run real de CI já ter sido registrado em E-023 — achado de um review externo
+  (graphify-labs), a linha nunca tinha sido atualizada depois da evidência existir. O campo
+  `STATUS:` no topo deste mesmo bloco (linha ~162) já dizia PROVADO; só a linha final estava
+  desatualizada.
 ```
 
 ---

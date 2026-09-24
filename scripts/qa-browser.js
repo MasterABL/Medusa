@@ -609,7 +609,17 @@ async function runFullQA() {
     const layout = document.getElementById('content-layout');
     const paddingRight = layout ? getComputedStyle(layout).paddingRight : null;
     const contextPanel = document.getElementById('context-panel');
-    const isPanelHidden = contextPanel ? (contextPanel.getAttribute('aria-hidden') === 'true' || getComputedStyle(contextPanel).transform.includes('matrix')) : true;
+    // Achado real de review: `getComputedStyle().transform` sempre serializa como "matrix(...)"
+    // para QUALQUER transform aplicado (inclusive um identity/hover/translateZ(0) sem relação
+    // nenhuma com esconder o painel) — `.includes('matrix')` dava falso positivo pra "escondido"
+    // mesmo com o painel visível. O teste geométrico real é: o painel está fora da área visível?
+    const isPanelHidden = contextPanel
+      ? (() => {
+          if (contextPanel.getAttribute('aria-hidden') === 'true') return true;
+          const rect = contextPanel.getBoundingClientRect();
+          return rect.right <= 0 || rect.left >= window.innerWidth || rect.width === 0;
+        })()
+      : true;
     const reopenBtn = document.getElementById('btn-reopen-context');
     // Rótulo renomeado na consolidação do Study Mode (agora inclui Roteiro/Vocabulário além de
     // Resumo/Notas) — o aria-label mudou, o papel estrutural da coluna companheira não.
