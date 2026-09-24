@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { StudyTrack, TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
+import React, { useState, useEffect } from 'react';
+import { TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
 import { TutorDrawer } from './TutorDrawer';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { getTrackAccent } from './trackAccent';
 
 interface StudyModeViewProps {
   trackDef: TrackDefinition;
@@ -12,7 +13,6 @@ interface StudyModeViewProps {
   onOpenTutor: (timestamp: number) => void;
   notes: StudyNote[];
   onSaveNote: (note: StudyNote) => void;
-  onSelectTrack?: (track: StudyTrack) => void;
   /** Reaproveita o mesmo mecanismo do Dynamic Island (nunca duplicado) para o Tutor inline do Modo Dividido. */
   onVoiceActiveChange?: (active: boolean) => void;
   /**
@@ -32,7 +32,6 @@ export function StudyModeView({
   onOpenTutor,
   notes,
   onSaveNote,
-  onSelectTrack,
   onVoiceActiveChange,
   onInterruptLesson,
   initialTimeSeconds = 240,
@@ -40,6 +39,7 @@ export function StudyModeView({
   const { lesson, summaryPoints: initialSummaryPoints, voiceEmphasis } = trackDef;
   const isIngles = trackDef.id === 'ingles';
   const isFaculdade = trackDef.id === 'faculdade';
+  const accent = getTrackAccent(trackDef.id);
   const { openCronogramaOverlay } = useEducationPanel();
 
   // Player state
@@ -74,21 +74,11 @@ export function StudyModeView({
     initialSummaryPoints.slice(0, 3)
   );
 
-  // Sincronizar summary points quando a trilha REALMENTE mudar (troca de trilha em pleno Study
-  // Mode via `onSelectTrack`) — nunca no mount inicial, para preservar `initialTimeSeconds` de um
-  // "Continuar aula" retomado. Compara a identidade da trilha (não "é a primeira chamada do
-  // efeito?"), porque o React 18 Strict Mode invoca efeitos duas vezes em desenvolvimento — um
-  // guard de "primeira execução" dispararia o reset na segunda chamada mesmo sem troca real.
-  const mountedTrackIdRef = useRef(trackDef.id);
-  useEffect(() => {
-    if (trackDef.id === mountedTrackIdRef.current) {
-      return;
-    }
-    mountedTrackIdRef.current = trackDef.id;
-    setSummaryPoints(initialSummaryPoints);
-    setCurrentTime(240);
-    setLessonViewMode('aula-resumo');
-  }, [trackDef.id, initialSummaryPoints]);
+  // Round 6 §8: a troca de trilha em pleno Study Mode foi removida (o contexto da sessão agora é
+  // fixo — ver header abaixo e EducationContainer.tsx). `trackDef.id` nunca muda enquanto este
+  // componente permanece montado, então o efeito de resync que existia aqui (guardado por um
+  // `useRef` comparando a identidade da trilha) ficou morto e foi removido — cada trilha nova
+  // já monta um `StudyModeView` do zero, com seus próprios valores iniciais.
 
   // A aba "Tutor" só existe dentro do Modo Dividido — se o usuário sair do Dividido com o Tutor
   // ativo, a aba volta para Resumo (o Tutor inline continua montado, só deixa de estar visível).
@@ -173,28 +163,22 @@ export function StudyModeView({
     setTimeout(() => setNoteSavedFeedback(null), 2500);
   };
 
-  // Rótulo "ENEM" por instrução explícita de produto — ver mesma nota em EducationDashboard.tsx.
-  const tracks: { id: StudyTrack; label: string }[] = [
-    { id: 'faculdade', label: 'Faculdade' },
-    { id: 'ingles', label: 'Inglês' },
-    { id: 'vestibular', label: 'ENEM' },
-  ];
-
   return (
     <div
       id="study-mode-container"
       className="study-stage-enter w-full flex flex-col gap-4 max-w-7xl mx-auto pb-8"
     >
-      {/* Topo da Sessão de Estudo & Contexto da Trilha */}
+      {/* Topo da Sessão de Estudo & Contexto da Trilha — enxuto (Round 6 §10): prioriza
+          disciplina/tópico/estado/ação. Removidos o badge "Modo Estudo Ativo · Foco Zen" e o
+          rótulo cru de `lesson.module` (ex.: "Caderno de Ouro ENEM · Habilidades 01 a 04") —
+          metadata de organização interna da fixture, sem valor de decisão pro usuário. O estado
+          agora é um indicador compacto com a cor de identidade da trilha (Round 6 §2.3/§2.1). */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30">
-              Modo Estudo Ativo · Foco Zen
-            </span>
-            <span className="text-text-muted/40">•</span>
-            <span className="text-[11px] font-mono text-text-muted">
-              {lesson.module}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${accent.solidBg} living-pulse`} />
+            <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider ${accent.text}`}>
+              {trackDef.name} · Em estudo
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
@@ -203,28 +187,6 @@ export function StudyModeView({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Seletor Discreto de Trilha no Study Mode (Alternância Sem Reload) */}
-          {onSelectTrack && (
-            <div className="flex items-center gap-1 p-0.5 bg-surface-secondary/70 border border-border/60 rounded-xl text-[11px] font-mono">
-              {tracks.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  id={`study-track-${t.id}`}
-                  onClick={() => onSelectTrack(t.id)}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
-                    trackDef.id === t.id
-                      ? 'bg-surface font-semibold text-text-primary shadow-subtle'
-                      : 'text-text-muted hover:text-text-primary'
-                  }`}
-                  title={`Alternar para trilha ${t.label}`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          )}
-
           <button
             type="button"
             id="btn-interrupt-lesson"
@@ -275,11 +237,11 @@ export function StudyModeView({
       </div>
 
       {/*
-        Conteúdo dependente da trilha (objetivo + palco) é remontado quando `trackDef.id` muda,
-        reutilizando a própria animação de entrada (`study-stage-enter`, já existente) como a
-        transição de troca de trilha — sem inventar um segundo sistema de motion. O cabeçalho
-        acima (título + seletor de trilha + ações) permanece estável, então a sensação é de
-        "o mesmo Study Mode reorganiza o conteúdo", não de duas telas diferentes.
+        Round 6 §8: o contexto de trilha agora é FIXO durante a sessão — trocar de trilha só é
+        possível a partir do Hub (EducationDashboard), nunca de dentro de uma sessão ativa (ver
+        header acima, que não tem mais seletor de trilha nenhum). `trackDef.id` não muda mais
+        enquanto este componente está montado; a `key={trackDef.id}` continua aqui só para o caso
+        de troca de conteúdo dentro da mesma trilha reaproveitar a entrada `study-stage-enter`.
       */}
       <div key={trackDef.id} id="track-content-region" className="study-stage-enter flex flex-col gap-4">
       {/* Faixa Contextual: Objetivo da Sessão — recolhida no modo "Aula" (Refinamento Visual
@@ -310,6 +272,64 @@ export function StudyModeView({
           </span>
         </div>
       </div>
+      )}
+
+      {/* Seletor de composição — CAMADA ESTÁVEL (Round 6 §6 CRÍTICO). Bug real corrigido nesta
+          rodada: este switcher morava DENTRO de `#lesson-stage`, que recolhe pra
+          `max-h-0 opacity-0 pointer-events-none` + `aria-hidden` no modo "Resumo" da Faculdade —
+          ou seja, o único controle capaz de SAIR do Resumo desaparecia e ficava sem clique
+          justamente quando alguém estava nele. Agora vive aqui, um nível acima da coluna que
+          recolhe, e nunca é afetado por `isResumoFocusMode`. */}
+      {hasModeSwitcher && (
+        <div
+          id="lesson-composition-switcher"
+          className="flex items-center gap-1 p-1 bg-surface-secondary/60 border border-border/60 rounded-xl w-fit"
+        >
+          {(isIngles
+            ? ([
+                { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Aula em foco total' },
+                { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Aula com pontos-chave ao lado' },
+                // Round 5 §23: "Dividido" e "Aula + Resumo" eram quase indistinguíveis (mesmo
+                // ícone genérico de layout, ambos mostram vídeo + painel lateral). O rótulo e
+                // o ícone agora nomeiam a função real e distinta deste modo — conversar com o
+                // Tutor ao vivo lado a lado — em vez de descrever só a geometria da tela. O
+                // `id` interno continua 'dividido' (não é usado como texto visível em nenhum
+                // outro lugar do app).
+                { id: 'dividido', label: 'Tutor ao Vivo', icon: 'record_voice_over', title: 'Vídeo com o Tutor de conversação lado a lado' },
+              ] as const)
+            : ([
+                { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Vídeo em foco total' },
+                { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Vídeo com resumo ao lado (60/40)' },
+                { id: 'resumo', label: 'Resumo', icon: 'subject', title: 'Resumo estruturado da aula, em foco total' },
+              ] as const)
+          ).map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              id={`btn-lesson-mode-${m.id}`}
+              onClick={() => {
+                setLessonViewMode(m.id);
+                // O modo se chama "Tutor ao Vivo" agora (Round 5 §23) — entrar nele já deveria
+                // mostrar o Tutor, sem exigir um segundo clique na aba além do já feito aqui.
+                if (m.id === 'dividido') setActiveTab('tutor');
+              }}
+              title={m.title}
+              aria-label={m.label}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
+                lessonViewMode === m.id
+                  ? `bg-surface text-text-primary shadow-subtle font-semibold border ${accent.softBorder}`
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+              aria-pressed={lessonViewMode === m.id}
+            >
+              <span className="material-symbols-outlined text-[15px]">{m.icon}</span>
+              {/* Rótulo só aparece a partir de sm: em telas muito estreitas os 3 rótulos
+                  completos não cabem lado a lado sem espremer/cortar texto — o ícone +
+                  `title`/`aria-label` mantêm a ação clara mesmo só com o ícone. */}
+              <span className="hidden sm:inline">{m.label}</span>
+            </button>
+          ))}
+        </div>
       )}
 
       {/* Palco Central: ~50% Conteúdo da Aula + ~50% Companheiro da Sessão (Resumo/Vocabulário/
@@ -361,61 +381,6 @@ export function StudyModeView({
               : 'max-h-[3000px] lg:max-h-none opacity-100'
           }`}
         >
-          {/* Inglês e Faculdade: os modos de composição da aula — controlam QUANTO espaço o palco
-              ocupa e se/como a região lateral aparece (e, no caso de Faculdade "Resumo", qual dos
-              dois lados domina). O conteúdo da aula em si não muda entre os modos (isso não é um
-              seletor de "fonte" de conteúdo). */}
-          {hasModeSwitcher && (
-            <div
-              id="lesson-composition-switcher"
-              className="flex items-center gap-1 p-2 border-b border-border/60 bg-surface-secondary/40"
-            >
-              {(isIngles
-                ? ([
-                    { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Aula em foco total' },
-                    { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Aula com pontos-chave ao lado' },
-                    // Round 5 §23: "Dividido" e "Aula + Resumo" eram quase indistinguíveis (mesmo
-                    // ícone genérico de layout, ambos mostram vídeo + painel lateral). O rótulo e
-                    // o ícone agora nomeiam a função real e distinta deste modo — conversar com o
-                    // Tutor ao vivo lado a lado — em vez de descrever só a geometria da tela. O
-                    // `id` interno continua 'dividido' (não é usado como texto visível em nenhum
-                    // outro lugar do app).
-                    { id: 'dividido', label: 'Tutor ao Vivo', icon: 'record_voice_over', title: 'Vídeo com o Tutor de conversação lado a lado' },
-                  ] as const)
-                : ([
-                    { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Vídeo em foco total' },
-                    { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Vídeo com resumo ao lado (60/40)' },
-                    { id: 'resumo', label: 'Resumo', icon: 'subject', title: 'Resumo estruturado da aula, em foco total' },
-                  ] as const)
-              ).map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  id={`btn-lesson-mode-${m.id}`}
-                  onClick={() => {
-                    setLessonViewMode(m.id);
-                    // O modo se chama "Tutor ao Vivo" agora (Round 5 §23) — entrar nele já deveria
-                    // mostrar o Tutor, sem exigir um segundo clique na aba além do já feito aqui.
-                    if (m.id === 'dividido') setActiveTab('tutor');
-                  }}
-                  title={m.title}
-                  aria-label={m.label}
-                  className={`flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
-                    lessonViewMode === m.id
-                      ? 'bg-surface text-text-primary shadow-subtle font-semibold'
-                      : 'text-text-muted hover:text-text-primary'
-                  }`}
-                  aria-pressed={lessonViewMode === m.id}
-                >
-                  <span className="material-symbols-outlined text-[15px]">{m.icon}</span>
-                  {/* Rótulo só aparece a partir de sm: em telas muito estreitas os 3 rótulos
-                      completos não cabem lado a lado sem espremer/cortar texto — o ícone +
-                      `title`/`aria-label` mantêm a ação clara mesmo só com o ícone. */}
-                  <span className="hidden sm:inline">{m.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
           {/* Canvas / Visualizador Adaptado à Trilha — flex-1 preenche a altura do palco.
               Em telas mais altas (1440×1200), o termo `calc(100vh-480px)` cresce além do piso
               para a aula continuar sendo a protagonista, sem sobrar espaço vazio abaixo do

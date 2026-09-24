@@ -15,6 +15,29 @@ implementação real (`src/app/globals.css` + `tailwind.config.ts`) de fato segu
 
 ---
 
+## 0. Precedência de Decisão (Round 6 §1 — NOVA, obrigatória)
+
+A hierarquia de decisão do produto, do mais alto ao mais baixo:
+
+1. **Decisão explícita do Owner/Product** (o Abimael, dado por escrito num pedido de rodada).
+2. Este `DESIGN.md`.
+3. Padrões já existentes do sistema (o que já está implementado e funcionando).
+4. Preferência do agente que está implementando.
+
+**Uma decisão explícita do Owner nunca é silenciosamente negada por uma regra antiga deste
+documento.** Se um pedido do Owner conflita com uma regra escrita aqui (como aconteceu na Rodada
+5 §16 — cor por disciplina no Cronograma vs. "cada token tem papel fixo"), a ordem correta é:
+
+1. identificar o conflito explicitamente (não ignorar o pedido, não fingir que não existe);
+2. ajustar este `DESIGN.md` para refletir a nova decisão;
+3. ajustar a implementação;
+4. registrar a decisão no Histórico, com a data e o motivo.
+
+Restrições reais — acessibilidade, segurança, limitação de navegador, impossibilidade técnica
+(ex.: a Web Playback API do Spotify exigir Premium+dispositivo ativo) — continuam valendo e
+**não** são "regras antigas do DESIGN.md": são fatos do mundo, não preferência de design. "Não
+combina com o DESIGN.md atual" nunca é, sozinho, motivo para recusar um pedido explícito do Owner.
+
 ## 1. Paleta Oficial
 
 | Token CSS | Hex | Papel |
@@ -59,6 +82,26 @@ a gramática dos 7 tokens originais nem é usada fora do Cronograma.
 
 Regra de ouro: se ao remover a cor de um elemento a informação não muda, a cor está sendo usada
 como pintura, não como gramática — remova-a ou substitua por hierarquia tipográfica/espacial.
+
+### 2.1 Cor como Contexto (Round 6 §2.3)
+
+A cor de identidade de uma trilha (§6.2 — Faculdade/`primary`, ENEM/`accent`, Inglês/`tertiary`)
+não fica mais restrita ao painel lateral e ao seletor. Ela pode aparecer, em intensidades
+diferentes, na experiência principal inteira — cards, fundos sutis, ícones, headings, barras de
+progresso, bordas, chips, CTA, hover, estado selecionado, gráficos, pequenos destaques, motion.
+
+Três graus de intensidade, na mesma linguagem que o Cronograma do ENEM já usa para disciplina
+(`disciplineColor.ts`):
+
+| Intensidade | Uso | Exemplo real |
+|---|---|---|
+| **Leve** | fundo/wash muito sutil (`/8` a `/15` de opacidade) | fundo de um card de aula daquela trilha |
+| **Média** | borda, highlight, indicador de estado | `border-l-4` de um bloco, chip de filtro |
+| **Forte** | CTA, status, ícone protagonista | botão "Iniciar Sessão", ícone ativo do seletor |
+
+**Cor de identidade ≠ pintura total.** Continua proibido pintar uma tela inteira com a cor da
+trilha — a superfície base continua sendo o off-white/sépia/escuro neutro dos temas (§7). A cor
+de contexto é uma camada de significado por cima da hierarquia neutra, não uma substituição dela.
 
 ## 3. Cardificação — Útil, não Excessiva
 
@@ -110,6 +153,34 @@ real (algo entra de um lado, sai para o outro, cresce a partir de onde foi acion
 com `translateX`/`translateY`/`scale` conforme o caso. `prefers-reduced-motion: reduce` desliga
 `animation`/`transform` nas 4 categorias por igual (um único bloco `@media` em `globals.css`
 cobre todas as classes acima) e não precisa de tratamento especial por categoria.
+
+### 5.0b Motion é parte do Design System, não decoração (Round 6 §2.2)
+
+O pedido de produto para esta rodada listou 16 papéis de motion. A tabela abaixo mapeia cada um
+para a implementação real — a maioria já existe (auditoria, não lista aspiracional); os marcados
+"novo" foram adicionados nesta rodada.
+
+| Papel | Onde vive hoje |
+|---|---|
+| Entry motion | `study-stage-enter`, `modal-pop-enter`, `drawer-slide-in`, `track-enter-from-*` |
+| Exit motion | `study-recede`, `modal-backdrop-enter` (reverso), `track-exit-*` |
+| Hover | `.btn-interactive`, `hover:-translate-y-0.5` (só `@media (hover: hover)`) |
+| Focus | `focus-visible:ring-2 focus-visible:ring-focus-ring` em todo elemento interativo |
+| State change | `transition-[flex-basis,opacity,max-height]` (modos de composição do Study Mode) |
+| Contextual motion | `modal-backdrop-enter`+`modal-pop-enter`, `drawer-slide-in`, `panel-transition` |
+| System motion | `island-processing-active`, `island-success-settle`, `island-error-shake`, `island-attention-active` |
+| Stagger | `summary-item-rise` (delay incremental por item — cada ponto do resumo "chega" em sequência, não todos de uma vez) |
+| Content reveal | `study-summary-enter` (frase/bloco de texto que surge, não aparece instantâneo) |
+| Spatial transitions | §5.1 (troca de trilha: `translateX`+`opacity`+`scale`, nunca só opacity) |
+| Loading | `StudyLoadingState` (esqueleto/progresso real, não spinner genérico) + `island-processing-active` |
+| Success | `island-success-settle` + `Confete`-like (quando aplicável) |
+| Error | `island-error-shake` + `StudyErrorState` |
+| Notification | pulso do Island + som de categoria `notification` (ver §Áudio) |
+| Audio feedback | `src/lib/audioFeedback.ts` (3 categorias sintetizadas via Web Audio API) |
+| Reduced-motion | bloco global único em `globals.css`, cobre as 4 categorias de §5.0 por igual |
+
+Regra geral: motion nunca é adicionado "porque fica bonito" — cada padrão acima existe porque
+comunica uma mudança de estado real que o usuário precisa perceber.
 
 ### 5.1 Cross-Track (Educação)
 
@@ -187,6 +258,33 @@ que já carregam a Próxima Ação (nunca indiscriminadamente). Automaticamente 
 `prefers-reduced-motion` porque o bloco global de acessibilidade (`globals.css`) já força
 `transform: none !important` e restringe `transition` a opacity/cor/borda em qualquer elemento —
 o hover continua dando uma resposta visual (sombra/borda), só sem o deslocamento.
+
+### 6.4 Glass continua seletivo (reafirmado, Round 6 §2.4)
+
+Nada muda aqui em relação a §6.1 — reafirmado explicitamente porque o pedido do Round 6 pediu
+mais profundidade/vida na experiência, e "mais profundidade" **não** significa "todo elemento
+vira vidro". Glass continua reservado aos cards hero de Próxima Ação. Um card de lista (Nível 3,
+§3) nunca ganha `backdrop-blur` — viraria ruído visual e prejudicaria performance de scroll sem
+comunicar nada nesses elementos secundários.
+
+## 7. Temas (Round 6 §2.5)
+
+Três temas, cada um com identidade própria (não uma variação de contraste do mesmo tema):
+
+- **Claro**: `--color-bg: #F2EFE7` / `--color-surface: #F8F5EE` — um cinza-areia quente,
+  perceptivelmente diferente de `#FFFFFF` nos 3 canais RGB (corrigido na Rodada 5 §18, quando o
+  claro anterior ficava "estourado"/clínico). Confortável de olhar por período longo, nunca
+  branco puro.
+- **Sépia**: `--color-bg: #EFE4CC` / `--color-surface: #F8F0DD` — matiz âmbar de papel/madeira
+  clara/areia, baixo contraste. Corrigido na Rodada 5 §19 para ter identidade de temperatura real
+  (o sépia anterior era quase idêntico ao claro). **Nunca** marrom escuro nem saturado — o texto
+  primário (`#3D3220`) é escuro o bastante pra legibilidade sem o fundo em si escurecer.
+- **Escuro**: `--color-bg: #111614` / `--color-surface: #18201D` — verde-carvão neutro, não preto
+  puro (mantém a mesma lógica do claro: nunca um extremo "clínico").
+
+Os 7 tokens da paleta oficial (`primary`/`secondary`/`surface`/`support`/`tertiary`/`accent`/
+`alert`) têm o **mesmo valor hex nos 3 temas** — só o fundo/superfície/texto/borda mudam por
+tema; a gramática de cor (§2) nunca muda de significado entre temas.
 
 ---
 

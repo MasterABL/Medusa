@@ -377,7 +377,6 @@ export function EducationContainer() {
             onOpenTutor={handleOpenTutorFromVideo}
             notes={notes}
             onSaveNote={handleSaveNote}
-            onSelectTrack={handleSelectTrack}
             onVoiceActiveChange={setVoiceActive}
             onInterruptLesson={handleInterruptLesson}
             initialTimeSeconds={activeResumeTimeSeconds ?? undefined}
