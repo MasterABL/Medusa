@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TrackDefinition, LiveSummaryPoint, StudyNote } from './types';
-import { TutorDrawer } from './TutorDrawer';
+import { TrackDefinition, LiveSummaryPoint, StudyNote, LessonViewMode } from './types';
+import { LessonWrittenContent } from './LessonWrittenContent';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { getTrackAccent } from './trackAccent';
@@ -13,17 +13,22 @@ interface StudyModeViewProps {
   onOpenTutor: (timestamp: number) => void;
   notes: StudyNote[];
   onSaveNote: (note: StudyNote) => void;
-  /** Reaproveita o mesmo mecanismo do Dynamic Island (nunca duplicado) para o Tutor inline do Modo Dividido. */
-  onVoiceActiveChange?: (active: boolean) => void;
   /**
-   * Interromper a aula: salva o instante atual (segundos) e devolve o controle para o dashboard
-   * de Educação — reaproveita a MESMA máquina de estados de sessão já existente em
-   * EducationContainer (dashboard/loading/ready/study/...), sem criar um segundo mecanismo de
-   * sessão paralelo.
+   * Interromper a aula: salva o instante atual (segundos) e o modo de composição ativo, e devolve
+   * o controle para o dashboard de Educação — reaproveita a MESMA máquina de estados de sessão já
+   * existente em EducationContainer (dashboard/loading/ready/study/...), sem criar um segundo
+   * mecanismo de sessão paralelo.
+   *
+   * BUG REAL corrigido (Round 7 §14): antes só o instante em segundos era salvo — ao retomar, a
+   * aula sempre reabria em "Aula + Resumo" (o valor inicial de `lessonViewMode` abaixo), mesmo que
+   * a interrupção tivesse acontecido em "Resumo". `onInterruptLesson` agora also devolve o modo,
+   * e `initialViewMode` (abaixo) o restaura — retomar preserva posição E composição.
    */
-  onInterruptLesson: (currentTimeSeconds: number) => void;
+  onInterruptLesson: (currentTimeSeconds: number, viewMode: LessonViewMode) => void;
   /** Retomar de onde parou (ver "Continuar aula" no hero do dashboard) — 240s (04:00) por padrão. */
   initialTimeSeconds?: number;
+  /** Modo de composição a restaurar ao retomar uma aula interrompida (Round 7 §14). */
+  initialViewMode?: LessonViewMode;
 }
 
 export function StudyModeView({
@@ -32,9 +37,9 @@ export function StudyModeView({
   onOpenTutor,
   notes,
   onSaveNote,
-  onVoiceActiveChange,
   onInterruptLesson,
   initialTimeSeconds = 240,
+  initialViewMode = 'aula-resumo',
 }: StudyModeViewProps) {
   const { lesson, summaryPoints: initialSummaryPoints, voiceEmphasis } = trackDef;
   const isIngles = trackDef.id === 'ingles';
@@ -49,25 +54,26 @@ export function StudyModeView({
   useEscapeKey(showInterruptConfirm, () => setShowInterruptConfirm(false));
   const duration = lesson.actualDurationSeconds;
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5>(1);
-  const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'vocabulary' | 'tutor'>('summary');
-  // Inglês e Faculdade: controla a COMPOSIÇÃO da tela da aula — quanto espaço o palco ocupa e se a
+  const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'vocabulary'>('summary');
+  // As 3 trilhas: controla a COMPOSIÇÃO da tela da aula — quanto espaço o palco ocupa e se a
   // região lateral está presente. Não controla "o que" toca no palco (isso não muda entre os
   // modos); controla apenas a proporção e a presença/domínio de cada lado.
-  // Inglês usa 'dividido' (Tutor inline); Faculdade usa 'resumo' (Round 5 §6 — Modo B: o resumo
-  // estruturado da aula ocupa a tela sozinho, vídeo recolhido). Times de composição distintos por
-  // trilha porque o conteúdo do lado companheiro é diferente (Tutor de voz vs. resumo em texto) —
-  // não faria sentido Faculdade ganhar uma aba "Tutor" que não existe para essa trilha.
-  const [lessonViewMode, setLessonViewMode] = useState<'aula' | 'aula-resumo' | 'dividido' | 'resumo'>('aula-resumo');
-  const hasModeSwitcher = isIngles || isFaculdade;
+  //
+  // Round 7 §6/§11/§20: unificado nas 3 trilhas (era só Inglês/Faculdade; ENEM não tinha modos).
+  // O antigo modo "Dividido"/"Tutor ao Vivo" (só Inglês) foi REMOVIDO — o Tutor virou uma ação
+  // contextual acionada pelo botão "Tutor & Prática Oral"/"Tutor & Dúvidas" do cabeçalho (abre o
+  // drawer overlay já existente), nunca um modo de composição que substitui o conteúdo da aula.
+  // As 3 trilhas agora compartilham exatamente o mesmo conjunto: Aula / Aula + Resumo / Resumo.
+  const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(initialViewMode);
+  const hasModeSwitcher = true;
   // Modo "Aula" (foco total no vídeo) — usado para recolher chrome redundante ao redor do palco
   // (Refinamento Visual §7.2: o vídeo não pode exigir rolar a página para ver os controles).
-  const isAulaFocusMode = hasModeSwitcher && lessonViewMode === 'aula';
-  // Modo "Resumo" (Round 5 §6, Modo B) — o inverso do "Aula": o palco de vídeo recolhe e o
-  // resumo estruturado (painel companheiro) ocupa a tela inteira. Só existe para Faculdade —
-  // chamado de "Resumo" (não "aula gerada por IA", como o pedido original nomeou) porque o
-  // conteúdo aqui é fixture estático desta tela, não uma geração de IA em tempo real; nomear como
-  // IA seria apresentar como real algo que não é (Round 5 §27).
-  const isResumoFocusMode = isFaculdade && lessonViewMode === 'resumo';
+  const isAulaFocusMode = lessonViewMode === 'aula';
+  // Modo "Resumo" (Round 5 §6, Modo B / Round 7 §6-§9) — o inverso do "Aula": o palco de vídeo
+  // recolhe e a AULA ESCRITA (LessonWrittenContent) ocupa a tela inteira. Chamado de "Resumo" (não
+  // "aula gerada por IA") porque o conteúdo aqui é fixture estática desta tela, não uma geração de
+  // IA em tempo real; nomear como IA seria apresentar como real algo que não é (Round 5 §27).
+  const isResumoFocusMode = lessonViewMode === 'resumo';
   const [newNoteText, setNewNoteText] = useState('');
   const [noteSavedFeedback, setNoteSavedFeedback] = useState<string | null>(null);
   const [summaryPoints, setSummaryPoints] = useState<LiveSummaryPoint[]>(
@@ -79,14 +85,6 @@ export function StudyModeView({
   // componente permanece montado, então o efeito de resync que existia aqui (guardado por um
   // `useRef` comparando a identidade da trilha) ficou morto e foi removido — cada trilha nova
   // já monta um `StudyModeView` do zero, com seus próprios valores iniciais.
-
-  // A aba "Tutor" só existe dentro do Modo Dividido — se o usuário sair do Dividido com o Tutor
-  // ativo, a aba volta para Resumo (o Tutor inline continua montado, só deixa de estar visível).
-  useEffect(() => {
-    if (lessonViewMode !== 'dividido' && activeTab === 'tutor') {
-      setActiveTab('summary');
-    }
-  }, [lessonViewMode, activeTab]);
 
   // Player timer loop
   useEffect(() => {
@@ -285,34 +283,18 @@ export function StudyModeView({
           id="lesson-composition-switcher"
           className="flex items-center gap-1 p-1 bg-surface-secondary/60 border border-border/60 rounded-xl w-fit"
         >
-          {(isIngles
-            ? ([
-                { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Aula em foco total' },
-                { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Aula com pontos-chave ao lado' },
-                // Round 5 §23: "Dividido" e "Aula + Resumo" eram quase indistinguíveis (mesmo
-                // ícone genérico de layout, ambos mostram vídeo + painel lateral). O rótulo e
-                // o ícone agora nomeiam a função real e distinta deste modo — conversar com o
-                // Tutor ao vivo lado a lado — em vez de descrever só a geometria da tela. O
-                // `id` interno continua 'dividido' (não é usado como texto visível em nenhum
-                // outro lugar do app).
-                { id: 'dividido', label: 'Tutor ao Vivo', icon: 'record_voice_over', title: 'Vídeo com o Tutor de conversação lado a lado' },
-              ] as const)
-            : ([
-                { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Vídeo em foco total' },
-                { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Vídeo com resumo ao lado (60/40)' },
-                { id: 'resumo', label: 'Resumo', icon: 'subject', title: 'Resumo estruturado da aula, em foco total' },
-              ] as const)
+          {(
+            [
+              { id: 'aula', label: 'Aula', icon: 'fullscreen', title: 'Vídeo em foco total' },
+              { id: 'aula-resumo', label: 'Aula + Resumo', icon: 'view_sidebar', title: 'Vídeo com pontos-chave ao lado (60/40)' },
+              { id: 'resumo', label: 'Resumo', icon: 'subject', title: 'Aula escrita, em foco total' },
+            ] as const
           ).map((m) => (
             <button
               key={m.id}
               type="button"
               id={`btn-lesson-mode-${m.id}`}
-              onClick={() => {
-                setLessonViewMode(m.id);
-                // O modo se chama "Tutor ao Vivo" agora (Round 5 §23) — entrar nele já deveria
-                // mostrar o Tutor, sem exigir um segundo clique na aba além do já feito aqui.
-                if (m.id === 'dividido') setActiveTab('tutor');
-              }}
+              onClick={() => setLessonViewMode(m.id)}
               title={m.title}
               aria-label={m.label}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
@@ -332,40 +314,26 @@ export function StudyModeView({
         </div>
       )}
 
-      {/* Palco Central: ~50% Conteúdo da Aula + ~50% Companheiro da Sessão (Resumo/Vocabulário/
-          Notas/Tutor) no ENEM (única trilha sem modos de composição ainda — fora do escopo desta
-          rodada, ver Round 5 §6/§9). Em Inglês e Faculdade, o usuário controla a composição via
-          modos (Aula / Aula + Resumo / Dividido ou Resumo, por trilha). Em vez de uma largura fixa
-          por modo, o painel lateral usa `flex-basis: clamp(mín, alvo, máx)` — um sistema fluido
-          que nunca deixa a lateral "microscópica" nem trava exatamente em 60/40 em toda largura de
-          tela — e o palco (`flex: 1`) preenche o restante. Nenhum dos dois lados é desmontado: a
-          sensação é de "mudar como estudo esta aula", não de navegar para outra tela. */}
+      {/* Palco Central: composição controlada pelo switcher acima, unificada nas 3 trilhas (Round
+          7 §6/§11/§20) — Aula (vídeo em foco total), Aula + Resumo (60/40, vídeo dominante) ou
+          Resumo (aula escrita em foco total). O painel lateral usa `flex-basis: clamp(mín, alvo,
+          máx)` — um sistema fluido que nunca deixa a lateral "microscópica" nem trava exatamente
+          em 60/40 em toda largura de tela — e o palco (`flex: 1`) preenche o restante. Nenhum dos
+          dois lados é desmontado: a sensação é de "mudar como estudo esta aula", não de navegar
+          para outra tela. */}
       <div
-        className={
-          hasModeSwitcher
-            ? 'flex flex-col lg:flex-row gap-5 items-stretch'
-            : 'grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch'
-        }
+        className="flex flex-col lg:flex-row gap-5 items-stretch"
         style={
-          hasModeSwitcher
-            ? ({
-                '--aside-basis':
-                  lessonViewMode === 'aula'
-                    ? '0px'
-                    : lessonViewMode === 'resumo'
-                    ? '100%'
-                    : lessonViewMode === 'dividido'
-                    // "Tutor ao Vivo" (id interno continua 'dividido'): precisa de mais espaço que
-                    // o resumo estático porque hospeda uma conversa de chat inteira, não só uma
-                    // lista de pontos — Round 5 §23 apontou que a proporção quase idêntica à de
-                    // "Aula + Resumo" (antes 40% vs 36%, uma diferença pequena demais pra perceber)
-                    // reforçava a sensação de modo redundante. 46% cria uma diferença visível.
-                    ? 'clamp(380px, 46%, 520px)'
-                    // Modo "Aula + Resumo": 40% para o resumo / 60% para o vídeo (Round 5 §6 — nunca
-                    // 50/50). O vídeo continua sendo o elemento dominante do palco.
-                    : 'clamp(340px, 40%, 460px)',
-              } as React.CSSProperties)
-            : undefined
+          {
+            '--aside-basis':
+              lessonViewMode === 'aula'
+                ? '0px'
+                : lessonViewMode === 'resumo'
+                ? '100%'
+                // Modo "Aula + Resumo": 40% para o resumo / 60% para o vídeo (Round 5 §6 — nunca
+                // 50/50). O vídeo continua sendo o elemento dominante do palco.
+                : 'clamp(340px, 40%, 460px)',
+          } as React.CSSProperties
         }
       >
         {/* ================= COLUNA PRINCIPAL: PLAYER DE CONTEÚDO (~0-100%) ================= */}
@@ -630,15 +598,13 @@ export function StudyModeView({
                   : 'max-h-[2000px] lg:max-h-none opacity-100 min-h-[480px] lg:min-h-[480px]'
               }`}
             >
-          {/* Aviso do Modo "Resumo" (Round 5 §6, Modo B): explica por que o vídeo sumiu — sem
-              isso, o palco recolhido pareceria um erro de carregamento em vez de uma escolha do
-              usuário. */}
-          {isResumoFocusMode && (
-            <div className="mx-4 mt-3.5 px-3 py-2 rounded-lg bg-medusa-primary/10 border border-medusa-primary/30 flex items-center gap-2 text-[11px] text-text-secondary">
-              <span className="material-symbols-outlined text-[15px] text-[#18534B] dark:text-medusa-primary">subject</span>
-              <span>Modo Resumo: a aula em texto estruturado, sem o vídeo. Volte para &quot;Aula&quot; ou &quot;Aula + Resumo&quot; a qualquer momento.</span>
-            </div>
-          )}
+          {isResumoFocusMode ? (
+            /* Round 7 §6/§9: o Modo "Resumo" agora é a Aula Escrita de verdade — nenhum aviso de
+               sistema, nenhum "Roteiro da sessão"/"Avisos" competindo com o conteúdo. O botão
+               "Perguntar ao Tutor" dentro dela abre o MESMO drawer contextual do cabeçalho. */
+            <LessonWrittenContent trackDef={trackDef} onAskTutor={() => onOpenTutor(currentTime)} />
+          ) : (
+          <>
           {/* Roteiro da Sessão — visão rápida do que será coberto, igual nas 3 trilhas */}
           <div id="session-roteiro" className="px-4 pt-3.5 pb-2.5 border-b border-border/60">
             <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Roteiro da sessão</span>
@@ -654,8 +620,9 @@ export function StudyModeView({
             </div>
           </div>
 
-          {/* Avisos — somente Faculdade, simples e pontuais (não uma parede de cards) */}
-          {isFaculdade && trackDef.notices && trackDef.notices.length > 0 && (
+          {/* Avisos — somente trilhas com `notices` de verdade (hoje só Faculdade), simples e
+              pontuais (não uma parede de cards) */}
+          {trackDef.notices && trackDef.notices.length > 0 && (
             <div id="session-notices" className="px-4 pt-3 pb-2.5 border-b border-border/60 flex flex-col gap-1.5">
               <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Avisos</span>
               {trackDef.notices.map((notice, i) => (
@@ -667,24 +634,9 @@ export function StudyModeView({
             </div>
           )}
 
-          {/* Alternador de Abas (Tutor [só no Modo Dividido] / Resumo Vivo / Vocabulário / Notas) */}
+          {/* Alternador de Abas (Resumo Vivo / Vocabulário / Notas) — o Tutor não é mais uma aba
+              aqui (Round 7 §11): vira ação contextual pelo botão do cabeçalho. */}
           <div className="flex items-center border-b border-border/70 bg-surface-secondary/40 p-1.5">
-            {isIngles && lessonViewMode === 'dividido' && (
-              <button
-                type="button"
-                id="tab-tutor"
-                onClick={() => setActiveTab('tutor')}
-                className={`flex-1 py-1.5 text-[12px] font-semibold rounded-lg transition-all text-center flex items-center justify-center gap-1.5 ${
-                  activeTab === 'tutor'
-                    ? 'bg-surface text-text-primary shadow-subtle'
-                    : 'text-text-muted hover:text-text-primary'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
-                <span>Tutor</span>
-              </button>
-            )}
-
             <button
               type="button"
               id="tab-summary"
@@ -729,22 +681,6 @@ export function StudyModeView({
               <span>Notas ({notes.length})</span>
             </button>
           </div>
-
-          {/* Conteúdo da Aba: Tutor inline (somente Inglês, Modo Dividido) — montado permanentemente
-              desde que a trilha seja Inglês (não só quando a aba está ativa) e apenas alterna
-              visibilidade via CSS, para que a conversa persista ao alternar para Resumo e voltar. */}
-          {isIngles && (
-            <div className={`flex-1 flex-col overflow-hidden ${activeTab === 'tutor' ? 'flex' : 'hidden'}`}>
-              <TutorDrawer
-                variant="inline"
-                isOpen
-                onClose={() => setActiveTab('summary')}
-                trackDef={trackDef}
-                videoTimestamp={currentTime}
-                onVoiceActiveChange={onVoiceActiveChange}
-              />
-            </div>
-          )}
 
           {/* Conteúdo da Aba: Vocabulário (somente Inglês) */}
           {activeTab === 'vocabulary' && trackDef.vocabulary && (
@@ -854,6 +790,8 @@ export function StudyModeView({
               </div>
             </div>
           )}
+          </>
+          )}
             </aside>
           );
         })()}
@@ -896,7 +834,7 @@ export function StudyModeView({
               <button
                 type="button"
                 id="btn-interrupt-confirm"
-                onClick={() => onInterruptLesson(currentTime)}
+                onClick={() => onInterruptLesson(currentTime, lessonViewMode)}
                 className="btn-interactive px-4 py-2 rounded-full text-[12px] font-semibold bg-medusa-primary hover:opacity-95 text-[#1C2420] transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[15px]">logout</span>

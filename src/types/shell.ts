@@ -1,4 +1,5 @@
-export type Theme = 'light' | 'sepia' | 'dark';
+// Round 7 §4: Sépia removido por decisão explícita do Owner — só Claro/Escuro permanecem.
+export type Theme = 'light' | 'dark';
 
 export type ShellMode = 'amplo' | 'compacto' | 'foco';
 

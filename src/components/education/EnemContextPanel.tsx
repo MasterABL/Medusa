@@ -16,8 +16,13 @@ const accent = getTrackAccent('vestibular');
  */
 export function EnemContextPanel() {
   const trackDef = TRACK_DEFINITIONS.vestibular;
-  const { openReviewModal, isSessionCompleted, sessionResultMirror, openCronogramaOverlay, requestStartStudy } = useEducationPanel();
+  const { openReviewModal, isSessionCompleted, sessionResultMirror, openCronogramaOverlay, requestStartStudy, enemView } = useEducationPanel();
   const cronograma = trackDef.cronograma ?? [];
+  // Round 7 §18B: dentro da subexperiência Cronograma (aba própria do Hub), a "Próxima Ação" e o
+  // "Mapa de Preparação" (que termina num botão "Ver Cronograma completo") ficam redundantes —
+  // são um resumo do MESMO conteúdo que já está ocupando a tela inteira como protagonista.
+  // Suprimidos só quando `enemView === 'cronograma'`; continuam de pé em "Visão Geral".
+  const isInsideCronogramaView = enemView === 'cronograma';
 
   const completedModules = trackDef.modules.filter((m) => m.status === 'completed').length;
   const totalModules = trackDef.modules.length;
@@ -95,8 +100,8 @@ export function EnemContextPanel() {
         ))}
       </div>
 
-      {/* 2. PRÓXIMA AÇÃO — protagonista do painel */}
-      {(todayBlock || currentModule) && (
+      {/* 2. PRÓXIMA AÇÃO — protagonista do painel (suprimida dentro do Cronograma, ver acima) */}
+      {!isInsideCronogramaView && (todayBlock || currentModule) && (
         <ContextPanelSection label="Próxima Ação">
           {requestStartStudy ? (
             <button
@@ -204,7 +209,11 @@ export function EnemContextPanel() {
         </ContextPanelSection>
       )}
 
-      {/* 5. CRONOGRAMA = mapa de preparação (onde estou → próximo → quanto falta) */}
+      {/* 5. CRONOGRAMA = mapa de preparação (onde estou → próximo → quanto falta). Suprimido
+          quando já se está DENTRO do Cronograma (Round 7 §18B) — o botão "Ver Cronograma
+          completo" abaixo seria um link pra tela em que o usuário já está, e o resumo duplicaria
+          a timeline/calendário que já é o protagonista da área principal. */}
+      {!isInsideCronogramaView && (
       <ContextPanelSection label="Mapa de Preparação" noBorder>
         <div id="panel-enem-preparation-map" className="flex flex-col gap-2 text-[12px]">
           <div className="flex items-center gap-2">
@@ -241,6 +250,7 @@ export function EnemContextPanel() {
           Ver Cronograma completo
         </button>
       </ContextPanelSection>
+      )}
     </div>
   );
 }

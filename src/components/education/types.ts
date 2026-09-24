@@ -246,6 +246,8 @@ export interface TrackDefinition {
   completedLessonsHistory?: CompletedLessonRecord[];
   /** Somente ENEM: cronograma de preparação (planejamento temporal, não uma lista de tarefas genérica). */
   cronograma?: CronogramaBlock[];
+  /** Aula Escrita do Modo "Resumo" (Round 7 §6/§7/§20) — presente nas 3 trilhas. */
+  writtenLesson?: WrittenLesson;
   /** Somente Faculdade: disciplinas ativas do período letivo. */
   disciplines?: DisciplineChip[];
   /**
@@ -255,6 +257,38 @@ export interface TrackDefinition {
    * não uma métrica por habilidade separada.
    */
   masteryDomains?: MasteryDomain[];
+}
+
+/** Modo de composição do Study Mode — unificado nas 3 trilhas (Round 7 §5/§11/§20). */
+export type LessonViewMode = 'aula' | 'aula-resumo' | 'resumo';
+
+/**
+ * Bloco composicional da Aula Escrita (Modo "Resumo") — arquitetura reutilizável pensada para
+ * uma futura geração por IA (Round 7 §9): o conteúdo muda por disciplina/trilha, a arquitetura de
+ * blocos permanece a mesma. Cada tipo tem uma razão pedagógica distinta, nunca decorativa.
+ */
+export type LessonBlockType = 'concept' | 'formula' | 'example' | 'application' | 'comparison';
+
+export interface LessonBlock {
+  id: string;
+  type: LessonBlockType;
+  title: string;
+  body: string;
+  /** Somente 'formula': expressão curta em destaque (ex.: "F = -k·x"). */
+  formula?: string;
+  formulaLabel?: string;
+  /** Somente 'comparison': pares rotulados lado a lado (ex.: Present Perfect vs. Past Simple). */
+  items?: { label: string; text: string }[];
+}
+
+/**
+ * A Aula Escrita do Modo "Resumo" — FIXTURE estática por trilha nesta fase (Round 7 §9/§25): não
+ * existe geração por IA real alimentando isto ainda. A arquitetura (intro + blocks tipados) é o
+ * contrato que uma IA real preencheria depois, sem mudar o componente que renderiza.
+ */
+export interface WrittenLesson {
+  intro: string;
+  blocks: LessonBlock[];
 }
 
 export interface SessionResult {

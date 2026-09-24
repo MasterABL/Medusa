@@ -330,7 +330,18 @@ export function TutorDrawer({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Rodapé / Input */}
+      {/* Rodapé / Input — Round 7 §13: bug real encontrado em produção (não só no sandbox). Os
+          dois botões de ícone tinham o tamanho ditado pelo CONTEÚDO (`p-2` + o glifo), sem
+          `flex-shrink-0` nem `overflow-hidden`. Isso funciona bem quando a fonte Material Symbols
+          carrega normalmente, mas não tem NENHUMA defesa contra o cenário em que ela falha ou
+          demora (conexão lenta, bloqueador de anúncios, firewall corporativo barrando fonts do
+          Google) — nesse caso o glifo cai pro nome literal do ícone ("mic_none", texto longo), o
+          botão incha pra ~90-120px de largura, e o botão Enviar é empurrado pra fora da tela (
+          medido em produção: chegava a ~60px além da borda direita em 390px de largura). Corrigido
+          com dimensão fixa (`w-9 h-9`) + `flex-shrink-0` + `overflow-hidden` nos dois botões — o
+          layout agora nunca depende do glifo carregar pra caber na tela. `min-w-0` no campo de
+          texto também é necessário: sem ele, um item `flex-1` ainda recusa encolher abaixo do
+          conteúdo intrínseco (comportamento padrão do flexbox), que é a outra metade do mesmo bug. */}
       <form
         onSubmit={handleSendMessage}
         className="p-3.5 border-t border-border/70 bg-surface-secondary/30 flex items-center gap-2"
@@ -340,13 +351,13 @@ export function TutorDrawer({
           id="btn-tutor-voice-toggle"
           onClick={toggleVoiceMode}
           title={isVoiceActive ? 'Pausar modo de voz' : 'Iniciar modo de voz'}
-          className={`btn-interactive p-2 rounded-full border transition-all flex items-center justify-center ${
+          className={`btn-interactive w-9 h-9 flex-shrink-0 rounded-full border overflow-hidden transition-all flex items-center justify-center ${
             isVoiceActive
               ? 'bg-medusa-primary border-medusa-primary text-[#1C2420]'
               : 'bg-surface border-border/70 text-text-secondary hover:text-text-primary'
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">
+          <span className="material-symbols-outlined text-[18px] leading-none">
             {isVoiceActive ? 'mic' : 'mic_none'}
           </span>
         </button>
@@ -357,7 +368,7 @@ export function TutorDrawer({
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           placeholder={`Tire uma dúvida sobre ${trackDef?.lesson.topic || 'o estudo'}...`}
-          className="flex-1 bg-surface border border-border/70 rounded-full px-4 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-medusa-primary/80 focus:ring-1 focus:ring-medusa-primary/60 transition-all"
+          className="flex-1 min-w-0 bg-surface border border-border/70 rounded-full px-4 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-medusa-primary/80 focus:ring-1 focus:ring-medusa-primary/60 transition-all"
         />
 
         <button
@@ -365,9 +376,9 @@ export function TutorDrawer({
           id="btn-send-tutor-msg"
           disabled={!inputText.trim()}
           aria-label="Enviar mensagem"
-          className="btn-interactive p-2 rounded-full bg-medusa-primary text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none hover:opacity-90 transition-all flex items-center justify-center"
+          className="btn-interactive w-9 h-9 flex-shrink-0 rounded-full bg-medusa-primary text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none hover:opacity-90 transition-all overflow-hidden flex items-center justify-center"
         >
-          <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
+          <span className="material-symbols-outlined text-[18px] leading-none">arrow_upward</span>
         </button>
       </form>
     </div>

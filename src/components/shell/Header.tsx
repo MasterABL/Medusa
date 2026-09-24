@@ -34,8 +34,6 @@ export function Header() {
 
   const getThemeLabel = (t: Theme) => {
     switch (t) {
-      case 'sepia':
-        return 'Sépia';
       case 'dark':
         return 'Escuro';
       default:
@@ -45,8 +43,6 @@ export function Header() {
 
   const getThemeIcon = (t: Theme) => {
     switch (t) {
-      case 'sepia':
-        return 'auto_stories';
       case 'dark':
         return 'dark_mode';
       default:
@@ -201,7 +197,10 @@ export function Header() {
             )}
           </div>
 
-          {/* Seletor dos 3 Temas Permanentes [Claro | Sépia | Escuro] */}
+          {/* Seletor dos 2 Temas Permanentes [Claro | Escuro] — Round 7 §4: Sépia removido por
+              decisão explícita do Owner (Round 7 §1 Owner Precedence). Quem tinha 'sepia' salvo em
+              localStorage é migrado para 'light' pelo próprio `ShellContext` (nunca fica preso a
+              um tema que não existe mais na UI). */}
           <div className="relative flex-shrink-0" ref={themeRef}>
             <button
               type="button"
@@ -237,26 +236,6 @@ export function Header() {
                   </div>
                   {theme === 'light' && (
                     <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary" id="theme-check-light">check</span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  data-theme="sepia"
-                  onClick={() => {
-                    setTheme('sepia');
-                    setThemeDropdownOpen(false);
-                  }}
-                  className={`theme-select-btn flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-left transition-colors ${
-                    theme === 'sepia' ? 'bg-surface-secondary text-text-primary font-medium' : 'hover:bg-surface-secondary text-text-secondary'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#F8F7F0] border border-[#E4E5DA] inline-block" />
-                    <span>Sépia (Paper Mode)</span>
-                  </div>
-                  {theme === 'sepia' && (
-                    <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary" id="theme-check-sepia">check</span>
                   )}
                 </button>
 

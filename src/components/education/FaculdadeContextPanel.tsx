@@ -5,6 +5,7 @@ import { TRACK_DEFINITIONS } from './educationFixtures';
 import { ContextPanelSection } from '@/components/shell/ContextPanelSection';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { NoticeSeverity } from './types';
+import { playFeedback } from '@/lib/audioFeedback';
 
 const MATERIAL_ICON: Record<string, string> = {
   pdf: 'picture_as_pdf',
@@ -97,6 +98,11 @@ export function FaculdadeContextPanel() {
       ...prev,
       [selected.code]: [...(prev[selected.code] ?? []), ...added],
     }));
+    // Round 7 §15: causa raiz real de "não há som no upload/exclusão" — este handler nunca
+    // chamou `playFeedback`. Não era decisão de fase de design nem limitação da Web Audio API (o
+    // motor já existe e já é usado em outros eventos de criação/exclusão, ex.: Agenda) — era
+    // simplesmente um evento que nunca foi conectado.
+    playFeedback('action');
   };
 
   const removeUpload = (id: string) => {
@@ -110,6 +116,7 @@ export function FaculdadeContextPanel() {
         return true;
       }),
     }));
+    playFeedback('action');
   };
 
   const contentToShow = selected.content;
@@ -318,7 +325,15 @@ export function FaculdadeContextPanel() {
             isDraggingOver ? 'border-medusa-primary bg-medusa-primary/10' : 'border-border/60 bg-surface-subtle/50'
           }`}
         >
-          <span className="material-symbols-outlined text-[22px] text-text-muted">upload_file</span>
+          {/* Round 7 §1C: o ícone reage ao drag-enter (não só a cor de fundo do container) —
+              pequeno deslocamento vertical, coerente com o "arquivo entrando". */}
+          <span
+            className={`material-symbols-outlined text-[22px] transition-transform duration-200 ${
+              isDraggingOver ? 'text-medusa-primary -translate-y-0.5' : 'text-text-muted'
+            }`}
+          >
+            upload_file
+          </span>
           <p className="text-[11px] text-text-secondary">Arraste o PDF da aula aqui</p>
           <button
             type="button"
@@ -361,7 +376,9 @@ export function FaculdadeContextPanel() {
               href={file.objectUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between gap-2 text-[12px] group"
+              // Round 7 §1C: reação contextual real — o item entra com movimento (mesma animação
+              // já usada em listas dinâmicas do app, `fadeRise`), não aparece instantaneamente.
+              className="stagger-item flex items-center justify-between gap-2 text-[12px] group"
               title="Abrir arquivo enviado nesta sessão"
             >
               <div className="flex items-center gap-1.5 min-w-0">

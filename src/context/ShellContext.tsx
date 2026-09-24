@@ -50,7 +50,18 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   // Inicialização e persistência de tema e do painel regional
   useEffect(() => {
     setMounted(true);
-    const savedTheme = (localStorage.getItem('medusa-theme-v2') as Theme) || 'light';
+    // Round 7 §4: Sépia foi removido da UI — quem tinha 'sepia' salvo de uma visita anterior
+    // (valor válido até esta rodada) migra silenciosamente para 'light' em vez de ficar preso a
+    // um tema que não existe mais em nenhum seletor.
+    const rawSavedTheme = localStorage.getItem('medusa-theme-v2');
+    const savedTheme: Theme = rawSavedTheme === 'dark' ? 'dark' : 'light';
+    if (rawSavedTheme && rawSavedTheme !== savedTheme) {
+      try {
+        localStorage.setItem('medusa-theme-v2', savedTheme);
+      } catch {
+        // Fallback para storage restrito
+      }
+    }
     setThemeState(savedTheme);
     applyThemeToDOM(savedTheme);
 
@@ -85,15 +96,8 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   const applyThemeToDOM = (t: Theme) => {
     const doc = document.documentElement;
     doc.classList.add('theme-transitioning');
-    doc.classList.remove('light', 'sepia', 'dark');
-
-    if (t === 'sepia') {
-      doc.classList.add('sepia');
-    } else if (t === 'dark') {
-      doc.classList.add('dark');
-    } else {
-      doc.classList.add('light');
-    }
+    doc.classList.remove('light', 'dark');
+    doc.classList.add(t === 'dark' ? 'dark' : 'light');
 
     setTimeout(() => {
       doc.classList.remove('theme-transitioning');

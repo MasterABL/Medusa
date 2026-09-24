@@ -9,6 +9,7 @@ import {
   ExerciseQuestion,
   StudyNote,
   SessionResult,
+  LessonViewMode,
 } from './types';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { EducationDashboard } from './EducationDashboard';
@@ -46,15 +47,20 @@ export function EducationContainer() {
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
   const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
 
-  // Aula interrompida (ver seção "Interromper aula" do Study Mode) — guarda só o instante em
-  // segundos da trilha em que o usuário estava, para o hero do dashboard oferecer "Continuar
+  // Aula interrompida (ver seção "Interromper aula" do Study Mode) — guarda o instante em segundos
+  // E o modo de composição em que o usuário estava, para o hero do dashboard oferecer "Continuar
   // aula". Estado local em memória (mesmo nível de auditoria de `notes`/`isSessionCompleted`):
   // some ao recarregar a página (F5).
-  const [interruptedSession, setInterruptedSession] = useState<{ track: StudyTrack; currentTimeSeconds: number } | null>(null);
-  // Instante a retomar na sessão ATIVA (só populado ao clicar "Continuar aula") — desacoplado de
-  // `interruptedSession` para que StudyModeView receba o valor certo mesmo depois que o marcador
-  // do dashboard já foi limpo ao entrar em loading/ready.
+  //
+  // BUG REAL corrigido (Round 7 §14): antes só `currentTimeSeconds` era guardado — retomar sempre
+  // reabria em "Aula + Resumo" (o valor inicial de `lessonViewMode` em StudyModeView), mesmo que a
+  // interrupção tivesse sido em "Resumo". `viewMode` agora viaja junto e é restaurado abaixo.
+  const [interruptedSession, setInterruptedSession] = useState<{ track: StudyTrack; currentTimeSeconds: number; viewMode: LessonViewMode } | null>(null);
+  // Instante e modo a retomar na sessão ATIVA (só populados ao clicar "Continuar aula") —
+  // desacoplados de `interruptedSession` para que StudyModeView receba os valores certos mesmo
+  // depois que o marcador do dashboard já foi limpo ao entrar em loading/ready.
   const [activeResumeTimeSeconds, setActiveResumeTimeSeconds] = useState<number | null>(null);
+  const [activeResumeViewMode, setActiveResumeViewMode] = useState<LessonViewMode | null>(null);
 
   // Tutor Contextual
   const [isTutorOpen, setIsTutorOpen] = useState(false);
@@ -226,6 +232,7 @@ export function EducationContainer() {
   const handleReturnToEducation = useCallback(() => {
     setIsSessionCompleted(true);
     setActiveResumeTimeSeconds(null);
+    setActiveResumeViewMode(null);
     setSessionState('dashboard');
     setIslandState('idle');
     setMode(previousShellMode || 'amplo');
@@ -249,8 +256,8 @@ export function EducationContainer() {
   // de `handleReturnToDashboard` (sem inventar um segundo caminho de "sair"), só que guardando
   // antes o instante da trilha para permitir "Continuar aula" no hero do dashboard.
   const handleInterruptLesson = useCallback(
-    (currentTimeSeconds: number) => {
-      setInterruptedSession({ track: currentTrack, currentTimeSeconds });
+    (currentTimeSeconds: number, viewMode: LessonViewMode) => {
+      setInterruptedSession({ track: currentTrack, currentTimeSeconds, viewMode });
       setSessionState('dashboard');
       setIslandState('idle');
       setMode(previousShellMode || 'amplo');
@@ -259,11 +266,13 @@ export function EducationContainer() {
   );
 
   // Retomar a aula interrompida: entra pelo MESMO fluxo de início de sessão (loading -> ready ->
-  // study) que qualquer outra sessão nova — StudyModeView recebe o instante salvo via
-  // `initialTimeSeconds` para retomar exatamente de onde parou, em vez de reiniciar do zero.
+  // study) que qualquer outra sessão nova — StudyModeView recebe o instante E o modo de composição
+  // salvos (`initialTimeSeconds`/`initialViewMode`) para retomar exatamente de onde parou, em vez
+  // de reiniciar do zero e sempre cair em "Aula + Resumo" (Round 7 §14).
   const handleResumeInterruptedSession = useCallback(() => {
     if (interruptedSession && interruptedSession.track === currentTrack) {
       setActiveResumeTimeSeconds(interruptedSession.currentTimeSeconds);
+      setActiveResumeViewMode(interruptedSession.viewMode);
       setInterruptedSession(null);
     }
     handleStartStudy(false);
@@ -382,9 +391,9 @@ export function EducationContainer() {
             onOpenTutor={handleOpenTutorFromVideo}
             notes={notes}
             onSaveNote={handleSaveNote}
-            onVoiceActiveChange={setVoiceActive}
             onInterruptLesson={handleInterruptLesson}
             initialTimeSeconds={activeResumeTimeSeconds ?? undefined}
+            initialViewMode={activeResumeViewMode ?? undefined}
           />
         </div>
       )}

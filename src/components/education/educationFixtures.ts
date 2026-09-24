@@ -309,6 +309,57 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       },
     ],
     modules: FACULDADE_FIS204_MODULES,
+    writtenLesson: {
+      intro:
+        'Todo sistema que oscila em torno de um ponto de equilíbrio — uma mola, um pêndulo, a corda de um instrumento — obedece à mesma lógica matemática quando o deslocamento é pequeno. Essa lógica é o Movimento Harmônico Simples (MHS), e entendê-la aqui é a base para tudo que vem depois em ondas, acústica e circuitos oscilantes.',
+      blocks: [
+        {
+          id: 'fac-block-1',
+          type: 'concept',
+          title: 'Força Restauradora e Lei de Hooke',
+          body: 'Em sistemas elásticos lineares, a força que o sistema exerce para voltar ao equilíbrio é proporcional ao deslocamento e sempre aponta no sentido contrário a ele. Quanto mais você estica ou comprime a mola, mais forte ela "puxa de volta" — nunca no mesmo sentido do deslocamento.',
+        },
+        {
+          id: 'fac-block-2',
+          type: 'formula',
+          title: 'Lei de Hooke',
+          formula: 'F = -k·x',
+          formulaLabel: 'k = constante elástica · x = deslocamento a partir do equilíbrio',
+          body: 'O sinal negativo não é um detalhe técnico: é ele que garante que a força sempre restaure o equilíbrio, nunca o afaste. Aplicando a 2ª Lei de Newton (F = m·a) a essa força, chegamos à equação diferencial que define o MHS.',
+        },
+        {
+          id: 'fac-block-3',
+          type: 'formula',
+          title: 'Equação Diferencial do Oscilador',
+          formula: 'd²x/dt² + ω₀²x = 0',
+          formulaLabel: 'ω₀ = √(k/m) — frequência angular natural',
+          body: 'A solução geral desta equação é x(t) = A·cos(ω₀t + φ), onde A é a amplitude e φ a fase inicial. Ela descreve exatamente como a posição evolui no tempo — e dela derivam velocidade e aceleração por simples derivação.',
+        },
+        {
+          id: 'fac-block-4',
+          type: 'example',
+          title: 'Nos extremos vs. no equilíbrio',
+          body: 'No ponto de deslocamento máximo (x = ±A), a velocidade é nula e a aceleração é máxima em módulo — é onde o sistema "muda de direção". No ponto de equilíbrio (x = 0), o oposto: velocidade máxima, aceleração nula, porque a força restauradora ali também é zero.',
+        },
+        {
+          id: 'fac-block-5',
+          type: 'application',
+          title: 'Conservação de Energia no MHS',
+          formula: 'E = ½kA²',
+          body: 'A energia mecânica total é constante e se alterna continuamente entre cinética (máxima no equilíbrio) e potencial elástica (máxima nos extremos). É essa troca contínua, sem perda, que caracteriza um oscilador ideal — sem atrito, a amplitude nunca diminui.',
+        },
+        {
+          id: 'fac-block-6',
+          type: 'comparison',
+          title: 'MHS na mola vs. no pêndulo simples',
+          body: 'A mesma matemática aparece em sistemas fisicamente diferentes, desde que a aproximação de pequenas oscilações valha.',
+          items: [
+            { label: 'Mola', text: 'ω₀ = √(k/m) — depende da rigidez e da massa.' },
+            { label: 'Pêndulo simples', text: 'ω₀ = √(g/L) — para θ pequeno (sen θ ≈ θ), o período T = 2π√(L/g) não depende da massa da esfera.' },
+          ],
+        },
+      ],
+    },
     tutorGreeting:
       'Olá! Sou seu tutor acadêmico para Física II. Posso esclarecer dúvidas sobre a dedução das equações diferenciais, o comportamento dos vetores no espaço de fase ou os passos dos exercícios.',
     voiceEmphasis: false,
@@ -710,6 +761,46 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
       { id: 'hist-3', title: 'Passado simples: verbos irregulares comuns', moduleTitle: 'A2 Routine & Past Simple', completedAt: '09/Set', durationMinutes: 30 },
       { id: 'hist-4', title: 'Revisão A1 & checkpoint de fluência', moduleTitle: 'A1 Fundamentals', completedAt: '05/Set', durationMinutes: 20 },
     ],
+    writtenLesson: {
+      intro:
+        'Falar inglês naturalmente não é só saber gramática — é saber conduzir uma conversa: preencher silêncios, usar expressões idiomáticas do dia a dia e entender a fala conectada dos nativos. Esta aula cobre exatamente essas três camadas, na ordem em que elas aparecem numa conversa real.',
+      blocks: [
+        {
+          id: 'ing-block-1',
+          type: 'concept',
+          title: 'Natural Turn-Taking in Conversations',
+          body: 'Em conversas cotidianas, silêncios longos soam estranhos enquanto você formula uma resposta. Nativos preenchem esse espaço com marcadores naturais de fala — "Well...", "Actually...", "To be honest..." — que sinalizam "estou pensando", sem quebrar o ritmo da troca.',
+        },
+        {
+          id: 'ing-block-2',
+          type: 'example',
+          title: 'Phrasal Verbs do dia a dia',
+          body: 'Expressões como "catch up" (colocar o papo em dia), "run into" (encontrar por acaso) e "call off" (cancelar) aparecem o tempo todo na fala informal. Traduzir palavra por palavra do português não funciona aqui — o significado é do conjunto, não das partes.',
+        },
+        {
+          id: 'ing-block-3',
+          type: 'concept',
+          title: 'Connected Speech & Word Reductions',
+          body: 'Nativos conectam a consoante final de uma palavra à vogal inicial da próxima — "pick it up" soa como "pi-ki-tup". Preposições curtas também reduzem: "to" vira /tə/, "for" vira /fər/. É por isso que o inglês falado soa "mais rápido" do que o inglês escrito sugere.',
+        },
+        {
+          id: 'ing-block-4',
+          type: 'comparison',
+          title: 'Pedido direto vs. pedido suavizado',
+          body: 'A mesma solicitação muda completamente de tom dependendo da estrutura escolhida — e isso importa socialmente, não só gramaticalmente.',
+          items: [
+            { label: 'Direto (comando)', text: '"Give me the report." — soa como uma ordem, raramente apropriado entre colegas.' },
+            { label: 'Suavizado (pedido)', text: '"I was wondering if you could send me the report?" — a mesma solicitação, com muito mais aceitação social.' },
+          ],
+        },
+        {
+          id: 'ing-block-5',
+          type: 'application',
+          title: 'Juntando tudo numa resposta real',
+          body: 'Uma resposta natural combina as três camadas: um marcador de abertura, o phrasal verb certo, e a pronúncia conectada. "Well, I totally lost track of time — are you still up for catching that film tonight?" soa natural porque usa as três ao mesmo tempo, não porque é gramaticalmente "correta".',
+        },
+      ],
+    },
     tutorGreeting:
       'Olá! Sou seu parceiro de conversação e treinador de idioma. Posso ajudar você a praticar respostas, tirar dúvidas de vocabulário ou exercitar pronúncia e conversação oral.',
     voiceEmphasis: true,
@@ -1109,6 +1200,38 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
         duration: '55 min estimados',
       },
     ],
+    writtenLesson: {
+      intro:
+        'Ondulatória é um dos temas mais recorrentes de Ciências da Natureza no ENEM justamente porque uma única equação — v = λ·f — resolve a maioria das questões, desde que você saiba identificar o que muda e o que permanece constante em cada situação.',
+      blocks: [
+        {
+          id: 'vest-block-1',
+          type: 'concept',
+          title: 'Classificação de Ondas no ENEM',
+          body: 'Ondas mecânicas (som, ondas no mar) transportam apenas energia e momentum através de um meio material — sem meio, não há propagação. Ondas eletromagnéticas (luz, rádio) se propagam também no vácuo, com velocidade c ≈ 3·10⁸ m/s.',
+        },
+        {
+          id: 'vest-block-2',
+          type: 'formula',
+          title: 'A Equação Fundamental da Ondulatória',
+          formula: 'v = λ · f',
+          formulaLabel: 'v = velocidade · λ = comprimento de onda · f = frequência',
+          body: 'Regra de ouro das questões do ENEM: a frequência f depende exclusivamente da fonte emissora, nunca do meio. Quando a onda muda de meio (refração) e a velocidade v muda, é o comprimento de onda λ que se ajusta na mesma proporção — não a frequência.',
+        },
+        {
+          id: 'vest-block-3',
+          type: 'example',
+          title: 'Fenômenos Ondulatórios Recorrentes',
+          body: 'Difração acontece quando o contorno de uma fenda é da ordem do comprimento de onda. Interferência é a superposição construtiva ou destrutiva de duas ondas. Polarização é exclusiva de ondas transversais — é o princípio por trás dos óculos 3D e de filtros polarizadores, um dos temas mais cobrados dessa área.',
+        },
+        {
+          id: 'vest-block-4',
+          type: 'application',
+          title: 'Diagnóstico de Distratores do ENEM',
+          body: 'O distrator mais frequente afirma que "a frequência do som muda ao entrar na água" (falso — é a velocidade e o comprimento de onda que mudam) ou que "ondas sonoras se propagam no vácuo cósmico" (impossível — som é onda mecânica, precisa de meio material). Reconhecer esses dois padrões já resolve boa parte das questões da Matriz.',
+        },
+      ],
+    },
     tutorGreeting:
       'Olá! Sou seu mentor estratégico para o ENEM. Vamos analisar as questões pela Matriz de Referência, identificar os distratores clássicos e reforçar a fundamentação para garantir sua pontuação.',
     voiceEmphasis: false,

@@ -85,70 +85,9 @@
   --ease-smooth: cubic-bezier(0.25, 1, 0.35, 1);
 }
 
-html.sepia {
-  /*
-   * Round 5 §19 — corrigido o problema oposto ao esperado: o sépia anterior (bg #F8F7F0,
-   * surface #FFFDF7) tinha luminância/matiz quase idêntico ao modo CLARO — na prática não
-   * existia diferenciação de temperatura entre os dois temas, então "sépia forte demais" nunca
-   * foi o problema real. Os valores novos são papel/madeira clara de verdade (matiz âmbar,
-   * ainda claro e de baixo contraste — nunca marrom escuro nem saturado).
-   */
-  --color-bg: #EFE4CC;
-  --color-bg-rgb: 239 228 204;
-  --color-surface: #F8F0DD;
-  --color-surface-rgb: 248 240 221;
-  --color-surface-elevated: #FBF5E7;
-  --color-surface-elevated-rgb: 251 245 231;
-  --color-surface-secondary: #E9DDBF;
-  --color-surface-secondary-rgb: 233 221 191;
-  --color-surface-subtle: #E2D4B0;
-  --color-surface-subtle-rgb: 226 212 176;
-  --color-text-primary: #3D3220;
-  --color-text-primary-rgb: 61 50 32;
-  --color-text-secondary: #6B5D42;
-  --color-text-secondary-rgb: 107 93 66;
-  --color-text-muted: #93876B;
-  --color-text-muted-rgb: 147 135 107;
-  --color-border: #DCCCA0;
-  --color-border-rgb: 220 204 160;
-  --color-border-subtle: #E5D7AF;
-  --color-border-subtle-rgb: 229 215 175;
-  --color-border-strong: #CBB786;
-  --color-border-strong-rgb: 203 183 134;
-  --color-primary: #71DBD2;
-  --color-primary-rgb: 113 219 210;
-  --color-on-primary: #1C2420;
-  --color-secondary: #EEFFDB;
-  --color-secondary-rgb: 238 255 219;
-  --color-support: #ADE4B5;
-  --color-support-rgb: 173 228 181;
-  --color-tertiary: #D0EAA3;
-  --color-tertiary-rgb: 208 234 163;
-  --color-accent: #FFF18C;
-  --color-accent-rgb: 255 241 140;
-  --color-alert: #C45B5B;
-  --color-alert-rgb: 196 91 91;
-  --color-focus-ring: #2C6956;
-  --color-focus-ring-rgb: 44 105 86;
-  --color-overlay: rgba(61, 50, 32, 0.35);
-  --color-overlay-rgb: 61 50 32;
-
-  /* Identidade de disciplina do Cronograma (Round 5 §16) — mesmos valores nos 3 temas, ver :root. */
-  --color-subject-blue: #8FB4E0;
-  --color-subject-blue-rgb: 143 180 224;
-  --color-subject-violet: #B6A6E0;
-  --color-subject-violet-rgb: 182 166 224;
-  --color-subject-amber: #E0A868;
-  --color-subject-amber-rgb: 224 168 104;
-  --color-subject-moss: #7FAE7A;
-  --color-subject-moss-rgb: 127 174 122;
-  --color-subject-rose: #D99BA6;
-  --color-subject-rose-rgb: 217 155 166;
-  --color-subject-cyan: #7FC2C9;
-  --color-subject-cyan-rgb: 127 194 201;
-  --color-subject-clay: #C97B5F;
-  --color-subject-clay-rgb: 201 123 95;
-}
+/* Round 7 §4: o bloco `html.sepia` (3º tema, "Paper Mode") foi removido por decisão explícita do
+   Owner — só Claro/Escuro continuam existindo. `ShellContext.tsx` migra qualquer preferência
+   salva de 'sepia' para 'light' automaticamente. */
 
 html.dark {
   --color-bg: #111614;

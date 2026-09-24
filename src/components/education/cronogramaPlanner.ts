@@ -155,8 +155,19 @@ export function gerarPlanoGenerico(hoje: Date = new Date()): CronogramaPlan {
  * usuário já deu, nunca como substituto dela. Rotulado na UI como "Estimativa inicial de
  * domínio", nunca como precisão científica (§17 explícito).
  */
+/**
+ * Round 7 §19: `area` existe pra que o mini-diagnóstico NUNCA seja arquiteturalmente "só
+ * matemática" — o protótipo de hoje tem mais perguntas de raciocínio lógico-matemático porque são
+ * as mais fáceis de validar objetivamente sem uma IA por trás, mas a estrutura já suporta as 4
+ * áreas do ENEM (prova disso: `DIAGNOSTICO_QUESTOES` abaixo já tem 1 questão de Linguagens, não só
+ * matemática). Não infla o número de perguntas artificialmente pra "parecer mais completo" — o
+ * baseline de UI continua pequeno, só a premissa de "diagnóstico = matemática" foi removida.
+ */
+export type AreaEnem = 'matematica' | 'linguagens' | 'humanas' | 'natureza';
+
 export interface DiagnosticoQuestao {
   id: string;
+  area: AreaEnem;
   dificuldade: 'facil' | 'media' | 'dificil';
   pergunta: string;
   opcoes: string[];
@@ -166,6 +177,7 @@ export interface DiagnosticoQuestao {
 export const DIAGNOSTICO_QUESTOES: DiagnosticoQuestao[] = [
   {
     id: 'q1',
+    area: 'matematica',
     dificuldade: 'facil',
     pergunta: 'Se um produto custava R$ 80 e teve um desconto de 25%, qual o novo preço?',
     opcoes: ['R$ 55', 'R$ 60', 'R$ 65', 'R$ 70'],
@@ -173,13 +185,20 @@ export const DIAGNOSTICO_QUESTOES: DiagnosticoQuestao[] = [
   },
   {
     id: 'q2',
+    area: 'linguagens',
     dificuldade: 'media',
-    pergunta: 'Uma torneira enche um tanque em 6 horas. Outra torneira, sozinha, enche o mesmo tanque em 3 horas. Trabalhando juntas, em quanto tempo enchem o tanque?',
-    opcoes: ['1,5 hora', '2 horas', '3 horas', '4,5 horas'],
+    pergunta: '"O rio corria manso, sem pressa, como quem já sabe onde vai chegar." A comparação do rio com "quem já sabe onde vai chegar" sugere principalmente:',
+    opcoes: [
+      'Urgência e inconstância do curso do rio',
+      'Serenidade ligada a um destino certo',
+      'Perigo iminente na travessia',
+      'Ausência total de movimento',
+    ],
     respostaCorretaIndex: 1,
   },
   {
     id: 'q3',
+    area: 'matematica',
     dificuldade: 'dificil',
     pergunta: 'Numa progressão geométrica, o 2º termo é 6 e o 5º termo é 162. Qual é a razão da progressão?',
     opcoes: ['2', '3', '4', '9'],

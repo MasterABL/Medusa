@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { StudyTrack } from './types';
+import { StudyTrack, LessonViewMode } from './types';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { EnglishHub } from './EnglishHub';
 import { EnemHub } from './EnemHub';
@@ -27,7 +27,7 @@ interface EducationDashboardProps {
   isSessionCompleted: boolean;
   completedScore?: number;
   /** Aula interrompida (ver "Interromper aula" no Study Mode) — usada para oferecer "Continuar aula" no hero. */
-  interruptedSession?: { track: StudyTrack; currentTimeSeconds: number } | null;
+  interruptedSession?: { track: StudyTrack; currentTimeSeconds: number; viewMode: LessonViewMode } | null;
   onResumeInterruptedSession?: () => void;
 }
 
