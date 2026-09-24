@@ -3,9 +3,10 @@
 import React, { useEffect } from 'react';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { useAgenda } from '@/context/AgendaContext';
 import { EnemCronogramaView } from './EnemCronogramaView';
 import { CronogramaOnboarding } from './CronogramaOnboarding';
-import { CronogramaPlan } from './cronogramaPlanner';
+import { CronogramaPlan, Weekday, gerarBlocosAgendaSemana } from './cronogramaPlanner';
 
 interface CronogramaOverlayProps {
   /**
@@ -41,12 +42,37 @@ export function CronogramaOverlay({ onStartStudy }: CronogramaOverlayProps) {
     setCronogramaPlan,
     setEnemView,
   } = useEducationPanel();
+  const { createOrUpdateItem } = useAgenda();
   const cronograma = TRACK_DEFINITIONS.vestibular.cronograma ?? [];
   const isDashboardContext = Boolean(onStartStudy);
 
-  const handleFinishOnboarding = (plan: CronogramaPlan) => {
+  // Round 6 §19 — fundação real de integração Cronograma -> Agenda: AgendaItem já tinha
+  // `kind: 'time_block'` e `source.sourceType: 'education_session'` desenhados pra exatamente
+  // este caso (não é gambiarra em cima de um tipo genérico). `diasReais` só vem preenchido
+  // quando o plano foi personalizado de verdade (ver docblock em CronogramaOnboarding.tsx) —
+  // um plano genérico usa dias fabricados, e criar compromissos reais na Agenda a partir de dado
+  // fabricado seria pior que não integrar nada. Não é uma segunda agenda: os blocos entram no
+  // MESMO `AgendaContext` que a aba Agenda já lê, category `cat-enem` já existente.
+  const handleFinishOnboarding = (plan: CronogramaPlan, diasReais?: Weekday[]) => {
     setCronogramaPlan(plan);
     markCronogramaOnboardingSeen();
+    if (diasReais && diasReais.length > 0) {
+      const blocos = gerarBlocosAgendaSemana(plan, diasReais);
+      blocos.forEach((bloco) => {
+        createOrUpdateItem({
+          title: `Estudo: ${bloco.disciplina} (ENEM)`,
+          kind: 'time_block',
+          domain: 'education',
+          categoryId: 'cat-enem',
+          colorId: 'amarelo_baunilha',
+          date: bloco.date,
+          durationMinutes: bloco.durationMinutes,
+          isFlexible: true,
+          description: 'Bloco gerado a partir do seu plano do Cronograma do ENEM — horário flexível, ajuste como preferir.',
+          source: { sourceType: 'education_session', sourceLabel: 'Cronograma ENEM' },
+        });
+      });
+    }
   };
 
   // Round 6 §20/§21: no contexto do Dashboard, assim que o onboarding é resolvido (terminado

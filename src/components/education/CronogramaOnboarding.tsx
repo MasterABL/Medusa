@@ -55,7 +55,13 @@ const ATIVIDADES_RECORRENTES = [
 ] as const;
 
 interface CronogramaOnboardingProps {
-  onFinish: (plan: CronogramaPlan) => void;
+  /**
+   * `diasReais` só vem preenchido quando o plano veio de personalização de verdade (nunca do
+   * atalho genérico/pular) — é o sinal que `CronogramaOverlay.tsx` usa pra decidir se cria blocos
+   * reais na Agenda (Round 6 §19): um plano genérico usa dias fabricados (seg-sex fixo), então
+   * jogar isso na Agenda real do usuário seria inventar compromisso que ele nunca disse ter.
+   */
+  onFinish: (plan: CronogramaPlan, diasReais?: Weekday[]) => void;
 }
 
 /**
@@ -559,7 +565,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
               <button
                 type="button"
                 id="btn-onboarding-ver-cronograma"
-                onClick={() => onFinish(plano)}
+                onClick={() => onFinish(plano, diasDisponiveis.length > 0 ? diasDisponiveis : undefined)}
                 className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
               >
                 <span>Ver cronograma detalhado</span>

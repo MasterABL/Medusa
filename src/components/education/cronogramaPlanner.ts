@@ -214,3 +214,52 @@ export function ajustarDominioPorDiagnostico(
   }
   return dominio;
 }
+
+/**
+ * Fundação de integração Cronograma -> Agenda (Round 6 §19). Converte a alocação semanal do
+ * plano em blocos concretos com DATA real (não recorrência infinita — representa só a semana
+ * atual/próxima ocorrência de cada dia escolhido, dentro dos próximos 7 dias a partir de hoje).
+ * Decisão consciente de escopo: gerar uma série recorrente de verdade exigiria também a UI pra
+ * editar/cancelar essa série depois (o mesmo cuidado que a Agenda já tem pra rotinas existentes,
+ * ver `deleteRecurringOccurrence` em AgendaContext.tsx) — isso fica registrado como próximo passo,
+ * não implementado agora, pra não criar uma responsabilidade que a Agenda não consegue gerenciar
+ * de volta ainda.
+ *
+ * Uma disciplina por dia disponível, round-robin (disciplina[i % diasDisponiveis.length]) —
+ * simples o bastante pra não inventar heurística de "melhor dia pra cada matéria" sem dado real
+ * pra basear isso (ver §19: "quando tecnicamente possível", não "adivinhar o resto").
+ */
+export interface BlocoAgendaCronograma {
+  disciplina: string;
+  date: string; // YYYY-MM-DD
+  durationMinutes: number;
+}
+
+const ISO_WEEKDAY: Record<Weekday, number> = { seg: 1, ter: 2, qua: 3, qui: 4, sex: 5, sab: 6, dom: 7 };
+
+function proximaDataDoDia(dia: Weekday, hoje: Date): Date {
+  const hojeIso = hoje.getDay() === 0 ? 7 : hoje.getDay();
+  const delta = (ISO_WEEKDAY[dia] - hojeIso + 7) % 7;
+  const data = new Date(hoje);
+  data.setDate(data.getDate() + delta);
+  return data;
+}
+
+export function gerarBlocosAgendaSemana(
+  plan: CronogramaPlan,
+  diasDisponiveis: Weekday[],
+  hoje: Date = new Date()
+): BlocoAgendaCronograma[] {
+  if (diasDisponiveis.length === 0) return [];
+  const disciplinasComHoras = plan.alocacao.filter((a) => a.horasSemana > 0);
+
+  return disciplinasComHoras.map((a, i) => {
+    const dia = diasDisponiveis[i % diasDisponiveis.length];
+    const data = proximaDataDoDia(dia, hoje);
+    return {
+      disciplina: a.disciplina,
+      date: data.toISOString().slice(0, 10),
+      durationMinutes: Math.round(a.horasSemana * 60),
+    };
+  });
+}
