@@ -315,3 +315,16 @@ tema; a gramática de cor (§2) nunca muda de significado entre temas.
   clique-fora; agora usa o mesmo padrão de overlay do resto do app. Tema claro e sépia
   recalibrados (claro menos "estourado"; sépia com identidade real de madeira clara/pergaminho —
   o problema de verdade era falta de diferenciação do claro, não excesso de contraste).
+- **Round 6** — Owner Precedence (§0) formalizada; taxonomia de motion expandida pros 16 papéis
+  pedidos; Cor como Contexto (§2.1) documentada. 2 bugs críticos reais corrigidos no Study Mode:
+  o seletor de composição ficava preso/inoperável no modo Resumo (morava dentro da seção que
+  recolhe — movido pra uma camada estável); e existia um segundo seletor de trilha DENTRO da
+  sessão ativa, permitindo trocar de trilha no meio da aula (removido — contexto agora é fixo
+  durante a sessão inteira). Cabeçalho do Study Mode enxugado (removido "Modo Estudo Ativo · Foco
+  Zen" e o rótulo cru do módulo). "Ver Cronograma completo" parou de abrir uma cópia num drawer de
+  640px — navega pra aba Cronograma real do EnemHub. Tutor do Inglês perdeu o cabeçalho duplicado
+  ("Professor de Inglês (IA)" por cima de "Tutor & Conversação B1") e a "Posição 0:00" falsa.
+  Questionário do Cronograma cresceu de 4 pra 6 blocos (Outras Atividades desconta horas reais da
+  disponibilidade; mini-diagnóstico de 3 questões ajusta a autoavaliação de domínio). Fundação
+  real de integração Cronograma→Agenda (blocos de estudo entram na Agenda de verdade, mesmo
+  Local State, category `cat-enem` já existente). Ver `docs`/PR para o relatório completo.
