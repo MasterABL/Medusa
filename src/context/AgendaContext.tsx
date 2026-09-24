@@ -24,6 +24,7 @@ import {
   getNextDate,
   getPrevDate,
 } from '@/components/agenda/agendaHelpers';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface AgendaContextType {
   items: AgendaItem[];
@@ -141,6 +142,9 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       };
 
       setItems((prev) => [newItem, ...prev]);
+      // Confirmação sonora de "evento criado" (Round 6 §33) — só na criação, não na edição, pra
+      // não tocar som em todo ajuste pequeno de um item já existente.
+      playFeedback('action');
     }
   };
 
@@ -154,6 +158,8 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
   const deleteItem = (itemId: string) => {
     const baseId = itemId.includes('-virt-') ? itemId.split('-virt-')[0] : itemId;
     setItems((prev) => prev.filter((it) => it.id !== baseId));
+    // Confirmação sonora de "evento excluído" (Round 6 §33).
+    playFeedback('action');
     if (selectedItemId === itemId) {
       setSelectedItemId(null);
     }

@@ -24,6 +24,7 @@ import { StudyCompletionView } from './StudyCompletionView';
 import { TutorDrawer } from './TutorDrawer';
 import { LessonReviewModal } from './LessonReviewModal';
 import { CronogramaOverlay } from './CronogramaOverlay';
+import { playFeedback } from '@/lib/audioFeedback';
 
 const RECEDE_MS = 320;
 
@@ -127,6 +128,10 @@ export function EducationContainer() {
   const handleLoadingError = useCallback(() => {
     setSessionState('error');
     setIslandState('error');
+    // Round 6 §33: "erro" também tem som — categoria `notification` (não existe uma 4a
+    // categoria "erro" no toggle de Ajustes, ver AudioSettingsWidget; um erro é, semanticamente,
+    // "algo que pede atenção sem o usuário ter pedido agora", o mesmo critério de `notification`).
+    playFeedback('notification');
   }, [setIslandState]);
 
   // 4. Entrar no Study Mode: ready -> study
