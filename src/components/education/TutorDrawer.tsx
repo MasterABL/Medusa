@@ -31,7 +31,7 @@ export function TutorDrawer({
   onClose,
   trackDef,
   contextQuestion,
-  videoTimestamp = 0,
+  videoTimestamp,
   onVoiceActiveChange,
   variant = 'drawer',
 }: TutorDrawerProps) {
@@ -224,25 +224,44 @@ export function TutorDrawer({
         aria-modal={isInline ? undefined : true}
         className={
           isInline
-            ? 'h-full w-full bg-surface flex flex-col'
+            ? 'study-summary-enter h-full w-full bg-surface rounded-xl border border-border/60 overflow-hidden flex flex-col'
             : 'fixed inset-y-0 right-0 w-full sm:w-[420px] bg-surface border-l border-border/80 shadow-2xl z-50 flex flex-col drawer-slide-in'
         }
       >
-      {/* Header do Tutor */}
-      <div className="p-4 border-b border-border/70 flex items-center justify-between bg-surface-secondary/40">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] flex items-center justify-center shadow-subtle">
+      {/* Header do Tutor — CABEÇALHO MÍNIMO (Round 6 §24/§25): um único header, sem duplicar o
+          título "Professor de Inglês (IA)" que o painel-pai mostrava por cima deste (removido em
+          EnglishContextPanel.tsx — este é agora o ÚNICO cabeçalho do Tutor em qualquer variante).
+          "Posição 0:00" falsa removida: só mostra a posição quando `videoTimestamp` é passado de
+          verdade (dentro de uma aula tocando), nunca um valor inventado quando não há vídeo. */}
+      <div className="p-4 border-b border-border/70 flex items-center justify-between bg-surface-secondary/40 flex-shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {isInline && (
+            <button
+              type="button"
+              id="btn-tutor-back"
+              onClick={onClose}
+              aria-label="Voltar"
+              title="Voltar (Esc)"
+              className="btn-interactive p-1 -ml-1 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            </button>
+          )}
+          <div className="w-8 h-8 rounded-full bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] flex items-center justify-center shadow-subtle flex-shrink-0">
             <span className="material-symbols-outlined text-[18px]">
               {trackDef?.id === 'ingles' ? 'record_voice_over' : 'neurology'}
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-[13px] font-semibold text-text-primary flex items-center gap-1.5">
-              <span>{trackDef?.id === 'ingles' ? 'Tutor & Conversação B1' : `Tutor · ${trackDef?.name || 'Estudo'}`}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
+              <span className="truncate">Tutor</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse flex-shrink-0" />
             </h3>
-            <span className="text-[10px] font-mono text-text-muted">
-              {trackDef?.lesson.topic || 'Sessão Ativa'} · Posição {Math.floor(videoTimestamp / 60)}:{(videoTimestamp % 60).toString().padStart(2, '0')}
+            <span className="text-[10px] font-mono text-text-muted truncate block">
+              {trackDef?.lesson.topic || 'Sessão Ativa'}
+              {videoTimestamp !== undefined && (
+                <> · Posição {Math.floor(videoTimestamp / 60)}:{(videoTimestamp % 60).toString().padStart(2, '0')}</>
+              )}
             </span>
           </div>
         </div>

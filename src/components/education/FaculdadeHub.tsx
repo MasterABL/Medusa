@@ -6,6 +6,7 @@ import { TrackModuleList } from './TrackModuleList';
 import { CompletedActivityList } from './CompletedActivityList';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { getTrackAccent } from './trackAccent';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface FaculdadeHubProps {
   trackDef: TrackDefinition;
@@ -75,6 +76,9 @@ export function FaculdadeHub({ trackDef, trackItems }: FaculdadeHubProps) {
     });
     setSelectedCode(code);
     resetForm();
+    // Confirmação discreta de ação do usuário (Round 6 §33/§9) — categoria `action`, não
+    // `completion`: adicionar uma disciplina é um passo pequeno, não o fim de uma jornada.
+    playFeedback('action');
   }
 
   if (!selected) return null;

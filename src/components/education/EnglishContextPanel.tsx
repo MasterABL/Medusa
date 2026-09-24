@@ -79,42 +79,22 @@ export function EnglishContextPanel() {
     .flatMap((m) => m.lessons ?? [])
     .filter((l) => l.status !== 'completed').length;
 
-  // Round 5 §8: quando o Tutor está aberto, ele SUBSTITUI todo o corpo do painel (Contexto,
-  // Próxima Ação, Domínio, Revisões) em vez de coexistir dentro de um acordeão — a troca usa a
-  // mesma animação de entrada já usada para conteúdo lateral (`study-summary-enter`), não uma
-  // nova.
+  // Round 6 §24/§25: o Tutor SUBSTITUI todo o corpo do painel (Contexto, Próxima Ação, Domínio,
+  // Revisões) — e agora é dono do ÚNICO cabeçalho da experiência (achado real: havia um cabeçalho
+  // duplicado aqui — "Professor de Inglês (IA)" — por cima do próprio cabeçalho do
+  // `TutorDrawer` ("Tutor & Conversação B1"), com uma borda extra em volta de outra borda. O
+  // `TutorDrawer` (variant="inline") já carrega sua própria animação de entrada
+  // (`study-summary-enter`) e seta ← Voltar/× — não precisa de wrapper nenhum aqui.
   if (isTeacherOpen) {
     return (
-      <div
-        ref={teacherPanelRef}
-        id="context-panel-track-ingles"
-        className="study-summary-enter flex flex-col gap-3 min-h-[65vh]"
-      >
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/60">
-          <span className="flex items-center gap-2 text-[12px] font-semibold text-text-primary">
-            <span className={`material-symbols-outlined text-[17px] ${accent.text}`}>record_voice_over</span>
-            Professor de Inglês (IA)
-          </span>
-          <button
-            type="button"
-            id="btn-close-english-teacher"
-            onClick={() => setIsTeacherOpen(false)}
-            aria-label="Fechar professor de Inglês"
-            title="Fechar (Esc)"
-            className="btn-interactive p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
-          >
-            <span className="material-symbols-outlined text-[18px]">close</span>
-          </button>
-        </div>
-        <div className="flex-1 min-h-0 rounded-xl border border-border/60 overflow-hidden">
-          <TutorDrawer
-            isOpen
-            onClose={() => setIsTeacherOpen(false)}
-            trackDef={trackDef}
-            variant="inline"
-            onVoiceActiveChange={setVoiceActive}
-          />
-        </div>
+      <div ref={teacherPanelRef} id="context-panel-track-ingles" className="min-h-[65vh] flex flex-col">
+        <TutorDrawer
+          isOpen
+          onClose={() => setIsTeacherOpen(false)}
+          trackDef={trackDef}
+          variant="inline"
+          onVoiceActiveChange={setVoiceActive}
+        />
       </div>
     );
   }
