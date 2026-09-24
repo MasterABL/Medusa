@@ -350,6 +350,24 @@ async function getEventBlockRects(page) {
     await submitForm(page);
     await new Promise((r) => setTimeout(r, 300));
 
+    // Achado real de review: a asserção original media "remaining >= 0" — length de array
+    // NUNCA é negativo, então isso sempre passava, mesmo se a série inteira tivesse sido
+    // apagada (tautologia, não testava nada). Corrigido pra comparar ANTES x DEPOIS na visão de
+    // Mês (janela larga o bastante pra uma rotina semanal sem data-fim aparecer mais de uma vez).
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('[role="tab"]')).find((b) => b.textContent.trim() === 'Mês');
+      if (btn) btn.click();
+    });
+    await new Promise((r) => setTimeout(r, 400));
+    const occurrencesBeforeDelete = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('span')).filter((s) => s.textContent.trim() === 'QA Rotina Exclusao').length;
+    });
+    check(
+      '[ExclusãoRecorrência] rotina sem data-fim aparece mais de uma vez no mês (pré-condição do teste)',
+      occurrencesBeforeDelete >= 2,
+      `before=${occurrencesBeforeDelete}`
+    );
+
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('[role="tab"]')).find((b) => b.textContent.trim() === 'Lista');
       if (btn) btn.click();
@@ -381,9 +399,9 @@ async function getEventBlockRects(page) {
     });
     await new Promise((r) => setTimeout(r, 400));
 
-    // Verifica que a série ainda existe (não foi removida inteira) — troca para Semana
+    // Mesma visão de Mês de antes — compara contra a contagem PRÉVIA, não um limite trivial.
     await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll('[role="tab"]')).find((b) => b.textContent.trim() === 'Semana');
+      const btn = Array.from(document.querySelectorAll('[role="tab"]')).find((b) => b.textContent.trim() === 'Mês');
       if (btn) btn.click();
     });
     await new Promise((r) => setTimeout(r, 400));
@@ -392,9 +410,9 @@ async function getEventBlockRects(page) {
       return Array.from(document.querySelectorAll('span')).filter((s) => s.textContent.trim() === 'QA Rotina Exclusao').length;
     });
     check(
-      '["Somente este evento"] a série continua existindo (não foi excluída inteira)',
-      remainingOccurrences >= 0,
-      `remaining=${remainingOccurrences} (nota: pode ser 0 se a única ocorrência da semana era a excluída)`
+      '["Somente este evento"] remove EXATAMENTE uma ocorrência, a série continua existindo',
+      remainingOccurrences === occurrencesBeforeDelete - 1 && remainingOccurrences >= 1,
+      `before=${occurrencesBeforeDelete} after=${remainingOccurrences}`
     );
 
     await page.close();

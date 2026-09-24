@@ -17,6 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Achado real de review: por padrão o checkout grava o GITHUB_TOKEN nas credenciais git
+          # locais, deixando-o disponível pra qualquer processo filho — inclusive `npm ci`/`npm
+          # run build` a seguir, que executam código arbitrário do PR (scripts de instalação,
+          # build). Este workflow nunca precisa fazer push/API call com esse token, então ele não
+          # tem motivo pra existir no ambiente de build.
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:

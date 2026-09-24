@@ -213,9 +213,26 @@ function saveRun(record) {
     fs.mkdirSync(RUNS_DIR, { recursive: true });
   }
   const timestamp = record.startedAt.replace(/[:.]/g, '-');
-  const outPath = path.join(RUNS_DIR, `${timestamp}-${record.taskId}.json`);
-  fs.writeFileSync(outPath, JSON.stringify(record, null, 2) + '\n', 'utf8');
-  return outPath;
+  const body = JSON.stringify(record, null, 2) + '\n';
+
+  // Achado real de review: duas execuções concorrentes deste script pra o MESMO taskId (ele
+  // mesmo se descreve como single-shot, "não orquestra múltiplos agentes" — mas nada aqui
+  // impede alguém de disparar duas instâncias por engano) podiam gerar o mesmo nome de arquivo
+  // se `startedAt` (precisão de milissegundo) colidisse, e `writeFileSync` sobrescreve em
+  // silêncio — perder um registro de auditoria sem nenhum aviso é pior do que qualquer outro
+  // resultado possível aqui. `wx` falha em vez de sobrescrever; em colisão, tenta de novo com um
+  // sufixo aleatório até achar um nome livre.
+  let outPath = path.join(RUNS_DIR, `${timestamp}-${record.taskId}.json`);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.writeFileSync(outPath, body, { encoding: 'utf8', flag: 'wx' });
+      return outPath;
+    } catch (err) {
+      if (err.code !== 'EEXIST' || attempt >= 9) throw err;
+      const suffix = Math.random().toString(36).slice(2, 8);
+      outPath = path.join(RUNS_DIR, `${timestamp}-${record.taskId}-${suffix}.json`);
+    }
+  }
 }
 
 function main() {
