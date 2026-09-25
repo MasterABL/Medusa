@@ -16,7 +16,7 @@ jobs:
     name: Typecheck, Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Achado real de review: por padrão o checkout grava o GITHUB_TOKEN nas credenciais git
           # locais, deixando-o disponível pra qualquer processo filho — inclusive `npm ci`/`npm
