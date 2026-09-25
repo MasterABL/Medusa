@@ -41,14 +41,25 @@ const ROOT = path.resolve(__dirname, '..');
 const ACTIVE_TASK_PATH = path.join(ROOT, '.ai', 'ACTIVE_TASK.md');
 const HANDOFF_PATH = path.join(ROOT, '.ai', 'HANDOFF.md');
 const RUNS_DIR = path.join(ROOT, '.ai', 'runs');
+const LOCK_PATH = path.join(RUNS_DIR, '.orchestrator.lock');
 const AGENT_CMD = process.env.MEDUSA_AGENT_CMD || 'agy';
 const DRY_RUN = process.argv.includes('--dry-run');
+
+// Achado real de review: nenhum dos dois `spawnSync` deste arquivo tinha `timeout` — um
+// executor travado (probe de `--version` ou a execução real) bloqueava o processo pra sempre,
+// SEM NENHUM registro de auditoria (`saveRun()` só é alcançado depois que `spawnSync` retorna).
+// A probe de disponibilidade só roda `--version`, então um timeout curto já é generoso; a
+// execução real da tarefa pode legitimamente levar bem mais tempo (é uma implementação de
+// feature, não uma checagem), por isso o teto é configurável via env var em vez de fixo.
+const PROBE_TIMEOUT_MS = 10_000;
+const TASK_TIMEOUT_MS = Number(process.env.MEDUSA_AGENT_TIMEOUT_MS) || 20 * 60 * 1000;
 
 const EXIT = {
   ANTIGRAVITY_EXECUTED: 0,
   NO_ACTIVE_TASK: 1,
   FALLBACK_CLAUDE: 2,
   ANTIGRAVITY_FAILED: 3,
+  CONCURRENT_RUN_BLOCKED: 4,
 };
 
 function readActiveTask() {
@@ -118,11 +129,16 @@ function readHandoff(taskId) {
 }
 
 function checkExecutorAvailable() {
-  const probe = spawnSync(AGENT_CMD, ['--version'], { encoding: 'utf8' });
+  const probe = spawnSync(AGENT_CMD, ['--version'], { encoding: 'utf8', timeout: PROBE_TIMEOUT_MS });
   if (probe.error || probe.status !== 0) {
+    const timedOut = probe.signal === 'SIGTERM' && !probe.error;
     return {
       available: false,
-      detail: probe.error ? probe.error.message : `exit code ${probe.status}`,
+      detail: timedOut
+        ? `probe travou e foi encerrada após ${PROBE_TIMEOUT_MS}ms sem responder`
+        : probe.error
+        ? probe.error.message
+        : `exit code ${probe.status}`,
     };
   }
   return { available: true, detail: probe.stdout.trim() };
@@ -165,6 +181,12 @@ function buildDryRunRecord(taskId, startedAt) {
 
 function buildAntigravityRecord(taskId, startedAt, result) {
   const succeeded = result.status === 0;
+  // Achado real de review: sem `timeout` no spawnSync, um Antigravity travado bloqueava o
+  // processo pra sempre e `saveRun()` nunca era alcançado — zero registro de auditoria pra essa
+  // tentativa. Agora que o timeout existe (ver TASK_TIMEOUT_MS), esse caminho passa por aqui como
+  // `result.signal === 'SIGTERM'` (sem `result.error`) — precisa de uma mensagem própria, porque
+  // "ANTIGRAVITY FALHOU" genérico esconderia que foi um hang, não um erro de execução real.
+  const timedOut = !succeeded && result.signal === 'SIGTERM' && !result.error;
   return {
     taskId,
     startedAt,
@@ -174,13 +196,19 @@ function buildAntigravityRecord(taskId, startedAt, result) {
     handoffPath: path.relative(ROOT, HANDOFF_PATH),
     exitCode: succeeded ? EXIT.ANTIGRAVITY_EXECUTED : EXIT.ANTIGRAVITY_FAILED,
     processExitCode: result.status,
+    timedOut,
     stdout: result.stdout || '',
     stderr: result.stderr || '',
-    status: succeeded ? 'EXECUTADO — AGUARDANDO AUDITORIA DE CLAUDE' : 'ANTIGRAVITY FALHOU',
+    status: succeeded ? 'EXECUTADO — AGUARDANDO AUDITORIA DE CLAUDE' : timedOut ? 'ANTIGRAVITY TRAVOU (timeout)' : 'ANTIGRAVITY FALHOU',
     note: succeeded
       ? 'Exit code 0 do processo significa apenas que o Antigravity terminou sem erro. Isso NÃO ' +
         'equivale a PROVADO — Claude deve reexecutar/reconferir os gates de Test/Build/Browser QA ' +
         'antes de qualquer alegação de status (ver .ai/AGENT_RULES.md → Honestidade).'
+      : timedOut
+      ? `O processo do Antigravity não terminou dentro de ${TASK_TIMEOUT_MS}ms e foi encerrado à ` +
+        'força — isso é diferente de um erro de execução real (o executor pode ter travado ' +
+        'esperando input, ou a tarefa genuinamente precisa de mais tempo). Ajustar ' +
+        'MEDUSA_AGENT_TIMEOUT_MS se a tarefa for legitimamente longa, ou investigar o hang.'
       : 'O processo do Antigravity terminou com erro real (não é indisponibilidade — o executor ' +
         'rodou e falhou). Claude decide: tentar de novo, acionar o fallback (Claude direto), ou ' +
         'registrar BLOQUEADO em .ai/BLOCKERS.md com o motivo real, nunca automaticamente.',
@@ -203,6 +231,7 @@ function runTask(taskId, handoffContent) {
   const result = spawnSync(AGENT_CMD, ['-p', handoffContent], {
     encoding: 'utf8',
     maxBuffer: 20 * 1024 * 1024,
+    timeout: TASK_TIMEOUT_MS,
   });
 
   return buildAntigravityRecord(taskId, startedAt, result);
@@ -235,7 +264,59 @@ function saveRun(record) {
   }
 }
 
+// Achado real de review: nada impedia duas invocações concorrentes deste script (por engano —
+// o próprio docblock já diz "não orquestra múltiplos agentes") de disparar a MESMA tarefa duas
+// vezes em paralelo, cada uma chamando o executor externo de verdade. Um lock exclusivo simples
+// (arquivo criado com `wx`, que falha se já existir) resolve isso sem precisar de nenhuma
+// infraestrutura nova. Um lock "preso" (processo anterior morto por SIGKILL, que pula qualquer
+// cleanup) é tratado como abandonado se for mais velho que o maior timeout possível desta
+// execução (`TASK_TIMEOUT_MS` + margem) — nunca mais velho que isso, porque aí seria confundir um
+// lock antigo de verdade com uma execução real ainda em andamento.
+const STALE_LOCK_MS = TASK_TIMEOUT_MS + 60_000;
+
+function acquireLock() {
+  if (!fs.existsSync(RUNS_DIR)) {
+    fs.mkdirSync(RUNS_DIR, { recursive: true });
+  }
+  try {
+    fs.writeFileSync(LOCK_PATH, `${process.pid}\n${new Date().toISOString()}\n`, { flag: 'wx' });
+    return true;
+  } catch (err) {
+    if (err.code !== 'EEXIST') throw err;
+    const age = Date.now() - fs.statSync(LOCK_PATH).mtimeMs;
+    if (age > STALE_LOCK_MS) {
+      console.error(
+        `[agent-orchestrator] AVISO: lock encontrado com ${Math.round(age / 1000)}s — mais velho ` +
+          `que o teto possível de uma execução real (${Math.round(STALE_LOCK_MS / 1000)}s). ` +
+          'Tratado como abandonado (processo anterior provavelmente morto sem cleanup); removendo e tentando de novo.'
+      );
+      fs.rmSync(LOCK_PATH, { force: true });
+      return acquireLock();
+    }
+    return false;
+  }
+}
+
+function releaseLock() {
+  fs.rmSync(LOCK_PATH, { force: true });
+}
+
 function main() {
+  if (!acquireLock()) {
+    console.error(
+      '[agent-orchestrator] ERRO: já existe uma execução em andamento (lock em ' +
+        `${path.relative(ROOT, LOCK_PATH)}). Duas instâncias concorrentes deste script poderiam ` +
+        'disparar a mesma tarefa duas vezes no executor externo — aguarde a execução atual terminar.'
+    );
+    process.exit(EXIT.CONCURRENT_RUN_BLOCKED);
+  }
+  // `readActiveTask()`/`readHandoff()` chamam `process.exit()` diretamente nos caminhos de erro —
+  // um `try/finally` normal NÃO cobriria esses caminhos (`process.exit()` não desenrola a pilha
+  // via exceção). O evento `'exit'` do processo roda de qualquer forma, mesmo depois de
+  // `process.exit()` ser chamado em qualquer lugar — é o único jeito de garantir que o lock
+  // sempre é liberado, não importa qual caminho de saída for tomado.
+  process.on('exit', releaseLock);
+
   const { taskId } = readActiveTask();
   const handoffContent = readHandoff(taskId);
   const record = runTask(taskId, handoffContent);
