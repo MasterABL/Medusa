@@ -337,7 +337,11 @@ export function EducationContainer() {
   return (
     <main
       id="education-experience-root"
-      className="w-full flex-1 flex flex-col px-4 sm:px-8 max-w-7xl mx-auto pt-4 relative"
+      className={`w-full flex-1 flex flex-col relative transition-all duration-300 ${
+        showStudyStage
+          ? 'px-2 sm:px-6 max-w-none pt-2'
+          : 'px-4 sm:px-8 max-w-7xl mx-auto pt-4'
+      }`}
     >
       {/* 1. Visão Geral / Dashboard da Trilha com Seletor Multi-Trilha */}
       {sessionState === 'dashboard' && (

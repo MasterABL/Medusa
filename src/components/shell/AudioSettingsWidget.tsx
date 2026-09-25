@@ -7,14 +7,28 @@ import { AudioCategory, AudioPrefs, DEFAULT_AUDIO_PREFS, getAudioPrefs, setAudio
 
 const CATEGORY_LABEL: Record<AudioCategory, string> = {
   notification: 'Notificação',
-  action: 'Ação',
-  completion: 'Conclusão',
+  action: 'Ação do Sistema',
+  completion: 'Conclusão de Sessão',
+  learning_correct: 'Acerto / Sucesso Pedagógico',
+  learning_error: 'Tentativa Incorreta',
+  checkpoint: 'Pausa & Checkpoint',
+  mode_switch: 'Troca Espacial de Modo',
+  upload_drop: 'Recebimento de Arquivo',
+  upload_ready: 'Material Processado',
+  delete: 'Remoção / Exclusão',
 };
 
 const CATEGORY_DESC: Record<AudioCategory, string> = {
   notification: 'Ex.: o Tutor respondeu sua pergunta',
   action: 'Ex.: calcular o plano do Cronograma',
   completion: 'Ex.: concluir uma sessão de estudo',
+  learning_correct: 'Ex.: acertar alternativa do exercício',
+  learning_error: 'Ex.: resposta incorreta com shake tátil',
+  checkpoint: 'Ex.: marco reflexivo durante a aula',
+  mode_switch: 'Ex.: alternar entre Só Aula e Resumo',
+  upload_drop: 'Ex.: soltar PDF na área de materiais',
+  upload_ready: 'Ex.: arquivo indexado e disponível',
+  delete: 'Ex.: remover material da disciplina',
 };
 
 /**

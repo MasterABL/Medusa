@@ -1,0 +1,220 @@
+{
+  "geoAulaSo": {
+    "mode": "so_aula",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "contentLayout": {
+      "selector": "#content-layout",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 926,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "educationRoot": {
+      "selector": "#education-experience-root",
+      "x": 0,
+      "y": 56,
+      "width": 1440,
+      "height": 870,
+      "padding": "8px 24px 0px 24px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "studyContainer": {
+      "selector": "#study-mode-container",
+      "x": 24,
+      "y": 64,
+      "width": 1392,
+      "height": 862,
+      "padding": "0px 8px 32px 8px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "lessonStage": {
+      "selector": "#lesson-stage",
+      "x": 32,
+      "y": 214,
+      "width": 1376,
+      "height": 680,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "switcher": {
+      "selector": "#lesson-composition-switcher",
+      "x": 32,
+      "y": 150,
+      "width": 342,
+      "height": 48,
+      "padding": "4px 4px 4px 4px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "writtenContent": null,
+    "hookeSim": null
+  },
+  "geoAulaResumo": {
+    "mode": "aula_resumo",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "contentLayout": {
+      "selector": "#content-layout",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 1074,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "educationRoot": {
+      "selector": "#education-experience-root",
+      "x": 0,
+      "y": 56,
+      "width": 1440,
+      "height": 1018,
+      "padding": "8px 24px 0px 24px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "studyContainer": {
+      "selector": "#study-mode-container",
+      "x": 80,
+      "y": 64,
+      "width": 1280,
+      "height": 1010,
+      "padding": "0px 0px 32px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "1280px",
+      "display": "flex"
+    },
+    "lessonStage": {
+      "selector": "#lesson-stage",
+      "x": 80,
+      "y": 301,
+      "width": 800,
+      "height": 742,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "switcher": {
+      "selector": "#lesson-composition-switcher",
+      "x": 80,
+      "y": 237,
+      "width": 343,
+      "height": 48,
+      "padding": "4px 4px 4px 4px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "writtenContent": null,
+    "hookeSim": null
+  },
+  "geoResumo": {
+    "mode": "resumo",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "contentLayout": {
+      "selector": "#content-layout",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 2536,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "educationRoot": {
+      "selector": "#education-experience-root",
+      "x": 0,
+      "y": 56,
+      "width": 1440,
+      "height": 2480,
+      "padding": "8px 24px 0px 24px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "studyContainer": {
+      "selector": "#study-mode-container",
+      "x": 80,
+      "y": 64,
+      "width": 1280,
+      "height": 2472,
+      "padding": "0px 0px 32px 0px",
+      "margin": "0px 56px 0px 56px",
+      "maxWidth": "1280px",
+      "display": "flex"
+    },
+    "lessonStage": {
+      "selector": "#lesson-stage",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "none"
+    },
+    "switcher": {
+      "selector": "#lesson-composition-switcher",
+      "x": 80,
+      "y": 237,
+      "width": 342,
+      "height": 48,
+      "padding": "4px 4px 4px 4px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    },
+    "writtenContent": {
+      "selector": "#lesson-written-content",
+      "x": 81,
+      "y": 302,
+      "width": 1278,
+      "height": 2201,
+      "padding": "0px 0px 0px 0px",
+      "margin": "0px 0px 0px 0px",
+      "maxWidth": "none",
+      "display": "block"
+    },
+    "hookeSim": {
+      "selector": "#hooke-law-simulation",
+      "x": 304,
+      "y": 737,
+      "width": 832,
+      "height": 828,
+      "padding": "0px 0px 0px 0px",
+      "margin": "8px 0px 8px 0px",
+      "maxWidth": "none",
+      "display": "flex"
+    }
+  },
+  "mobileOverflow": {
+    "bodyScrollWidth": 390,
+    "windowWidth": 390,
+    "hasHorizontalOverflow": false
+  },
+  "timestamp": "2026-09-25T00:26:56.199Z"
+}

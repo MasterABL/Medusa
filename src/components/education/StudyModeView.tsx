@@ -6,6 +6,7 @@ import { LessonWrittenContent } from './LessonWrittenContent';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { getTrackAccent } from './trackAccent';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface StudyModeViewProps {
   trackDef: TrackDefinition;
@@ -164,7 +165,9 @@ export function StudyModeView({
   return (
     <div
       id="study-mode-container"
-      className="study-stage-enter w-full flex flex-col gap-4 max-w-7xl mx-auto pb-8"
+      className={`study-stage-enter w-full flex flex-col gap-4 pb-8 transition-all duration-300 ${
+        isAulaFocusMode ? 'max-w-none px-0 sm:px-2' : 'max-w-7xl mx-auto'
+      }`}
     >
       {/* Topo da Sessão de Estudo & Contexto da Trilha — enxuto (Round 6 §10): prioriza
           disciplina/tópico/estado/ação. Removidos o badge "Modo Estudo Ativo · Foco Zen" e o
@@ -294,7 +297,10 @@ export function StudyModeView({
               key={m.id}
               type="button"
               id={`btn-lesson-mode-${m.id}`}
-              onClick={() => setLessonViewMode(m.id)}
+              onClick={() => {
+                setLessonViewMode(m.id);
+                playFeedback('mode_switch');
+              }}
               title={m.title}
               aria-label={m.label}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
@@ -341,11 +347,15 @@ export function StudyModeView({
           id="lesson-stage"
           aria-label="Conteúdo da Aula"
           aria-hidden={isResumoFocusMode}
-          className={`flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full min-w-0 transition-[flex-basis,opacity,max-height] duration-500 ease-out ${
-            hasModeSwitcher ? 'lg:flex-1 lg:basis-0' : ''
+          className={`flex flex-col overflow-hidden w-full min-w-0 transition-all duration-500 ease-out ${
+            isAulaFocusMode
+              ? 'bg-black border-0 shadow-2xl rounded-2xl sm:rounded-3xl flex-1 w-full'
+              : 'bg-surface rounded-2xl border border-border/70 shadow-calm'
+          } ${
+            hasModeSwitcher ? (isAulaFocusMode ? 'w-full flex-1' : 'lg:flex-1 lg:basis-0') : ''
           } ${
             isResumoFocusMode
-              ? 'max-h-0 lg:max-h-0 opacity-0 pointer-events-none'
+              ? 'hidden lg:hidden'
               : 'max-h-[3000px] lg:max-h-none opacity-100'
           }`}
         >
@@ -375,9 +385,9 @@ export function StudyModeView({
               a altura de verdade é sempre o cálculo relativo à tela — o piso só evita um palco
               minúsculo numa tela hipotética bem mais baixa que as testadas. */}
           <div
-            className={`relative w-full flex-1 min-h-[320px] sm:min-h-[380px] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none transition-[min-height] duration-500 ease-out ${
+            className={`relative w-full flex-1 min-h-[340px] sm:min-h-[420px] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none transition-[min-height] duration-500 ease-out ${
               isAulaFocusMode
-                ? 'lg:min-h-[400px] xl:min-h-[max(400px,calc(100vh-380px))]'
+                ? 'min-h-[500px] sm:min-h-[600px] lg:min-h-[calc(100vh-220px)]'
                 : 'lg:min-h-[300px] xl:min-h-[max(300px,calc(100vh-480px))]'
             } ${isFaculdade ? 'bg-[#0B1120]' : 'bg-[#0E1311]'}`}
           >
@@ -553,22 +563,24 @@ export function StudyModeView({
             </div>
           </div>
 
-          {/* Rodapé descritivo do vídeo */}
-          <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface border-t border-border/60">
-            <div className="space-y-0.5">
-              <h3 className="text-[14px] font-semibold text-text-primary">
-                {lesson.discipline} · {lesson.topic}
-              </h3>
-              <p className="text-[12px] text-text-secondary leading-relaxed">
-                {lesson.sessionObjective}
-              </p>
+          {/* Rodapé descritivo do vídeo — omitido no modo "Aula" para evitar o efeito de "card dentro de card" e maximizar o palco cinematográfico */}
+          {!isAulaFocusMode && (
+            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface border-t border-border/60">
+              <div className="space-y-0.5">
+                <h3 className="text-[14px] font-semibold text-text-primary">
+                  {lesson.discipline} · {lesson.topic}
+                </h3>
+                <p className="text-[12px] text-text-secondary leading-relaxed">
+                  {lesson.sessionObjective}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[11px] font-mono text-text-muted bg-surface-secondary px-2.5 py-1 rounded border border-border/60">
+                  Aula selecionada para você · {trackDef.name}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-[11px] font-mono text-text-muted bg-surface-secondary px-2.5 py-1 rounded border border-border/60">
-                Aula selecionada para você · {trackDef.name}
-              </span>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* ================= COLUNA COMPANHEIRA: ROTEIRO, RESUMO, VOCABULÁRIO & NOTAS (~50%) =================
@@ -591,10 +603,10 @@ export function StudyModeView({
               aria-label="Companheiro da Sessão de Estudo"
               aria-hidden={isAulaCollapsed}
               className={`study-summary-enter flex flex-col bg-surface rounded-2xl border border-border/70 shadow-calm overflow-hidden w-full transition-[flex-basis,opacity,max-height] duration-500 ease-out ${
-                hasModeSwitcher ? 'lg:basis-[var(--aside-basis)] lg:flex-none' : ''
+                hasModeSwitcher ? (isResumoFocusMode ? 'w-full flex-1' : 'lg:basis-[var(--aside-basis)] lg:flex-none') : ''
               } ${
                 isAulaCollapsed
-                  ? 'max-h-0 lg:max-h-0 opacity-0 pointer-events-none'
+                  ? 'hidden lg:hidden'
                   : 'max-h-[2000px] lg:max-h-none opacity-100 min-h-[480px] lg:min-h-[480px]'
               }`}
             >

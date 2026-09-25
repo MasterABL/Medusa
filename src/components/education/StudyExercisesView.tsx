@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ExerciseQuestion, TrackDefinition } from './types';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface StudyExercisesViewProps {
   trackDef: TrackDefinition;
@@ -31,6 +32,7 @@ export function StudyExercisesView({
   const handleSelectOption = (optId: string) => {
     if (isAnswerSubmitted) return;
     setSelectedOptionId(optId);
+    playFeedback('action');
   };
 
   const handleSubmitAnswer = () => {
@@ -43,8 +45,18 @@ export function StudyExercisesView({
       isCorrect: correct,
     };
 
-    setUserAnswers((prev) => [...prev, newAnswer]);
+    setUserAnswers((prev) => {
+      const filtered = prev.filter((a) => a.questionId !== currentQuestion.id);
+      return [...filtered, newAnswer];
+    });
     setIsAnswerSubmitted(true);
+    playFeedback(correct ? 'learning_correct' : 'learning_error');
+  };
+
+  const handleRetryQuestion = () => {
+    setIsAnswerSubmitted(false);
+    setSelectedOptionId(null);
+    playFeedback('action');
   };
 
   const handleNextQuestion = () => {
@@ -124,17 +136,29 @@ export function StudyExercisesView({
           {currentQuestion.options.map((opt) => {
             const isSelected = selectedOptionId === opt.id;
             let itemStyle =
-              'bg-surface-secondary/60 border-border/60 hover:border-medusa-primary/40 text-text-secondary hover:text-text-primary';
+              'bg-surface-secondary/60 border-border/60 hover:border-medusa-primary/40 text-text-secondary hover:text-text-primary active:scale-[0.98]';
+
+            let statusIcon: React.ReactNode = opt.letter;
 
             if (isAnswerSubmitted) {
               if (opt.id === currentQuestion.correctOptionId) {
                 itemStyle =
-                  'bg-medusa-support/20 border-medusa-support/60 text-text-primary shadow-subtle';
+                  'bg-medusa-support/20 border-medusa-support/70 text-text-primary shadow-subtle spring-success font-medium';
+                statusIcon = (
+                  <span className="material-symbols-outlined text-[15px] text-[#1B502C] dark:text-medusa-support">
+                    check
+                  </span>
+                );
               } else if (isSelected && !isCorrect) {
                 itemStyle =
-                  'bg-medusa-tertiary/20 border-medusa-tertiary/60 text-text-primary shadow-subtle';
+                  'bg-medusa-alert/15 border-medusa-alert/70 text-text-primary shadow-subtle shake-error';
+                statusIcon = (
+                  <span className="material-symbols-outlined text-[15px] text-medusa-alert">
+                    close
+                  </span>
+                );
               } else {
-                itemStyle = 'opacity-45 bg-surface-secondary/40 border-border/40';
+                itemStyle = 'opacity-40 bg-surface-secondary/40 border-border/40';
               }
             } else if (isSelected) {
               itemStyle =
@@ -157,7 +181,7 @@ export function StudyExercisesView({
                       : 'bg-surface border-border text-text-muted'
                   }`}
                 >
-                  {opt.letter}
+                  {statusIcon}
                 </span>
                 <span className="flex-1">{opt.text}</span>
               </button>
@@ -193,7 +217,7 @@ export function StudyExercisesView({
               {currentQuestion.explanation}
             </p>
 
-            {/* Se o usuário errou, consequência pedagógica real: o que foi confundido e convite ao Tutor contextual */}
+            {/* Se o usuário errou, consequência pedagógica real: o que foi confundido, retry e convite ao Tutor */}
             {!isCorrect && (
               <div className="mt-1 pt-3 border-t border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
@@ -205,17 +229,31 @@ export function StudyExercisesView({
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  id="btn-understand-error"
-                  onClick={() => onOpenTutorForError(currentQuestion)}
-                  className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
-                >
-                  <span className="material-symbols-outlined text-medusa-primary text-[16px]">
-                    neurology
-                  </span>
-                  <span>Entender meu erro</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    id="btn-retry-question"
+                    onClick={handleRetryQuestion}
+                    className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-text-secondary">
+                      refresh
+                    </span>
+                    <span>Tentar novamente</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-understand-error"
+                    onClick={() => onOpenTutorForError(currentQuestion)}
+                    className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-medusa-primary text-[16px]">
+                      neurology
+                    </span>
+                    <span>Entender meu erro</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

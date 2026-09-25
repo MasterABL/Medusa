@@ -19,7 +19,17 @@
  * simplesmente não toca nada — nunca lança erro nem trava a interface.
  */
 
-export type AudioCategory = 'notification' | 'action' | 'completion';
+export type AudioCategory =
+  | 'notification'
+  | 'action'
+  | 'completion'
+  | 'learning_correct'
+  | 'learning_error'
+  | 'checkpoint'
+  | 'mode_switch'
+  | 'upload_drop'
+  | 'upload_ready'
+  | 'delete';
 
 export interface AudioPrefs {
   enabled: boolean;
@@ -32,7 +42,18 @@ const STORAGE_KEY = 'medusa-audio-prefs-v1';
 export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   enabled: true,
   volume: 0.5,
-  categories: { notification: true, action: true, completion: true },
+  categories: {
+    notification: true,
+    action: true,
+    completion: true,
+    learning_correct: true,
+    learning_error: true,
+    checkpoint: true,
+    mode_switch: true,
+    upload_drop: true,
+    upload_ready: true,
+    delete: true,
+  },
 };
 
 function loadPrefs(): AudioPrefs {
@@ -115,7 +136,7 @@ export function unlockAudioOnFirstGesture() {
 }
 
 /** Toca uma sequência curta de tons puros com envelope suave (nunca um "beep" seco/áspero). */
-function playTone(frequencies: number[], totalDurationMs: number, volumeMultiplier: number) {
+function playTone(frequencies: number[], totalDurationMs: number, volumeMultiplier: number, type: OscillatorType = 'sine') {
   const ctx = getContext();
   // Contexto ainda suspenso (nenhum gesto do usuário ainda) ou API indisponível — silêncio, nunca erro.
   if (!ctx || ctx.state !== 'running') return;
@@ -127,7 +148,7 @@ function playTone(frequencies: number[], totalDurationMs: number, volumeMultipli
   frequencies.forEach((freq, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = 'sine';
+    osc.type = type;
     osc.frequency.value = freq;
     const startAt = now + i * perNoteSeconds;
     const peakVolume = prefs.volume * volumeMultiplier;
@@ -142,25 +163,53 @@ function playTone(frequencies: number[], totalDurationMs: number, volumeMultipli
 }
 
 /**
- * Ponto de entrada único pra disparar um som — nunca chamar `playTone` direto de fora deste
- * arquivo, senão o filtro de categoria/preferência vira decoração (mesmo princípio já aplicado
- * em `enfileirar()` no projeto irmão, pra notificações).
+ * Ponto de entrada único pra disparar um som semântico da família Medusa.
+ * Respeita mute, volume, categorias e autoplay.
  */
 export function playFeedback(category: AudioCategory) {
   const prefs = loadPrefs();
   if (!prefs.enabled || !prefs.categories[category]) return;
   switch (category) {
     case 'completion':
-      // Arpejo maior curto (Dó-Mi-Sol) — celebratório sem ser longo ou cansativo.
-      playTone([523.25, 659.25, 783.99], 480, 0.9);
+      // Arpejo maior curto (Dó-Mi-Sol-Dó) — celebratório sem ser longo ou cansativo.
+      playTone([523.25, 659.25, 783.99, 1046.5], 520, 0.85);
       break;
     case 'notification':
       // Dois tons ascendentes, curto — "chegou algo", sem competir com o que o usuário está lendo.
-      playTone([880, 1108.73], 200, 0.6);
+      playTone([880, 1108.73], 200, 0.55);
       break;
     case 'action':
-      // Um tom único, bem curto e baixo — confirmação discreta, não uma celebração.
-      playTone([660], 80, 0.3);
+      // Um tom único, bem curto e baixo — confirmação discreta.
+      playTone([660], 70, 0.25);
+      break;
+    case 'learning_correct':
+      // Acerto pedagógico: Tríade suave ascendente (C5 -> E5 -> G5) com sustentação calorosa
+      playTone([523.25, 659.25, 783.99], 300, 0.6);
+      break;
+    case 'learning_error':
+      // Erro pedagógico: Duplo tom grave amortecido (F3 -> D3), não punitivo, que comunica "tente novamente"
+      playTone([174.61, 146.83], 240, 0.45, 'triangle');
+      break;
+    case 'checkpoint':
+      // Checkpoint superado: Brilho harmônico limpo (E5 -> B5)
+      playTone([659.25, 987.77], 220, 0.5);
+      break;
+    case 'mode_switch':
+      // Troca espacial de modo: Clique tátil suave (micro pulso rápido)
+      playTone([1046.5], 40, 0.2);
+      break;
+    case 'upload_drop':
+      // Arquivo recebido: Leve pulso de absorção (G4 -> C5)
+      playTone([392.0, 523.25], 110, 0.35);
+      break;
+    case 'upload_ready':
+      // Processamento de arquivo concluído: Chime positivo
+      playTone([587.33, 880.0], 190, 0.45);
+      break;
+    case 'delete':
+      // Remoção: Tom descendente suave
+      playTone([440.0, 329.63], 130, 0.3);
       break;
   }
 }
+

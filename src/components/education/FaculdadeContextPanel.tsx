@@ -55,6 +55,8 @@ interface SessionUploadedFile {
   kind: 'pdf' | 'slides' | 'planilha' | 'imagem';
   sizeLabel: string;
   objectUrl: string;
+  status: 'validating' | 'processing' | 'ready';
+  isExiting?: boolean;
 }
 
 /**
@@ -87,36 +89,62 @@ export function FaculdadeContextPanel() {
 
   const addFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    playFeedback('upload_drop');
     const added: SessionUploadedFile[] = Array.from(files).map((file) => ({
       id: `upload-${selected.code}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: file.name,
       kind: inferFileKind(file.name),
       sizeLabel: formatSize(file.size),
       objectUrl: URL.createObjectURL(file),
+      status: 'validating',
     }));
     setUploadsByDiscipline((prev) => ({
       ...prev,
       [selected.code]: [...(prev[selected.code] ?? []), ...added],
     }));
-    // Round 7 §15: causa raiz real de "não há som no upload/exclusão" — este handler nunca
-    // chamou `playFeedback`. Não era decisão de fase de design nem limitação da Web Audio API (o
-    // motor já existe e já é usado em outros eventos de criação/exclusão, ex.: Agenda) — era
-    // simplesmente um evento que nunca foi conectado.
-    playFeedback('action');
+
+    // Multi-stage visual progression: DROP -> VALIDANDO -> PROCESSANDO -> PRONTO
+    const fileIds = added.map((f) => f.id);
+    setTimeout(() => {
+      setUploadsByDiscipline((prev) => ({
+        ...prev,
+        [selected.code]: (prev[selected.code] ?? []).map((f) =>
+          fileIds.includes(f.id) ? { ...f, status: 'processing' } : f
+        ),
+      }));
+    }, 450);
+
+    setTimeout(() => {
+      setUploadsByDiscipline((prev) => ({
+        ...prev,
+        [selected.code]: (prev[selected.code] ?? []).map((f) =>
+          fileIds.includes(f.id) ? { ...f, status: 'ready' } : f
+        ),
+      }));
+      playFeedback('upload_ready');
+    }, 1100);
   };
 
   const removeUpload = (id: string) => {
+    playFeedback('delete');
     setUploadsByDiscipline((prev) => ({
       ...prev,
-      [selected.code]: (prev[selected.code] ?? []).filter((f) => {
-        if (f.id === id) {
-          URL.revokeObjectURL(f.objectUrl);
-          return false;
-        }
-        return true;
-      }),
+      [selected.code]: (prev[selected.code] ?? []).map((f) =>
+        f.id === id ? { ...f, isExiting: true } : f
+      ),
     }));
-    playFeedback('action');
+    setTimeout(() => {
+      setUploadsByDiscipline((prev) => ({
+        ...prev,
+        [selected.code]: (prev[selected.code] ?? []).filter((f) => {
+          if (f.id === id) {
+            URL.revokeObjectURL(f.objectUrl);
+            return false;
+          }
+          return true;
+        }),
+      }));
+    }, 180);
   };
 
   const contentToShow = selected.content;
@@ -376,9 +404,9 @@ export function FaculdadeContextPanel() {
               href={file.objectUrl}
               target="_blank"
               rel="noopener noreferrer"
-              // Round 7 §1C: reação contextual real — o item entra com movimento (mesma animação
-              // já usada em listas dinâmicas do app, `fadeRise`), não aparece instantaneamente.
-              className="stagger-item flex items-center justify-between gap-2 text-[12px] group"
+              className={`stagger-item flex items-center justify-between gap-2 text-[12px] group transition-all duration-200 ${
+                file.isExiting ? 'opacity-0 -translate-x-2' : ''
+              }`}
               title="Abrir arquivo enviado nesta sessão"
             >
               <div className="flex items-center gap-1.5 min-w-0">
@@ -386,9 +414,23 @@ export function FaculdadeContextPanel() {
                   {MATERIAL_ICON[file.kind]}
                 </span>
                 <span className="text-text-primary truncate underline-offset-2 group-hover:underline">{file.name}</span>
-                <span className="text-[9px] font-mono uppercase text-medusa-primary bg-medusa-primary/15 px-1.5 py-0.5 rounded flex-shrink-0">
-                  novo
-                </span>
+                {file.status === 'validating' && (
+                  <span className="text-[9px] font-mono uppercase text-amber-500 bg-amber-500/15 px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                    validando
+                  </span>
+                )}
+                {file.status === 'processing' && (
+                  <span className="text-[9px] font-mono uppercase text-medusa-primary bg-medusa-primary/15 px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary animate-pulse"></span>
+                    processando
+                  </span>
+                )}
+                {file.status === 'ready' && (
+                  <span className="text-[9px] font-mono uppercase text-medusa-primary bg-medusa-primary/15 px-1.5 py-0.5 rounded flex-shrink-0">
+                    novo
+                  </span>
+                )}
               </div>
               <span className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-[10px] font-mono text-text-muted">{file.sizeLabel}</span>
