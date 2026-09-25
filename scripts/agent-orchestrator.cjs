@@ -131,7 +131,12 @@ function readHandoff(taskId) {
 function checkExecutorAvailable() {
   const probe = spawnSync(AGENT_CMD, ['--version'], { encoding: 'utf8', timeout: PROBE_TIMEOUT_MS });
   if (probe.error || probe.status !== 0) {
-    const timedOut = probe.signal === 'SIGTERM' && !probe.error;
+    // Achado real de review (graphify-labs): quando `spawnSync` mata o processo por timeout, o
+    // Node SEMPRE preenche `result.error` (código `ETIMEDOUT`) além de `result.signal` — não é
+    // "signal sem error", como a checagem original assumia (`!probe.error`). Confirmado rodando de
+    // verdade (`spawnSync('sleep', ['5'], {timeout: 300})` → `error.code === 'ETIMEDOUT'`), não só
+    // lendo a documentação. A checagem original nunca detectava timeout de verdade aqui.
+    const timedOut = probe.error && probe.error.code === 'ETIMEDOUT';
     return {
       available: false,
       detail: timedOut
@@ -183,10 +188,16 @@ function buildAntigravityRecord(taskId, startedAt, result) {
   const succeeded = result.status === 0;
   // Achado real de review: sem `timeout` no spawnSync, um Antigravity travado bloqueava o
   // processo pra sempre e `saveRun()` nunca era alcançado — zero registro de auditoria pra essa
-  // tentativa. Agora que o timeout existe (ver TASK_TIMEOUT_MS), esse caminho passa por aqui como
-  // `result.signal === 'SIGTERM'` (sem `result.error`) — precisa de uma mensagem própria, porque
-  // "ANTIGRAVITY FALHOU" genérico esconderia que foi um hang, não um erro de execução real.
-  const timedOut = !succeeded && result.signal === 'SIGTERM' && !result.error;
+  // tentativa. Agora que o timeout existe (ver TASK_TIMEOUT_MS), esse caminho precisa de uma
+  // mensagem própria, porque "ANTIGRAVITY FALHOU" genérico esconderia que foi um hang, não um erro
+  // de execução real.
+  //
+  // Achado real de SEGUNDA review (graphify-labs) sobre a PRIMEIRA versão desta checagem: ela
+  // testava `!result.error`, mas o Node SEMPRE preenche `result.error` (código `ETIMEDOUT`) quando
+  // `spawnSync` mata o processo por timeout — confirmado rodando de verdade, não só lendo doc. Isso
+  // tornava o ramo "timedOut" morto: todo timeout real caía no `else` genérico ("ANTIGRAVITY
+  // FALHOU"), escondendo justamente a informação que essa distinção existe pra preservar.
+  const timedOut = !succeeded && result.error && result.error.code === 'ETIMEDOUT';
   return {
     taskId,
     startedAt,
@@ -374,7 +385,25 @@ function acquireLock(attempt = 0) {
         '[agent-orchestrator] AVISO: o lock renomeado não é o mesmo que inspecionamos (outro ' +
           'processo criou um lock novo bem nesse intervalo) — devolvendo ao lugar certo e desistindo desta reclamação.'
       );
-      fs.renameSync(staleClaimPath, LOCK_PATH);
+      // Achado real de TERCEIRA review (graphify-labs): um `renameSync` de volta, sem condição,
+      // pode SOBRESCREVER um lock legítimo criado por um TERCEIRO processo bem no intervalo entre
+      // o nosso rename-pra-fora (que esvaziou LOCK_PATH por um instante) e este rename-de-volta —
+      // um `acquireLock()` alheio via `writeFileSync(..., {flag:'wx'})` teria sucesso nesse vão
+      // vazio, e devolver o arquivo antigo aqui destruiria o lock fresco desse terceiro sem
+      // nenhum aviso (o dono dele acharia que ainda está válido). `fs.linkSync` cria o nome novo
+      // sem apagar o de origem e falha com EEXIST se o destino já existe — nunca sobrescreve.
+      try {
+        fs.linkSync(staleClaimPath, LOCK_PATH);
+        fs.rmSync(staleClaimPath, { force: true });
+      } catch (linkErr) {
+        if (linkErr.code === 'EEXIST') {
+          // LOCK_PATH já tem um lock de verdade (do terceiro processo) — descarta nossa cópia
+          // velha sem tocar no que está lá agora.
+          fs.rmSync(staleClaimPath, { force: true });
+        } else {
+          throw linkErr;
+        }
+      }
       return acquireLock(attempt + 1);
     }
 
@@ -387,16 +416,49 @@ function acquireLock(attempt = 0) {
 
 function releaseLock() {
   if (!ownedLockToken) return;
+  // Achado real de TERCEIRA review (graphify-labs): a versão anterior fazia `readFileSync` pra
+  // conferir o token e só DEPOIS `rmSync` por CAMINHO — um TOCTOU. Entre as duas chamadas, outro
+  // processo pode legitimamente reclamar nosso lock como stale (rename pra fora) E recriar um
+  // fresco no mesmo caminho (ex.: este processo travou por I/O síncrono demorado — `saveRun()`
+  // pode segurar até 20MB de stdout/stderr — e por isso pareceu abandonado); nosso `rmSync(LOCK_PATH)`
+  // apagaria o lock NOVO e legítimo desse outro processo, não o nosso.
+  //
+  // Correção: reclamamos o CAMINHO primeiro via `renameSync` (atômico — arranca o que quer que
+  // esteja lá agora, de uma vez), só então inspecionamos o conteúdo do que capturamos. Se for
+  // nosso token, descartamos. Se não for (alguém reclamou o nosso E recriou um novo bem nesse
+  // instante — janela minúscula, mas real), devolvemos exatamente o arquivo que tiramos, sem tocar
+  // em nenhum outro que possa ter aparecido enquanto isso.
+  const claimPath = `${LOCK_PATH}.release-${process.pid}-${Date.now()}`;
   try {
-    const current = fs.readFileSync(LOCK_PATH, 'utf8');
-    if (current === ownedLockToken) {
-      fs.rmSync(LOCK_PATH, { force: true });
-    }
-    // Conteúdo diferente do nosso token: nosso lock já foi reclamado como abandonado por outro
-    // processo (falso positivo de staleness, ou este processo só demorou mais que o teto) — o
-    // arquivo agora pertence a outro dono legítimo, nunca removido por engano.
+    fs.renameSync(LOCK_PATH, claimPath);
   } catch (err) {
-    if (err.code !== 'ENOENT') throw err; // já sumiu — nada a fazer, sem erro
+    if (err.code === 'ENOENT') {
+      ownedLockToken = null; // já sumiu — nada a liberar, sem erro
+      return;
+    }
+    throw err;
+  }
+
+  try {
+    const current = fs.readFileSync(claimPath, 'utf8');
+    if (current === ownedLockToken) {
+      fs.rmSync(claimPath, { force: true });
+    } else {
+      // Não é mais o nosso — outro processo reclamou nosso lock como abandonado E recriou um novo
+      // bem no meio deste release. Devolve o arquivo capturado ao lugar, sem sobrescrever nada.
+      try {
+        fs.linkSync(claimPath, LOCK_PATH);
+        fs.rmSync(claimPath, { force: true });
+      } catch (linkErr) {
+        if (linkErr.code === 'EEXIST') {
+          // LOCK_PATH já tem outro arquivo (situação ainda mais rara) — descarta nossa cópia
+          // capturada sem tocar no que está lá agora.
+          fs.rmSync(claimPath, { force: true });
+        } else {
+          throw linkErr;
+        }
+      }
+    }
   } finally {
     ownedLockToken = null;
   }
