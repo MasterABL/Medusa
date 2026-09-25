@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
+import { playFeedback } from '@/lib/audioFeedback';
 
 export function DynamicIsland() {
   const { islandState, isQuiet, setIslandState, breakpoint, isVoiceActive, setVoiceActive } = useShell();
@@ -12,6 +13,31 @@ export function DynamicIsland() {
   const isFocusMode = islandState === 'focus';
   const isCollapsed = islandState === 'collapsed';
   const isMobile = breakpoint === 'mobile';
+
+  // Deduplicação de áudio de transição de estado (Round Human Visual Gate 2 §12/§13)
+  const prevStateRef = useRef(islandState);
+  const prevVoiceRef = useRef(isVoiceActive);
+
+  useEffect(() => {
+    if (prevStateRef.current !== islandState) {
+      const prev = prevStateRef.current;
+      prevStateRef.current = islandState;
+
+      // Dispara som semântico somente na mudança real de estado (nunca por re-render)
+      if (islandState === 'processing') playFeedback('processing');
+      else if (islandState === 'success') playFeedback('success');
+      else if (islandState === 'error') playFeedback('error');
+      else if (islandState === 'attention') playFeedback('tutor');
+      else if (islandState === 'active' && prev === 'idle') playFeedback('open');
+    }
+  }, [islandState]);
+
+  useEffect(() => {
+    if (prevVoiceRef.current !== isVoiceActive) {
+      prevVoiceRef.current = isVoiceActive;
+      if (isVoiceActive) playFeedback('voice');
+    }
+  }, [isVoiceActive]);
 
   // Dynamic animation class based on semantic state
   const getStateAnimationClass = () => {

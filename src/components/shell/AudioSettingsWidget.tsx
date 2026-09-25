@@ -4,37 +4,58 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { useClickOutside } from '@/lib/useClickOutside';
 import { AudioCategory, AudioPrefs, DEFAULT_AUDIO_PREFS, getAudioPrefs, setAudioEnabled, setAudioVolume, setCategoryEnabled, playFeedback } from '@/lib/audioFeedback';
+import { AnimatedIcon } from '@/components/ui/AnimatedIcon';
 
 const CATEGORY_LABEL: Record<AudioCategory, string> = {
+  press: 'Toque / Clique (Micro)',
+  toggle: 'Alternância / Toggle (Micro)',
+  navigation: 'Navegação Espacial (Micro)',
+  open: 'Superfície Aberta (Micro)',
+  close: 'Superfície Fechada (Micro)',
+  processing: 'Processamento em Andamento (Médio)',
+  ready: 'Processo Concluído (Médio)',
+  error: 'Tentativa Incorreta / Erro (Médio)',
+  success: 'Ação Correta / Sucesso (Médio)',
+  checkpoint: 'Pausa & Checkpoint (Médio)',
+  tutor: 'Tutor & Insights (Médio)',
+  voice: 'Microfone & Escuta Ativa (Médio)',
+  completion: 'Sessão Concluída (Alto · Milestone)',
+  celebration: 'Conquista Rara (Alto)',
   notification: 'Notificação',
-  navigation: 'Navegação Discreta',
   action: 'Ação do Sistema',
-  completion: 'Conclusão de Sessão',
-  learning_correct: 'Acerto / Sucesso Pedagógico',
-  learning_error: 'Tentativa Incorreta',
-  checkpoint: 'Pausa & Checkpoint',
-  mode_switch: 'Troca Espacial de Modo',
+  learning_correct: 'Acerto Pedagógico',
+  learning_error: 'Erro Pedagógico',
+  mode_switch: 'Troca de Modo',
   upload_drop: 'Recebimento de Arquivo',
-  upload_ready: 'Material Processado',
+  upload_ready: 'Material Pronto',
   delete: 'Remoção / Exclusão',
-  mic: 'Microfone & Voz',
-  tutor: 'Tutor & Insights',
+  mic: 'Microfone',
 };
 
 const CATEGORY_DESC: Record<AudioCategory, string> = {
-  notification: 'Ex.: o Tutor respondeu sua pergunta',
+  press: 'Ex.: toque ou clique de baixa latência',
+  toggle: 'Ex.: alternar chave, switch ou opção',
   navigation: 'Ex.: selecionar modo ou mudar aba',
-  action: 'Ex.: calcular o plano do Cronograma',
-  completion: 'Ex.: concluir uma sessão de estudo',
-  learning_correct: 'Ex.: acertar alternativa do exercício',
-  learning_error: 'Ex.: resposta incorreta com shake tátil',
+  open: 'Ex.: abertura de modal ou painel contextual',
+  close: 'Ex.: fechamento ou retração de gaveta',
+  processing: 'Ex.: sistema calculando ou indexando',
+  ready: 'Ex.: processo concluído ou material pronto',
+  error: 'Ex.: tentativa incorreta com shake tátil',
+  success: 'Ex.: acertar alternativa do exercício',
   checkpoint: 'Ex.: marco reflexivo durante a aula',
+  tutor: 'Ex.: abertura ou resposta do Tutor',
+  voice: 'Ex.: microfone ligado ou escuta ativa',
+  completion: 'Ex.: concluir uma sessão de estudo',
+  celebration: 'Ex.: marco raro ou conquista de trilha',
+  notification: 'Ex.: notificação informativa',
+  action: 'Ex.: confirmação de ação do sistema',
+  learning_correct: 'Ex.: acerto pedagógico na questão',
+  learning_error: 'Ex.: erro pedagógico com diagnóstico',
   mode_switch: 'Ex.: alternar entre Só Aula e Resumo',
-  upload_drop: 'Ex.: soltar PDF na área de materiais',
+  upload_drop: 'Ex.: soltar PDF na área de upload',
   upload_ready: 'Ex.: arquivo indexado e disponível',
   delete: 'Ex.: remover material da disciplina',
-  mic: 'Ex.: ligar microfone ou escuta de voz',
-  tutor: 'Ex.: abertura ou resposta reflexiva do Tutor',
+  mic: 'Ex.: canal de voz ativo',
 };
 
 /**
@@ -81,13 +102,16 @@ export function AudioSettingsWidget() {
       <button
         type="button"
         id="btn-audio-settings"
-        onClick={() => setIsOpen((v) => !v)}
-        title="Som"
+        onClick={() => {
+          playFeedback(isOpen ? 'close' : 'open');
+          setIsOpen((v) => !v);
+        }}
+        title="Configurações de Áudio"
         aria-label="Configurar feedback sonoro"
         aria-expanded={isOpen}
-        className="btn-interactive w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface/80 border border-border/60 text-text-secondary hover:text-text-primary hover:border-medusa-primary/40 shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex items-center justify-center flex-shrink-0"
+        className="btn-interactive group w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface/80 border border-border/60 text-text-secondary hover:text-text-primary hover:border-medusa-primary/40 shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex items-center justify-center flex-shrink-0"
       >
-        <span className="material-symbols-outlined text-[16px]">{prefs.enabled ? 'volume_up' : 'volume_off'}</span>
+        <AnimatedIcon name={prefs.enabled ? 'volume' : 'volume_off'} size={16} />
       </button>
 
       {isOpen && (

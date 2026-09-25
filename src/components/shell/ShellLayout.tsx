@@ -12,7 +12,7 @@ export function ShellLayout({ children }: { children: React.ReactNode }) {
   const { geometry } = useShell();
 
   return (
-    <div className="min-h-screen bg-background text-text-primary flex flex-col transition-colors duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-background text-text-primary flex flex-col transition-colors duration-300 overflow-x-clip">
       {/* 1. Sidebar Estrutural e Drawer */}
       <Sidebar />
 

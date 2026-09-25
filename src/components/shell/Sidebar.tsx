@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useShell } from '@/context/ShellContext';
+import { AnimatedIcon, IconSemanticType } from '@/components/ui/AnimatedIcon';
+import { playFeedback } from '@/lib/audioFeedback';
 
 export function Sidebar() {
   const {
@@ -24,13 +26,13 @@ export function Sidebar() {
   // No Foco ou Mobile/Tablet, a sidebar permanente é 0px estrutural
   const isDrawerActive = (isFocus || isMobile || isTablet) && isDrawerOpen;
 
-  const navItems = [
-    { route: 'hoje', label: 'Hoje', icon: 'wb_sunny', badge: null, dot: true },
-    { route: 'agenda', label: 'Agenda', icon: 'calendar_today', badge: '3', dot: false },
-    { route: 'educacao', label: 'Educação', icon: 'menu_book', badge: '14', badgePill: true, dot: false },
-    { route: 'corpo', label: 'Corpo', icon: 'fitness_center', badge: null, dot: false },
-    { route: 'financas', label: 'Finanças', icon: 'account_balance_wallet', badge: null, dot: false, accentDot: true },
-    { route: 'progresso', label: 'Progresso', icon: 'insights', badge: null, dot: false },
+  const navItems: Array<{ route: string; label: string; icon: IconSemanticType; badge: string | null; badgePill?: boolean; dot?: boolean; accentDot?: boolean }> = [
+    { route: 'hoje', label: 'Hoje', icon: 'bolt', badge: null, dot: true },
+    { route: 'agenda', label: 'Agenda', icon: 'calendar', badge: '3', dot: false },
+    { route: 'educacao', label: 'Educação', icon: 'school', badge: '14', badgePill: true, dot: false },
+    { route: 'corpo', label: 'Corpo', icon: 'motion_mode', badge: null, dot: false },
+    { route: 'financas', label: 'Finanças', icon: 'layers', badge: null, dot: false, accentDot: true },
+    { route: 'progresso', label: 'Progresso', icon: 'analytics', badge: null, dot: false },
   ];
 
   // Conteúdo dos links de navegação compartilhado entre Sidebar e Drawer
@@ -128,11 +130,12 @@ export function Sidebar() {
                   id={`nav-item-${item.route}`}
                   type="button"
                   onClick={() => {
+                    playFeedback('navigation');
                     setActiveRoute(item.route);
                     if (isDrawerContext) closeDrawer();
                   }}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`nav-link btn-interactive relative flex items-center rounded-lg focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none text-left transition-all duration-280 ${
+                  className={`nav-link btn-interactive group relative flex items-center rounded-lg focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none text-left transition-all duration-280 ${
                     showLabels ? 'px-3 py-2 w-full gap-0' : 'justify-center w-11 h-10 mx-auto gap-0'
                   } ${
                     isActive
@@ -148,13 +151,14 @@ export function Sidebar() {
                       }`}
                     />
                   )}
-                  <span
-                    className={`material-symbols-outlined text-[19px] flex-shrink-0 ${
+                  <AnimatedIcon
+                    name={item.icon}
+                    state={isActive ? 'active' : 'idle'}
+                    size={19}
+                    className={`flex-shrink-0 ${
                       isActive ? 'text-[#2c6956] dark:text-medusa-primary' : 'text-text-muted'
                     }`}
-                  >
-                    {item.icon}
-                  </span>
+                  />
 
                   <div
                     className={`sidebar-label-collapse flex items-center flex-1 overflow-hidden whitespace-nowrap ${

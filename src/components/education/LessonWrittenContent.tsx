@@ -4,8 +4,11 @@ import React, { useState } from 'react';
 import { TrackDefinition, LessonBlock, ExplanationMode, ExplanationModeInfo } from './types';
 import { getTrackAccent } from './trackAccent';
 import { InteractiveSimulationHooke } from './InteractiveSimulationHooke';
+import { InteractiveStiffnessComparison } from './InteractiveStiffnessComparison';
 import { InteractiveWaveBlock } from './InteractiveWaveBlock';
+import { InteractiveEnemElectromagneticSpectrum } from './InteractiveEnemElectromagneticSpectrum';
 import { InteractiveEnglishBlock } from './InteractiveEnglishBlock';
+import { InteractiveEnglishTimelineGrammar } from './InteractiveEnglishTimelineGrammar';
 import { AnimatedIcon } from '@/components/ui/AnimatedIcon';
 import { playFeedback } from '@/lib/audioFeedback';
 
@@ -201,11 +204,26 @@ export function LessonWrittenContent({ trackDef, onAskTutor }: LessonWrittenCont
           </section>
         )}
 
-        {/* 3. SIMULAÇÃO PEDAGÓGICA INTERATIVA EM TEMPO REAL */}
-        <section aria-label="Visualização e Laboratório Pedagógico" className="flex flex-col gap-2">
-          {isFaculdade && <InteractiveSimulationHooke accentColor={accent.solidBg} />}
-          {isVestibular && <InteractiveWaveBlock />}
-          {isIngles && <InteractiveEnglishBlock />}
+        {/* 3. SIMULAÇÕES E LABORATÓRIOS PEDAGÓGICOS MULTI-TRILHA (Human Visual Gate 2 - Cobertura das 3 Trilhas) */}
+        <section aria-label="Visualização e Laboratório Pedagógico" className="flex flex-col gap-6">
+          {isFaculdade && (
+            <>
+              <InteractiveSimulationHooke accentColor={accent.solidBg} />
+              <InteractiveStiffnessComparison />
+            </>
+          )}
+          {isVestibular && (
+            <>
+              <InteractiveWaveBlock />
+              <InteractiveEnemElectromagneticSpectrum />
+            </>
+          )}
+          {isIngles && (
+            <>
+              <InteractiveEnglishBlock />
+              <InteractiveEnglishTimelineGrammar />
+            </>
+          )}
         </section>
 
         {/* 4. Dedução da Fórmula / Estrutura Analítica Adaptativa */}

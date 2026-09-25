@@ -717,62 +717,178 @@ html.theme-transitioning *::after {
    - Refresh / Retry: rotação elástica
    - Tutor: luminescência cognitiva sutil
    ========================================================================== */
+/* ==========================================================================
+   ICON MOTION SYSTEM (Micro-interactions com estado e significado funcional)
+   - Play/Pause: morphing, elastic push & micro-scale
+   - Check: desenho vetorial com settle elástico
+   - Error/Close: micro-shake horizontal de precisão
+   - Upload/Logout: impulso direcional balístico
+   - Mic: onda acústica concêntrica com brilho luminescente
+   - Refresh / Settings: rotação elástica com settle
+   - Tutor / Brain: luminescência cognitiva ativa
+   - Calendar: page-flip tilt discreto
+   - Volume: expansão acústica em onda
+   - Arrow: avanço direcional
+   ========================================================================== */
 @keyframes iconPlayMorph {
   0% { transform: scale(1); }
-  40% { transform: scale(1.18) translateX(1px); }
+  35% { transform: scale(1.18) translateX(2px); }
+  70% { transform: scale(0.96) translateX(-0.5px); }
   100% { transform: scale(1); }
 }
-
 .icon-motion-play {
   animation: iconPlayMorph 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-@keyframes iconDrawCheck {
-  0% { transform: scale(0.7); opacity: 0; }
-  60% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+@keyframes iconPauseMorph {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.9) scaleY(1.12); }
+  100% { transform: scale(1); }
+}
+.icon-motion-pause {
+  animation: iconPauseMorph 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+@keyframes iconDrawCheck {
+  0% { transform: scale(0.6); opacity: 0; }
+  55% { transform: scale(1.22); opacity: 1; }
+  80% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
 .icon-motion-check {
-  animation: iconDrawCheck 340ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation: iconDrawCheck 360ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+@keyframes iconShakeError {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px) rotate(-2deg); }
+  40% { transform: translateX(4px) rotate(2deg); }
+  60% { transform: translateX(-3px) rotate(-1deg); }
+  80% { transform: translateX(2px); }
+}
+.shake-error,
+.icon-motion-error {
+  animation: iconShakeError 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
 @keyframes iconUploadBounce {
   0% { transform: translateY(0); }
-  35% { transform: translateY(-4px); }
-  70% { transform: translateY(1px); }
+  35% { transform: translateY(-5px); }
+  65% { transform: translateY(1.5px); }
   100% { transform: translateY(0); }
 }
-
 .icon-motion-upload {
-  animation: iconUploadBounce 420ms ease-out both;
+  animation: iconUploadBounce 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes iconLogoutNudge {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(-4px); }
+  75% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+.icon-motion-logout {
+  animation: iconLogoutNudge 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes iconMicWave {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); filter: drop-shadow(0 0 4px rgba(113, 219, 210, 0.6)); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(113, 219, 210, 0.3)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(113, 219, 210, 0.8)); }
 }
-
 .icon-motion-mic {
-  animation: iconMicWave 1.6s ease-in-out infinite;
+  animation: iconMicWave 1.4s ease-in-out infinite;
 }
 
 @keyframes iconRotateRefresh {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
 .icon-motion-rotate {
   animation: iconRotateRefresh 450ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-@keyframes iconGlowTutor {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
-  50% { transform: scale(1.08); filter: drop-shadow(0 0 6px rgba(113, 219, 210, 0.5)); }
+@keyframes iconSettingsSpin {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(45deg); }
+  100% { transform: rotate(90deg); }
+}
+.icon-motion-settings {
+  animation: iconSettingsSpin 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+@keyframes iconGlowTutor {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0px transparent); }
+  50% { transform: scale(1.1) rotate(2deg); filter: drop-shadow(0 0 8px rgba(113, 219, 210, 0.6)); }
+}
 .icon-motion-tutor {
-  animation: iconGlowTutor 2s ease-in-out infinite;
+  animation: iconGlowTutor 1.8s ease-in-out infinite;
+}
+
+@keyframes iconCalendarTilt {
+  0% { transform: rotate(0deg) scale(1); }
+  40% { transform: rotate(-8deg) scale(1.1); }
+  75% { transform: rotate(2deg) scale(0.98); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.icon-motion-calendar {
+  animation: iconCalendarTilt 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes iconVolumeSwell {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.icon-motion-volume {
+  animation: iconVolumeSwell 300ms ease-out both;
+}
+
+@keyframes iconArrowAdvance {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+.icon-motion-arrow {
+  animation: iconArrowAdvance 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Regras de hover reativo para botões com AnimatedIcon */
+.btn-interactive:hover .icon-animate-on-hover,
+.group:hover .icon-animate-on-hover {
+  transform: scale(1.1);
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-interactive:hover .icon-animate-rotate,
+.group:hover .icon-animate-rotate {
+  transform: rotate(45deg);
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-interactive:hover .icon-animate-advance,
+.group:hover .icon-animate-advance {
+  transform: translateX(3px);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-interactive:hover .icon-animate-nudge-left,
+.group:hover .icon-animate-nudge-left {
+  transform: translateX(-3px);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-interactive:active .icon-animate-on-hover,
+.group:active .icon-animate-on-hover {
+  transform: scale(0.92);
+  transition: transform 100ms ease;
+}
+
+/* Barra de sessão persistente / sticky com backdrop sutil */
+.sticky-study-header {
+  position: sticky;
+  top: 3.5rem; /* Abaixo do top-header fixo (h-14 / 56px) */
+  z-index: 25;
+  background-color: rgba(var(--color-bg-rgb, 17, 24, 21), 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 200ms ease, box-shadow 200ms ease;
 }
 
 /* ==========================================================================

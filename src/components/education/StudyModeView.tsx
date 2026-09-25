@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { TrackDefinition, LiveSummaryPoint, StudyNote, LessonViewMode } from './types';
 import { LessonWrittenContent } from './LessonWrittenContent';
 import { useEducationPanel } from '@/context/EducationPanelContext';
@@ -175,41 +176,46 @@ export function StudyModeView({
           rótulo cru de `lesson.module` (ex.: "Caderno de Ouro ENEM · Habilidades 01 a 04") —
           metadata de organização interna da fixture, sem valor de decisão pro usuário. O estado
           agora é um indicador compacto com a cor de identidade da trilha (Round 6 §2.3/§2.1). */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
-        <div className="space-y-1.5">
+      {/* Topo da Sessão de Estudo & Contexto da Trilha — STICKY (Human Visual Gate 2 §5/§6):
+          permanece acessível em qualquer profundidade de scroll (scroll 0, 500, 1500), sem o
+          usuário precisar rolar tudo para cima para interromper a aula. */}
+      <div className="sticky-study-header -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-subtle rounded-b-xl">
+        <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${accent.solidBg} living-pulse`} />
             <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider ${accent.text}`}>
               {trackDef.name} · Em estudo
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-text-primary">
             {lesson.discipline} · {lesson.topic}
           </h1>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             id="btn-interrupt-lesson"
-            onClick={() => setShowInterruptConfirm(true)}
+            onClick={() => {
+              playFeedback('open');
+              setShowInterruptConfirm(true);
+            }}
             title="Salvar progresso e sair da aula"
-            className="btn-interactive bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-medusa-alert px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            className="btn-interactive group bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-medusa-alert px-3 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
           >
-            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <AnimatedIcon name="logout" size={15} />
             <span>Interromper aula</span>
           </button>
 
-          {/* Somente ENEM: abre o cronograma em contexto (Refinamento Visual §10) — o usuário
-              vê o mapa de preparação sem sair da aula, o mesmo overlay usado pelo Context Panel. */}
+          {/* Somente ENEM: abre o cronograma em contexto */}
           {trackDef.id === 'vestibular' && (
             <button
               type="button"
               id="btn-open-cronograma-from-study-mode"
               onClick={openCronogramaOverlay}
-              className="btn-interactive bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+              className="btn-interactive group bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-text-primary px-3 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
             >
-              <span className="material-symbols-outlined text-[16px] text-[#8A6D00] dark:text-medusa-accent">calendar_month</span>
+              <AnimatedIcon name="calendar" size={15} className="text-[#8A6D00] dark:text-medusa-accent" />
               <span>Ver Cronograma</span>
             </button>
           )}
@@ -218,11 +224,13 @@ export function StudyModeView({
             type="button"
             id="btn-trigger-tutor"
             onClick={() => onOpenTutor(currentTime)}
-            className="btn-interactive bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            className="btn-interactive group bg-surface hover:bg-surface-secondary border border-border/70 text-text-secondary hover:text-text-primary px-3 py-1.5 rounded-full text-[12px] font-medium transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
           >
-            <span className="material-symbols-outlined text-[16px] text-medusa-primary">
-              {trackDef.id === 'ingles' ? 'record_voice_over' : 'neurology'}
-            </span>
+            <AnimatedIcon
+              name={trackDef.id === 'ingles' ? 'record_voice_over' : 'tutor'}
+              size={15}
+              className="text-medusa-primary"
+            />
             <span>{trackDef.id === 'ingles' ? 'Tutor & Prática Oral' : 'Tutor & Dúvidas'}</span>
           </button>
 
@@ -230,10 +238,10 @@ export function StudyModeView({
             type="button"
             id="btn-complete-lesson-trigger"
             onClick={onCompleteLesson}
-            className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            className="btn-interactive group bg-medusa-primary hover:opacity-95 text-[#1C2420] px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
           >
             <span>Concluir Aula</span>
-            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            <AnimatedIcon name="arrow_forward" size={15} />
           </button>
         </div>
       </div>
@@ -813,52 +821,69 @@ export function StudyModeView({
       </div>
       </div>
 
-      {/* Confirmação de Interrupção — a sessão nunca é destruída silenciosamente ao sair. */}
-      {showInterruptConfirm && (
-        <div
-          id="interrupt-lesson-confirm-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Confirmar interrupção da aula"
-          className="modal-backdrop-enter fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => setShowInterruptConfirm(false)}
-        >
+      {/* Confirmação de Interrupção — redesenhada com scrim suave, sem peso visual de 'quadrado colado' (HG2 §8/§9) */}
+      {showInterruptConfirm &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            id="interrupt-lesson-confirm-dialog"
-            onClick={(e) => e.stopPropagation()}
-            className="modal-pop-enter w-full max-w-md bg-surface rounded-2xl border border-border/70 shadow-island p-6 flex flex-col gap-4"
+            id="interrupt-lesson-confirm-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirmar interrupção da aula"
+            className="modal-backdrop-enter fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/35 backdrop-blur-[2px]"
+            onClick={() => {
+              playFeedback('close');
+              setShowInterruptConfirm(false);
+            }}
           >
-            <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-full bg-medusa-accent/25 border border-medusa-accent/50 flex items-center justify-center text-[#8A6D00] dark:text-medusa-accent flex-shrink-0">
-                <span className="material-symbols-outlined text-[18px]">save</span>
-              </span>
-              <h3 className="text-[14px] font-semibold text-text-primary">Salvar progresso e sair?</h3>
+            <div
+              id="interrupt-lesson-confirm-dialog"
+              onClick={(e) => e.stopPropagation()}
+              className="modal-pop-enter w-full max-w-sm sm:max-w-md bg-surface rounded-t-2xl sm:rounded-2xl border border-border/80 shadow-island p-5 sm:p-6 flex flex-col gap-4 animate-fadeRise"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full bg-medusa-accent/20 border border-medusa-accent/40 flex items-center justify-center text-[#8A6D00] dark:text-medusa-accent flex-shrink-0">
+                  <AnimatedIcon name="bookmark" size={18} />
+                </span>
+                <div>
+                  <h3 className="text-[14px] font-bold text-text-primary">Interromper Sessão de Estudo?</h3>
+                  <span className="text-[11px] font-mono text-text-muted">Momento salvo: {formatTime(currentTime)}</span>
+                </div>
+              </div>
+
+              <p className="text-[12.5px] text-text-secondary leading-relaxed">
+                Seu progresso e modo de visualização ficam guardados no Learning OS. Você poderá continuar exatamente de onde parou pelo Hub.
+              </p>
+
+              <div className="flex items-center gap-2.5 justify-end pt-1">
+                <button
+                  type="button"
+                  id="btn-interrupt-cancel"
+                  onClick={() => {
+                    playFeedback('close');
+                    setShowInterruptConfirm(false);
+                  }}
+                  className="btn-interactive px-4 py-2 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Continuar aula
+                </button>
+                <button
+                  type="button"
+                  id="btn-interrupt-confirm"
+                  onClick={() => {
+                    playFeedback('close');
+                    onInterruptLesson(currentTime, lessonViewMode);
+                  }}
+                  className="btn-interactive group px-4 py-2 rounded-full text-[12px] font-semibold bg-medusa-primary hover:opacity-95 text-[#1C2420] transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex items-center gap-1.5 shadow-subtle"
+                >
+                  <AnimatedIcon name="logout" size={15} />
+                  <span>Salvar e sair</span>
+                </button>
+              </div>
             </div>
-            <p className="text-[12px] text-text-secondary leading-relaxed">
-              Seu progresso até {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} desta aula fica salvo — você pode continuar de onde parou.
-            </p>
-            <div className="flex items-center gap-2.5 justify-end pt-1">
-              <button
-                type="button"
-                id="btn-interrupt-cancel"
-                onClick={() => setShowInterruptConfirm(false)}
-                className="btn-interactive px-4 py-2 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                id="btn-interrupt-confirm"
-                onClick={() => onInterruptLesson(currentTime, lessonViewMode)}
-                className="btn-interactive px-4 py-2 rounded-full text-[12px] font-semibold bg-medusa-primary hover:opacity-95 text-[#1C2420] transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[15px]">logout</span>
-                Salvar e sair
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

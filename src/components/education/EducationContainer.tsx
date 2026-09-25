@@ -216,6 +216,7 @@ export function EducationContainer() {
       } else {
         setSessionState('completion');
         setIslandState('success');
+        playFeedback('completion');
       }
     },
     [currentTrack, trackDef.lesson.estimatedDuration, trackDef.lesson.topic, setIslandState, advanceStudyFlow]
@@ -225,6 +226,7 @@ export function EducationContainer() {
   const handleFinishFlashcards = useCallback(() => {
     setSessionState('completion');
     setIslandState('success');
+    playFeedback('completion');
   }, [setIslandState]);
 
   // 7. Retornar para Educação: completion -> dashboard
