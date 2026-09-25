@@ -7,6 +7,7 @@ import { AudioCategory, AudioPrefs, DEFAULT_AUDIO_PREFS, getAudioPrefs, setAudio
 
 const CATEGORY_LABEL: Record<AudioCategory, string> = {
   notification: 'Notificação',
+  navigation: 'Navegação Discreta',
   action: 'Ação do Sistema',
   completion: 'Conclusão de Sessão',
   learning_correct: 'Acerto / Sucesso Pedagógico',
@@ -16,10 +17,13 @@ const CATEGORY_LABEL: Record<AudioCategory, string> = {
   upload_drop: 'Recebimento de Arquivo',
   upload_ready: 'Material Processado',
   delete: 'Remoção / Exclusão',
+  mic: 'Microfone & Voz',
+  tutor: 'Tutor & Insights',
 };
 
 const CATEGORY_DESC: Record<AudioCategory, string> = {
   notification: 'Ex.: o Tutor respondeu sua pergunta',
+  navigation: 'Ex.: selecionar modo ou mudar aba',
   action: 'Ex.: calcular o plano do Cronograma',
   completion: 'Ex.: concluir uma sessão de estudo',
   learning_correct: 'Ex.: acertar alternativa do exercício',
@@ -29,6 +33,8 @@ const CATEGORY_DESC: Record<AudioCategory, string> = {
   upload_drop: 'Ex.: soltar PDF na área de materiais',
   upload_ready: 'Ex.: arquivo indexado e disponível',
   delete: 'Ex.: remover material da disciplina',
+  mic: 'Ex.: ligar microfone ou escuta de voz',
+  tutor: 'Ex.: abertura ou resposta reflexiva do Tutor',
 };
 
 /**

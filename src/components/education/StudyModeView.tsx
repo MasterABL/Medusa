@@ -7,6 +7,7 @@ import { useEducationPanel } from '@/context/EducationPanelContext';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { getTrackAccent } from './trackAccent';
 import { playFeedback } from '@/lib/audioFeedback';
+import { AnimatedIcon } from '@/components/ui/AnimatedIcon';
 
 interface StudyModeViewProps {
   trackDef: TrackDefinition;
@@ -509,9 +510,11 @@ export function StudyModeView({
                     className="p-1 hover:text-medusa-primary transition-colors focus:outline-none"
                     title={isPlaying ? 'Pausar' : 'Reproduzir'}
                   >
-                    <span className="material-symbols-outlined text-[20px]">
-                      {isPlaying ? 'pause' : 'play_arrow'}
-                    </span>
+                    <AnimatedIcon
+                      name={isPlaying ? 'pause' : 'play'}
+                      state={isPlaying ? 'active' : 'idle'}
+                      size={20}
+                    />
                   </button>
 
                   <button
@@ -545,7 +548,7 @@ export function StudyModeView({
                     className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[11px] font-mono flex items-center gap-1 transition-colors"
                     title="Marcar ponto atual na sessão"
                   >
-                    <span className="material-symbols-outlined text-[14px]">bookmark</span>
+                    <AnimatedIcon name="bookmark" size={14} />
                     <span>Marcar ponto</span>
                   </button>
 

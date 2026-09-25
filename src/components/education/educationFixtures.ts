@@ -312,6 +312,96 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
     writtenLesson: {
       intro:
         'Todo sistema que oscila em torno de um ponto de equilíbrio — uma mola, um pêndulo, a corda de um instrumento — obedece à mesma lógica matemática quando o deslocamento é pequeno. Essa lógica é o Movimento Harmônico Simples (MHS), e entendê-la aqui é a base para tudo que vem depois em ondas, acústica e circuitos oscilantes.',
+      explanationModes: {
+        essencial: {
+          intro:
+            'Uma mola sempre tenta voltar ao seu tamanho natural. Se você a puxa para longe, ela puxa você de volta. Quanto mais você estica, mais difícil fica segurar.',
+          conceptSummary:
+            'Resistência Elástica: a mola sempre reage na direção contrária ao seu movimento. Puxar para a direita gera uma força que puxa para a esquerda.',
+          formulaDisplay: {
+            raw: 'F = -k · x',
+            label: 'Força Restauradora = -(Rigidez da Mola) × (Deformação)',
+            tokens: [
+              { symbol: 'F', meaning: 'Força restauradora que a mola exerce', visualTarget: 'force' },
+              { symbol: '-', meaning: 'Sentido oposto: resiste ao deslocamento', visualTarget: 'direction' },
+              { symbol: 'k', meaning: 'Rigidez elástica da mola', visualTarget: 'spring' },
+              { symbol: 'x', meaning: 'Distância esticada ou comprimida', visualTarget: 'displacement' },
+            ],
+          },
+          keyTakeaway:
+            'A mola nunca empurra você para longe do centro: ela sempre atrai o bloco de volta para a posição de repouso.',
+          depthNotes: [
+            'Visual: veja a seta da força no laboratório acima apontando sempre para o centro amarelo (x = 0).',
+            'Cotidiano: é esse mecanismo que absorve impactos nas suspensões de bicicletas e carros.',
+          ],
+        },
+        explicativo: {
+          intro:
+            'Em sistemas físicos reais, o ponto de equilíbrio é onde todas as forças se anulam. Quando tiramos um objeto dessa posição, a Lei de Hooke determina que surge uma força diretamente proporcional ao deslocamento que tenta restabelecer o equilíbrio.',
+          conceptSummary:
+            'Proporcionalidade Linear: se você dobrar a deformação da mola (x → 2x), a força restauradora também dobra (F → 2F). A constante k mede numericamente a dureza da mola em Newtons por metro.',
+          formulaDisplay: {
+            raw: 'F = -k · x',
+            label: 'F (Newtons) = -k (N/m) · x (metros)',
+            tokens: [
+              { symbol: 'F', meaning: 'Vetor Força Restauradora (aponta para o centro)', visualTarget: 'force' },
+              { symbol: '-', meaning: 'Oposição de fase: F e x têm sinais contrários', visualTarget: 'direction' },
+              { symbol: 'k', meaning: 'Constante de rigidez elástica do material', visualTarget: 'spring' },
+              { symbol: 'x', meaning: 'Vetor Deslocamento a partir da origem x=0', visualTarget: 'displacement' },
+            ],
+          },
+          keyTakeaway:
+            'O sinal negativo (-) é o elemento vital: sem ele, a força afastaria o corpo para o infinito em vez de criar um oscilador estável.',
+          depthNotes: [
+            'Equilíbrio Estável: qualquer perturbação inicial gera uma aceleração de retorno.',
+            'Rigidez k: uma mola macia tem k baixo (15 N/m); uma mola rígida tem k alto (60 N/m).',
+          ],
+        },
+        tecnico: {
+          intro:
+            'A formulação vetorial da Lei de Hooke F = -k·x combinada com a Segunda Lei de Newton (F = m·a) estabelece a Equação Diferencial Ordinária homogênea que governa o Movimento Harmônico Simples (MHS).',
+          conceptSummary:
+            'Dedução Analítica: m·(d²x/dt²) + k·x = 0 ⇒ d²x/dt² + ω₀²·x = 0. A frequência angular natural é ω₀ = √(k/m), com período de oscilação T = 2π√(m/k).',
+          formulaDisplay: {
+            raw: 'm · (d²x/dt²) + k · x = 0',
+            label: 'EDO Homogênea de 2ª Ordem com Solução Harmônica x(t) = A·cos(ω₀t + φ)',
+            tokens: [
+              { symbol: 'm', meaning: 'Massa inercial do corpo acoplado (kg)', visualTarget: 'mass' },
+              { symbol: 'd²x/dt²', meaning: 'Aceleração instantânea do bloco (m/s²)', visualTarget: 'acceleration' },
+              { symbol: 'k', meaning: 'Constante elástica da mola (N/m)', visualTarget: 'spring' },
+              { symbol: 'x', meaning: 'Posição instantânea no eixo x (m)', visualTarget: 'displacement' },
+            ],
+          },
+          keyTakeaway:
+            'No MHS, a velocidade v(t) está 90° defasada da posição x(t), e a aceleração a(t) está 180° defasada (oposição direta de fase).',
+          depthNotes: [
+            'Extremos (x = ±A): v = 0 (inversão do movimento) e aceleração máxima |a_max| = ω₀²A.',
+            'Ponto de Equilíbrio (x = 0): velocidade máxima |v_max| = ω₀A e aceleração nula (F = 0).',
+          ],
+        },
+        aprofundado: {
+          intro:
+            'Tratamento por Conservação de Energia Mecânica e Espaço de Fase: integrando a força restauradora F(x) = -kx ao longo do deslocamento, obtemos o potencial parabólico Ep(x) = ½kx², responsável pela troca contínua com a energia cinética.',
+          conceptSummary:
+            'Primeira Integral de Movimento: a energia mecânica total E_mec = Ec(t) + Ep(t) = ½mv² + ½kx² = ½kA² permanece rigorosamente constante ao longo de todo o ciclo conservativo.',
+          formulaDisplay: {
+            raw: 'E_total = ½ m v(t)² + ½ k x(t)² = ½ k A²',
+            label: 'Invariante de Energia Mecânica e Órbita Elíptica no Espaço de Fase',
+            tokens: [
+              { symbol: 'E_total', meaning: 'Energia Mecânica Total constante (Joules)', visualTarget: 'energy' },
+              { symbol: '½ m v²', meaning: 'Energia Cinética instantânea (máxima em x=0)', visualTarget: 'kinetic' },
+              { symbol: '½ k x²', meaning: 'Energia Potencial Elástica (máxima em x=±A)', visualTarget: 'potential' },
+              { symbol: '½ k A²', meaning: 'Energia determinada pela amplitude inicial A', visualTarget: 'amplitude' },
+            ],
+          },
+          keyTakeaway:
+            'No espaço de fase (x, v/ω₀), o estado do sistema percorre uma elipse fechada perfeita, comprovando a conservação de energia e a periodicidade estrita do sistema.',
+          depthNotes: [
+            'Regime de Hooke: válido apenas até o limite de escoamento elástico do material.',
+            'Troca Harmônica: sin²(ωt) + cos²(ωt) = 1 garante a transferência sem perdas entre cinético e potencial.',
+          ],
+        },
+      },
       blocks: [
         {
           id: 'fac-block-1',
@@ -764,6 +854,32 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
     writtenLesson: {
       intro:
         'Falar inglês naturalmente não é só saber gramática — é saber conduzir uma conversa: preencher silêncios, usar expressões idiomáticas do dia a dia e entender a fala conectada dos nativos. Esta aula cobre exatamente essas três camadas, na ordem em que elas aparecem numa conversa real.',
+      explanationModes: {
+        essencial: {
+          intro: 'Em vez de traduzir mentalmente palavra por palavra, use expressões prontas de conexão como "Well..." e "Actually..." para falar com mais fluidez sem travar.',
+          conceptSummary: 'Fluência Prática: marcadores curtos compram tempo para pensar e conectam frases de maneira natural.',
+          keyTakeaway: 'Nenhum nativo fala em frases perfeitamente isoladas: eles conectam o final de uma palavra com o começo da outra.',
+          depthNotes: ['Dica auditiva: ouça como "pick it up" soa como uma palavra só: "pi-ki-tup".'],
+        },
+        explicativo: {
+          intro: 'A conversa em inglês depende de turn-taking: sinais que indicam quando você está ouvindo, quando está pensando e quando quer a vez de falar.',
+          conceptSummary: 'Marcadores de Discurso & Phrasal Verbs: combinam significado idiomático e polidez comunicativa.',
+          keyTakeaway: 'A suavização ("Could you please..." vs "Give me...") define o tom da relação interpessoal.',
+          depthNotes: ['Phrasal verbs: "catch up", "call off", "run into" não podem ser traduzidos ao pé da letra.'],
+        },
+        tecnico: {
+          intro: 'Análise fonética da fala conectada (Connected Speech): elisão, assimilação consonantal e redução de vogais fracas ao schwa (/ə/).',
+          conceptSummary: 'Fonologia Aplicada: preposições átonas sofrem enfraquecimento rítmico ("to" vira /tə/, "for" vira /fər/).',
+          keyTakeaway: 'O inglês é uma língua de ritmo acentual (stress-timed), enquanto o português é de ritmo silábico (syllable-timed).',
+          depthNotes: ['Stress-timing: a distância temporal entre sílabas tônicas é constante, forçando a compressão das átonas.'],
+        },
+        aprofundado: {
+          intro: 'Pragmática linguística e sociolinguística: registro informal, atenuadores epistêmicos (hedging) e adequação contextual em ambientes globais.',
+          conceptSummary: 'Competência Pragmática: o domínio de marcadores modais e entonação ascendente/descendente para negociação de significado.',
+          keyTakeaway: 'A fluência avançada (C1/C2) reside na habilidade de gerenciar a polidez negativa e evitar a imposição direta.',
+          depthNotes: ['Hedging: uso de "I was wondering if...", "It seems like..." para mitigar riscos de conflito na comunicação corporativa.'],
+        },
+      },
       blocks: [
         {
           id: 'ing-block-1',
@@ -1203,6 +1319,48 @@ export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
     writtenLesson: {
       intro:
         'Ondulatória é um dos temas mais recorrentes de Ciências da Natureza no ENEM justamente porque uma única equação — v = λ·f — resolve a maioria das questões, desde que você saiba identificar o que muda e o que permanece constante em cada situação.',
+      explanationModes: {
+        essencial: {
+          intro: 'Uma onda transporta energia sem transportar matéria. O som precisa de ar para viajar; a luz viaja até pelo vácuo do espaço.',
+          conceptSummary: 'A Fórmula Mágica: v = λ·f. Se a onda for mais rápida ou mais lenta, o tamanho dela (λ) muda junto.',
+          formulaDisplay: {
+            raw: 'v = λ · f',
+            label: 'Velocidade = Comprimento de Onda × Frequência',
+          },
+          keyTakeaway: 'A cor da luz ou a nota do som (frequência) nunca muda ao mudar de meio — quem muda é a velocidade e o comprimento!',
+          depthNotes: ['No ENEM: lembre-se de que no espaço vazio do cinema não há som de explosão real.'],
+        },
+        explicativo: {
+          intro: 'Na Matriz de Referência do ENEM, a Ondulatória avalia a capacidade de relacionar propriedades físicas da onda com tecnologias cotidianas (Wi-Fi, ultrassom, micro-ondas).',
+          conceptSummary: 'Refração e Conservação de Frequência: a frequência depende unicamente da fonte oscilatória original.',
+          formulaDisplay: {
+            raw: 'v = λ · f',
+            label: 'v (m/s) = λ (metros) · f (Hertz)',
+          },
+          keyTakeaway: 'Quando a luz passa do ar para a água, ela desacelera (v diminui), logo seu comprimento de onda encurta (λ diminui), mantendo f constante.',
+          depthNotes: ['Distratores: alternativas que dizem que a frequência muda na refração são sempre incorretas.'],
+        },
+        tecnico: {
+          intro: 'Modelagem de ondas harmônicas unidimensionais: y(x,t) = A·sin(kx - ωt + φ), onde k = 2π/λ é o número de onda angular e ω = 2πf é a frequência angular.',
+          conceptSummary: 'Relação de Dispersão e Velocidade de Fase: v_fase = ω/k = λ·f. O meio impõe a permissividade e a permeabilidade (ou elasticidade e densidade linear).',
+          formulaDisplay: {
+            raw: 'v = √(T / μ)  e  v = λ · f',
+            label: 'Velocidade em Cordas Tensas (Fórmula de Taylor) e Equação Fundamental',
+          },
+          keyTakeaway: 'A velocidade de propagação de uma onda mecânica é propriedade intrínseca do meio elástico, independente da amplitude.',
+          depthNotes: ['Interferência: superposição com diferença de caminho óptico Δr = m·λ (construtiva) ou (m + ½)λ (destrutiva).'],
+        },
+        aprofundado: {
+          intro: 'Equação de Onda Clássica de d’Alembert: ∂²y/∂t² = v² (∂²y/∂x²). Solução por superposição de ondas progressivas e ondas estacionárias.',
+          conceptSummary: 'Modos Normais e Espectro Eletromagnético: quantização de modos em cavidades ressonantes e relação de Planck-Einstein E = hf.',
+          formulaDisplay: {
+            raw: '∂²y/∂x² = (1/v²) · (∂²y/∂t²)',
+            label: 'Equação Diferencial Parcial de Ondas de d’Alembert',
+          },
+          keyTakeaway: 'O princípio da superposição linear garante que múltiplas frequências trafeguem simultaneamente no mesmo meio sem se aniquilarem mutuamente (base das telecomunicações modernas).',
+          depthNotes: ['Efeito Doppler: f\' = f·(v ± v_obs)/(v ∓ v_fonte) — desvio para o azul e desvio para o vermelho no Universo em expansão.'],
+        },
+      },
       blocks: [
         {
           id: 'vest-block-1',

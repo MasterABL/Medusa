@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ExerciseQuestion, TrackDefinition } from './types';
 import { playFeedback } from '@/lib/audioFeedback';
+import { AnimatedIcon } from '@/components/ui/AnimatedIcon';
 
 interface StudyExercisesViewProps {
   trackDef: TrackDefinition;
@@ -145,17 +146,13 @@ export function StudyExercisesView({
                 itemStyle =
                   'bg-medusa-support/20 border-medusa-support/70 text-text-primary shadow-subtle spring-success font-medium';
                 statusIcon = (
-                  <span className="material-symbols-outlined text-[15px] text-[#1B502C] dark:text-medusa-support">
-                    check
-                  </span>
+                  <AnimatedIcon name="check" state="success" size={15} />
                 );
               } else if (isSelected && !isCorrect) {
                 itemStyle =
                   'bg-medusa-alert/15 border-medusa-alert/70 text-text-primary shadow-subtle shake-error';
                 statusIcon = (
-                  <span className="material-symbols-outlined text-[15px] text-medusa-alert">
-                    close
-                  </span>
+                  <AnimatedIcon name="close" state="error" size={15} />
                 );
               } else {
                 itemStyle = 'opacity-40 bg-surface-secondary/40 border-border/40';
@@ -236,9 +233,7 @@ export function StudyExercisesView({
                     onClick={handleRetryQuestion}
                     className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
                   >
-                    <span className="material-symbols-outlined text-[16px] text-text-secondary">
-                      refresh
-                    </span>
+                    <AnimatedIcon name="refresh" size={16} interactive />
                     <span>Tentar novamente</span>
                   </button>
 
@@ -248,9 +243,7 @@ export function StudyExercisesView({
                     onClick={() => onOpenTutorForError(currentQuestion)}
                     className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
                   >
-                    <span className="material-symbols-outlined text-medusa-primary text-[16px]">
-                      neurology
-                    </span>
+                    <AnimatedIcon name="tutor" size={16} interactive />
                     <span>Entender meu erro</span>
                   </button>
                 </div>

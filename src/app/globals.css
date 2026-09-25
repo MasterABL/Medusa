@@ -709,6 +709,73 @@ html.theme-transitioning *::after {
 }
 
 /* ==========================================================================
+   ICON MOTION SYSTEM (Micro-interactions com estado e significado funcional)
+   - Play/Pause: morphing & micro-scale
+   - Check: desenho vetorial com settle suave
+   - Upload: pulso direcional vertical
+   - Mic: onda acústica
+   - Refresh / Retry: rotação elástica
+   - Tutor: luminescência cognitiva sutil
+   ========================================================================== */
+@keyframes iconPlayMorph {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18) translateX(1px); }
+  100% { transform: scale(1); }
+}
+
+.icon-motion-play {
+  animation: iconPlayMorph 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes iconDrawCheck {
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.icon-motion-check {
+  animation: iconDrawCheck 340ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+@keyframes iconUploadBounce {
+  0% { transform: translateY(0); }
+  35% { transform: translateY(-4px); }
+  70% { transform: translateY(1px); }
+  100% { transform: translateY(0); }
+}
+
+.icon-motion-upload {
+  animation: iconUploadBounce 420ms ease-out both;
+}
+
+@keyframes iconMicWave {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 4px rgba(113, 219, 210, 0.6)); }
+}
+
+.icon-motion-mic {
+  animation: iconMicWave 1.6s ease-in-out infinite;
+}
+
+@keyframes iconRotateRefresh {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.icon-motion-rotate {
+  animation: iconRotateRefresh 450ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes iconGlowTutor {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 6px rgba(113, 219, 210, 0.5)); }
+}
+
+.icon-motion-tutor {
+  animation: iconGlowTutor 2s ease-in-out infinite;
+}
+
+/* ==========================================================================
    ACESSIBILIDADE: REDUCED MOTION MANDATÓRIO (Tonal crossfade ~140ms, zero transform)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

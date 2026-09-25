@@ -125,6 +125,7 @@ export function Sidebar() {
               return (
                 <button
                   key={item.route}
+                  id={`nav-item-${item.route}`}
                   type="button"
                   onClick={() => {
                     setActiveRoute(item.route);

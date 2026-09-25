@@ -281,14 +281,39 @@ export interface LessonBlock {
   items?: { label: string; text: string }[];
 }
 
+export type ExplanationMode = 'essencial' | 'explicativo' | 'tecnico' | 'aprofundado';
+
+export interface ExplanationModeInfo {
+  id: ExplanationMode;
+  label: string;
+  tagline: string;
+  description: string;
+  icon: string;
+}
+
+export interface ExplanationModeContent {
+  intro: string;
+  conceptSummary: string;
+  formulaDisplay?: {
+    raw: string;
+    label: string;
+    tokens?: { symbol: string; meaning: string; visualTarget?: string }[];
+  };
+  keyTakeaway: string;
+  depthNotes?: string[];
+  blocks?: LessonBlock[];
+}
+
 /**
  * A Aula Escrita do Modo "Resumo" — FIXTURE estática por trilha nesta fase (Round 7 §9/§25): não
  * existe geração por IA real alimentando isto ainda. A arquitetura (intro + blocks tipados) é o
  * contrato que uma IA real preencheria depois, sem mudar o componente que renderiza.
+ * Suporta múltiplos modos de explicação (essencial, explicativo, técnico, aprofundado).
  */
 export interface WrittenLesson {
   intro: string;
   blocks: LessonBlock[];
+  explanationModes?: Partial<Record<ExplanationMode, ExplanationModeContent>>;
 }
 
 export interface SessionResult {
