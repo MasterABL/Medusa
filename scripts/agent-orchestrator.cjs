@@ -273,32 +273,133 @@ function saveRun(record) {
 // execução (`TASK_TIMEOUT_MS` + margem) — nunca mais velho que isso, porque aí seria confundir um
 // lock antigo de verdade com uma execução real ainda em andamento.
 const STALE_LOCK_MS = TASK_TIMEOUT_MS + 60_000;
+const MAX_ACQUIRE_ATTEMPTS = 20;
 
-function acquireLock() {
+// Achado real de SEGUNDA review (graphify-labs, sobre a PRIMEIRA versão deste lock — 3 bugs reais
+// que a primeira versão introduziu tentando corrigir concorrência):
+//
+// 1. `fs.rmSync(LOCK_PATH)` sozinho, sem nada ligando "o lock que EU inspecionei como velho" ao
+//    "o arquivo que EU estou removendo", não é atômico: dois processos podem CONCORDAR que o
+//    mesmo lock morto está velho, e o segundo a chamar `rmSync` removeria o lock FRESCO que o
+//    primeiro acabou de criar (não o lock morto original) — os dois achariam que adquiriram e
+//    os dois rodariam a tarefa, exatamente o bug que este lock existe pra evitar.
+// 2. `releaseLock()` removia o arquivo sem checar se ele ainda pertencia a ESTE processo — se o
+//    lock deste processo foi reclamado como "morto" por outro (falso positivo, ou processo só
+//    lento) enquanto ele ainda rodava, ele acabaria apagando o lock LEGÍTIMO do processo que
+//    reclamou, na hora de sair.
+// 3. `fs.statSync(LOCK_PATH)` no catch assumia que o arquivo ainda existia — se ele desaparecesse
+//    entre o `EEXIST` e o `statSync` (dono original terminando e chamando `releaseLock()` nesse
+//    exato intervalo), a exceção `ENOENT` não era tratada e derrubava o script inteiro.
+//
+// Correção: cada lock carrega um TOKEN único (pid + timestamp + aleatório). Reclamar um lock
+// morto usa `fs.renameSync` (atômico no POSIX) pra "arrancar" o arquivo original antes de
+// descartá-lo — se outro processo já reclamou/removeu no meio do caminho, o rename falha com
+// ENOENT e este processo desiste da reclamação e tenta a aquisição inteira de novo, em vez de
+// assumir que passou. `releaseLock()` só remove o arquivo se o conteúdo ainda for o TOKEN que
+// este processo escreveu — nunca um lock alheio.
+let ownedLockToken = null;
+
+function acquireLock(attempt = 0) {
+  if (attempt >= MAX_ACQUIRE_ATTEMPTS) {
+    throw new Error(
+      `[agent-orchestrator] Não foi possível adquirir o lock após ${MAX_ACQUIRE_ATTEMPTS} tentativas ` +
+        '— contenção anormal ou bug na lógica de reclamação. Abortando em vez de tentar pra sempre.'
+    );
+  }
   if (!fs.existsSync(RUNS_DIR)) {
     fs.mkdirSync(RUNS_DIR, { recursive: true });
   }
+
+  const token = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   try {
-    fs.writeFileSync(LOCK_PATH, `${process.pid}\n${new Date().toISOString()}\n`, { flag: 'wx' });
+    fs.writeFileSync(LOCK_PATH, token, { encoding: 'utf8', flag: 'wx' });
+    ownedLockToken = token;
     return true;
   } catch (err) {
     if (err.code !== 'EEXIST') throw err;
-    const age = Date.now() - fs.statSync(LOCK_PATH).mtimeMs;
-    if (age > STALE_LOCK_MS) {
-      console.error(
-        `[agent-orchestrator] AVISO: lock encontrado com ${Math.round(age / 1000)}s — mais velho ` +
-          `que o teto possível de uma execução real (${Math.round(STALE_LOCK_MS / 1000)}s). ` +
-          'Tratado como abandonado (processo anterior provavelmente morto sem cleanup); removendo e tentando de novo.'
-      );
-      fs.rmSync(LOCK_PATH, { force: true });
-      return acquireLock();
+  }
+
+  // Lock já existe — abrimos por DESCRITOR (não por caminho) pra fixar exatamente qual inode
+  // físico estamos inspecionando. Isso importa porque o CAMINHO pode ser substituído por um lock
+  // novo de outro processo um instante depois — um `fs.statSync(LOCK_PATH)` normal, feito de novo
+  // mais tarde, enxergaria o arquivo NOVO sem perceber a troca. `openSync` pode falhar com ENOENT
+  // se o arquivo sumiu bem entre o EEXIST acima e agora (dono real terminando nesse meio-tempo) —
+  // tratado como "nada pra reclamar", tenta a aquisição de novo.
+  let fd;
+  try {
+    fd = fs.openSync(LOCK_PATH, 'r');
+  } catch (openErr) {
+    if (openErr.code === 'ENOENT') return acquireLock(attempt + 1);
+    throw openErr;
+  }
+
+  try {
+    const stat = fs.fstatSync(fd);
+    const age = Date.now() - stat.mtimeMs;
+    if (age <= STALE_LOCK_MS) {
+      return false; // lock genuinamente em uso, não é um caso de abandono
     }
-    return false;
+
+    console.error(
+      `[agent-orchestrator] AVISO: lock encontrado com ${Math.round(age / 1000)}s — mais velho ` +
+        `que o teto possível de uma execução real (${Math.round(STALE_LOCK_MS / 1000)}s). ` +
+        'Tratado como abandonado (processo anterior provavelmente morto sem cleanup); reclamando.'
+    );
+
+    // Achado real de teste (não só de review): uma primeira versão desta reclamação usava
+    // `renameSync` sozinho como "atômico" — mas `rename` opera sobre o CAMINHO, cego ao
+    // conteúdo. Rodando 8 processos de verdade contra o mesmo lock morto, ~40% das execuções
+    // produziam 2 "vencedores": o processo B renomeava o lock morto e recriava o seu (novo,
+    // fresco) — mas o processo C, que tinha inspecionado o MESMO lock morto um instante antes,
+    // ainda executava seu próprio `renameSync(LOCK_PATH, ...)` DEPOIS que B já tinha o lock fresco
+    // ali — renomeando e descartando o lock LEGÍTIMO de B por engano, e criando o seu próprio no
+    // lugar. B nunca percebia (já tinha retornado `true` e seguido em frente).
+    //
+    // Correção: depois do rename, comparamos o INODE do arquivo renomeado com o inode do `fd` que
+    // abrimos ANTES de decidir reclamar. Se baterem, é garantido que renomeamos o MESMO arquivo
+    // morto que inspecionamos — seguro descartar. Se não baterem, renomeamos por engano o lock de
+    // outro processo (criado bem no meio da nossa checagem) — devolvemos pro lugar certo
+    // imediatamente e desistimos desta tentativa de reclamação.
+    const staleClaimPath = `${LOCK_PATH}.stale-${process.pid}-${Date.now()}`;
+    try {
+      fs.renameSync(LOCK_PATH, staleClaimPath);
+    } catch (renameErr) {
+      if (renameErr.code === 'ENOENT') return acquireLock(attempt + 1);
+      throw renameErr;
+    }
+
+    const renamedStat = fs.statSync(staleClaimPath);
+    if (renamedStat.ino !== stat.ino) {
+      console.error(
+        '[agent-orchestrator] AVISO: o lock renomeado não é o mesmo que inspecionamos (outro ' +
+          'processo criou um lock novo bem nesse intervalo) — devolvendo ao lugar certo e desistindo desta reclamação.'
+      );
+      fs.renameSync(staleClaimPath, LOCK_PATH);
+      return acquireLock(attempt + 1);
+    }
+
+    fs.rmSync(staleClaimPath, { force: true });
+    return acquireLock(attempt + 1);
+  } finally {
+    fs.closeSync(fd);
   }
 }
 
 function releaseLock() {
-  fs.rmSync(LOCK_PATH, { force: true });
+  if (!ownedLockToken) return;
+  try {
+    const current = fs.readFileSync(LOCK_PATH, 'utf8');
+    if (current === ownedLockToken) {
+      fs.rmSync(LOCK_PATH, { force: true });
+    }
+    // Conteúdo diferente do nosso token: nosso lock já foi reclamado como abandonado por outro
+    // processo (falso positivo de staleness, ou este processo só demorou mais que o teto) — o
+    // arquivo agora pertence a outro dono legítimo, nunca removido por engano.
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err; // já sumiu — nada a fazer, sem erro
+  } finally {
+    ownedLockToken = null;
+  }
 }
 
 function main() {
