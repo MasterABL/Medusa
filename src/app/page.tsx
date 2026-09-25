@@ -4,13 +4,31 @@ import React from 'react';
 import Link from 'next/link';
 import { useShell } from '@/context/ShellContext';
 import { EducationContainer } from '@/components/education/EducationContainer';
+import { AgendaContainer } from '@/components/agenda/AgendaContainer';
+import { HojeContainer } from '@/components/hoje/HojeContainer';
+import { RoutePending } from '@/components/shell/RoutePending';
+
+const PENDING_ROUTES = ['corpo', 'financas', 'progresso'];
 
 export default function HomePage() {
   const { setMode, mode, theme, setIslandState, activeRoute } = useShell();
 
+  // Roteamento encapsulado: Agenda / Temporal OS
+  if (activeRoute === 'agenda') {
+    return <AgendaContainer />;
+  }
+
   // Roteamento encapsulado: a experiência da Educação vive inteiramente no EducationContainer
   if (activeRoute === 'educacao') {
     return <EducationContainer />;
+  }
+
+  if (activeRoute === 'hoje') {
+    return <HojeContainer />;
+  }
+
+  if (PENDING_ROUTES.includes(activeRoute)) {
+    return <RoutePending route={activeRoute} />;
   }
 
   return (

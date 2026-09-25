@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TutorMessage } from './types';
+import { TutorMessage, TrackDefinition } from './types';
+import { useEscapeKey } from '@/lib/useEscapeKey';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface TutorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  trackDef?: TrackDefinition;
   contextQuestion?: {
     id: number;
     topic: string;
@@ -13,19 +16,34 @@ interface TutorDrawerProps {
     confusionDiagnosis: string;
   } | null;
   videoTimestamp?: number;
+  onVoiceActiveChange?: (active: boolean) => void;
+  /**
+   * 'drawer' (padrão): overlay fixo à direita, como já existia.
+   * 'inline': o Tutor ocupa a região lateral prevista dentro da composição da aula (Modo
+   * Dividido de Inglês) — sem overlay, sem `isOpen` controlando montagem (o painel pai decide
+   * visibilidade via CSS), para que a conversa persista ao alternar entre Tutor e Resumo.
+   */
+  variant?: 'drawer' | 'inline';
 }
 
 export function TutorDrawer({
   isOpen,
   onClose,
+  trackDef,
   contextQuestion,
-  videoTimestamp = 0,
+  videoTimestamp,
+  onVoiceActiveChange,
+  variant = 'drawer',
 }: TutorDrawerProps) {
+  const initialGreeting =
+    trackDef?.tutorGreeting ||
+    'Olá! Estou acompanhando sua sessão de estudo. Posso esclarecer dúvidas sobre a teoria, equações fundamentais ou passos dos exercícios.';
+
   const [messages, setMessages] = useState<TutorMessage[]>([
     {
       id: 'msg-init',
       sender: 'tutor',
-      text: 'Olá! Estou acompanhando sua sessão de Mecânica Ondulatória. Posso esclarecer dúvidas sobre a teoria, equações fundamentais ou passos dos exercícios.',
+      text: initialGreeting,
       timestamp: 'Agora',
     },
   ]);
@@ -35,10 +53,34 @@ export function TutorDrawer({
   const [transcription, setTranscription] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Reiniciar mensagem inicial quando a trilha mudar
+  useEffect(() => {
+    if (trackDef) {
+      setMessages([
+        {
+          id: `msg-init-${trackDef.id}`,
+          sender: 'tutor',
+          text: trackDef.tutorGreeting,
+          timestamp: 'Agora',
+        },
+      ]);
+    }
+  }, [trackDef?.id, trackDef?.tutorGreeting]);
+
   // Auto-scroll ao receber nova mensagem
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, voiceStatus]);
+
+  // Encerrar o modo de voz coordenadamente se o drawer for fechado enquanto ativo
+  useEffect(() => {
+    if (!isOpen && isVoiceActive) {
+      setIsVoiceActive(false);
+      setVoiceStatus('idle');
+      setTranscription('');
+      onVoiceActiveChange?.(false);
+    }
+  }, [isOpen]);
 
   // Se o usuário solicitou "Entender meu erro" em uma questão, injetamos o contexto pedagógico
   useEffect(() => {
@@ -64,56 +106,56 @@ export function TutorDrawer({
   // PROTÓTIPO DE VOZ: Máquina de estados de frontend para validação de UX.
   // AUDITORIA ANTI-FICÇÃO: Backend Whisper / WebRTC TTS / STT nativo NÃO ESTÁ IMPLEMENTADO.
   // O ciclo demonstra a contenção de estados e anti-autoescuta (STT pausado durante TTS) via flags de interface.
+  const updateVoiceActive = (active: boolean) => {
+    setIsVoiceActive(active);
+    onVoiceActiveChange?.(active);
+  };
+
   const toggleVoiceMode = () => {
     if (isVoiceActive) {
-      setIsVoiceActive(false);
+      updateVoiceActive(false);
       setVoiceStatus('idle');
       setTranscription('');
       return;
     }
 
-    setIsVoiceActive(true);
+    updateVoiceActive(true);
     setVoiceStatus('listening');
-    setTranscription('Ouvindo sua dúvida...');
+    setTranscription(
+      trackDef?.id === 'ingles'
+        ? 'Ouvindo sua prática de fala...'
+        : 'Ouvindo sua dúvida...'
+    );
 
     // Simulação de fala do usuário
     const listenTimeout = setTimeout(() => {
-      setTranscription('"Por que a frequência não muda na refração?"');
-      
-      const sendTimeout = setTimeout(() => {
-        const userVoiceMsg: TutorMessage = {
-          id: `msg-${Date.now()}`,
-          sender: 'user',
-          text: 'Por que a frequência da onda permanece constante quando ela passa de um meio para outro na refração?',
+      setTranscription(
+        trackDef?.id === 'ingles'
+          ? '"Could you explain the difference between come up with and run out of?"'
+          : '"Poderia detalhar a dedução analítica das equações?"'
+      );
+      setVoiceStatus('speaking');
+
+      // Simulação de resposta sintetizada
+      const speakTimeout = setTimeout(() => {
+        const simulatedVoiceResponse: TutorMessage = {
+          id: `voice-msg-${Date.now()}`,
+          sender: 'tutor',
+          text:
+            trackDef?.id === 'ingles'
+              ? 'Ótima pergunta! "Come up with" significa propor ou elaborar uma ideia ou solução, enquanto "run out of" significa ficar sem algo, como tempo ou café.'
+              : 'Com certeza! Analisando a conservação de energia e as condições de contorno, a frequência permanece invariante enquanto a velocidade varia com o meio.',
           timestamp: 'Agora',
           isVoice: true,
         };
-        setMessages((prev) => [...prev, userVoiceMsg]);
+        setMessages((prev) => [...prev, simulatedVoiceResponse]);
+        setVoiceStatus('idle');
         setTranscription('');
-        
-        // Fase TTS: STT estritamente pausado
-        setVoiceStatus('speaking');
+        updateVoiceActive(false);
+      }, 2600);
 
-        const tutorResponseTimeout = setTimeout(() => {
-          const tutorVoiceMsg: TutorMessage = {
-            id: `msg-${Date.now() + 1}`,
-            sender: 'tutor',
-            text: 'Excelente pergunta! A frequência depende exclusivamente de quantas oscilações a fonte geradora produz por segundo. A fronteira entre os dois meios não armazena oscilações: cada crista que chega no meio 1 força imediatamente a criação de uma crista no meio 2. Por isso f é constante, e o que varia são a velocidade v e o comprimento λ.',
-            timestamp: 'Agora',
-            isVoice: true,
-          };
-          setMessages((prev) => [...prev, tutorVoiceMsg]);
-          
-          // Fim do TTS: retoma STT para escuta
-          setVoiceStatus('listening');
-          setTranscription('Ouvindo sua resposta...');
-        }, 1800);
-
-        return () => clearTimeout(tutorResponseTimeout);
-      }, 1400);
-
-      return () => clearTimeout(sendTimeout);
-    }, 1800);
+      return () => clearTimeout(speakTimeout);
+    }, 2200);
 
     return () => clearTimeout(listenTimeout);
   };
@@ -130,108 +172,139 @@ export function TutorDrawer({
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    const userQuery = inputText.trim();
     setInputText('');
 
-    // Resposta pedagógica contextual
+    // Resposta contextual simulada
     setTimeout(() => {
-      let reply = 'Compreendido. Essa propriedade é direta: na ondulatória, o meio dita a velocidade através da elasticidade e densidade linear, enquanto a fonte determina a frequência temporal.';
-      if (userQuery.toLowerCase().includes('doppler')) {
-        reply = 'No Efeito Doppler, note que a velocidade do som no ar permanece inalterada! A aproximação da fonte encurta a distância entre frentes de onda sucessivas, fazendo mais cristas atingirem o observador por unidade de tempo.';
-      } else if (userQuery.toLowerCase().includes('nó') || userQuery.toLowerCase().includes('ventre')) {
-        reply = 'Lembre-se da regra mnemônica: Nós = Nada (amplitude zero, interferência destrutiva). Ventres = Volume máximo (amplitude 2A, interferência construtiva).';
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `msg-${Date.now() + 1}`,
-          sender: 'tutor',
-          text: reply,
-          timestamp: 'Agora',
-        },
-      ]);
+      const tutorReply: TutorMessage = {
+        id: `msg-reply-${Date.now()}`,
+        sender: 'tutor',
+        text:
+          trackDef?.id === 'ingles'
+            ? `Essa é uma dúvida bem comum na fala do dia a dia. Prestar atenção ao turn-taking (a alternância natural entre falantes) e usar conectores vai deixar sua fala bem mais fluente.`
+            : `Excelente colocação sobre ${trackDef?.lesson.topic || 'o tema'}. A compreensão analítica desse ponto é fundamental para garantir o domínio conceitual completo.`,
+        timestamp: 'Agora',
+      };
+      setMessages((prev) => [...prev, tutorReply]);
+      // Round 5 §10: a resposta do Tutor chega sem o usuário pedir NAQUELE instante (ele já
+      // mandou a pergunta e pode estar olhando outra coisa) — é exatamente o caso de uso de
+      // "notification", diferente de uma ação que o próprio clique já confirma visualmente.
+      playFeedback('notification');
     }, 900);
   };
 
-  if (!isOpen) return null;
+  // Round 5 §24: o overlay do Tutor (fora do Modo Dividido de Inglês) não tinha Esc nem
+  // backdrop — o hook só faz sentido registrado quando o overlay de verdade existe (`isOpen` e
+  // não-inline), mesmo padrão já usado em StudyModeView/LessonReviewModal/EnglishContextPanel.
+  useEscapeKey(isOpen && variant !== 'inline', onClose);
 
-  const formatVideoTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  if (!isOpen && variant !== 'inline') return null;
+
+  const isInline = variant === 'inline';
 
   return (
-    <div
-      id="tutor-drawer-panel"
-      role="region"
-      aria-label="Tutor Pedagógico de Ondulatória"
-      className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] bg-surface/98 backdrop-blur-xl border-l border-border/80 shadow-2xl flex flex-col transition-transform duration-300 ease-out"
-    >
-      {/* Header do Tutor */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/70 bg-surface-secondary/50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-medusa-primary flex items-center justify-center text-[#1C2420] shadow-subtle">
-            <span className="material-symbols-outlined text-[18px]">neurology</span>
+    <>
+      {/* Backdrop — Round 5 §24: o Tutor (fora do Modo Dividido) era um painel fixo à direita
+          SEM nada escurecendo o resto da tela e sem fechar ao clicar fora, diferente de todo
+          outro overlay do app (`CronogramaOverlay`, `ContextPanel` mobile, `Sidebar`, os modais
+          de Interromper Aula/Revisão). Mesmo padrão reaproveitado aqui: `bg-black/40
+          backdrop-blur-sm` + `modal-backdrop-enter`. */}
+      {!isInline && (
+        <div
+          id="tutor-drawer-backdrop"
+          aria-hidden="true"
+          onClick={onClose}
+          className="modal-backdrop-enter fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+        />
+      )}
+      <div
+        id={isInline ? 'tutor-inline' : 'tutor-drawer'}
+        aria-label="Tutor Contextual da Sessão"
+        role={isInline ? undefined : 'dialog'}
+        aria-modal={isInline ? undefined : true}
+        className={
+          isInline
+            ? 'study-summary-enter h-full w-full bg-surface rounded-xl border border-border/60 overflow-hidden flex flex-col'
+            : 'fixed inset-y-0 right-0 w-full sm:w-[420px] bg-surface border-l border-border/80 shadow-2xl z-50 flex flex-col drawer-slide-in'
+        }
+      >
+      {/* Header do Tutor — CABEÇALHO MÍNIMO (Round 6 §24/§25): um único header, sem duplicar o
+          título "Professor de Inglês (IA)" que o painel-pai mostrava por cima deste (removido em
+          EnglishContextPanel.tsx — este é agora o ÚNICO cabeçalho do Tutor em qualquer variante).
+          "Posição 0:00" falsa removida: só mostra a posição quando `videoTimestamp` é passado de
+          verdade (dentro de uma aula tocando), nunca um valor inventado quando não há vídeo. */}
+      <div className="p-4 border-b border-border/70 flex items-center justify-between bg-surface-secondary/40 flex-shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {isInline && (
+            <button
+              type="button"
+              id="btn-tutor-back"
+              onClick={onClose}
+              aria-label="Voltar"
+              title="Voltar (Esc)"
+              className="btn-interactive p-1 -ml-1 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            </button>
+          )}
+          <div className="w-8 h-8 rounded-full bg-medusa-primary/20 text-[#18534B] dark:text-[#71DBD2] flex items-center justify-center shadow-subtle flex-shrink-0">
+            <span className="material-symbols-outlined text-[18px]">
+              {trackDef?.id === 'ingles' ? 'record_voice_over' : 'neurology'}
+            </span>
           </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[14px] font-semibold text-text-primary">
-                Tutor Socrático Medusa
-              </h3>
-              <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
-            </div>
-            <p className="text-[11px] font-mono text-text-muted">
-              Momento da aula: {formatVideoTime(videoTimestamp)}
-            </p>
+          <div className="min-w-0">
+            <h3 className="text-[13px] font-semibold text-text-primary flex items-center gap-1.5">
+              <span className="truncate">Tutor</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse flex-shrink-0" />
+            </h3>
+            <span className="text-[10px] font-mono text-text-muted truncate block">
+              {trackDef?.lesson.topic || 'Sessão Ativa'}
+              {videoTimestamp !== undefined && (
+                <> · Posição {Math.floor(videoTimestamp / 60)}:{(videoTimestamp % 60).toString().padStart(2, '0')}</>
+              )}
+            </span>
           </div>
         </div>
 
-        <button
-          type="button"
-          id="btn-close-tutor"
-          onClick={onClose}
-          aria-label="Fechar Tutor"
-          className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
-        >
-          <span className="material-symbols-outlined text-[20px]">close</span>
-        </button>
-      </div>
-
-      {/* Indicador Ativo de Modo de Voz com Proteção Anti-Autoescuta */}
-      {isVoiceActive && (
-        <div
-          id="voice-mode-banner"
-          className={`px-4 py-3 border-b border-border/60 transition-colors flex items-center justify-between ${
-            voiceStatus === 'listening'
-              ? 'bg-medusa-primary/15 text-[#18534B] dark:text-[#71DBD2]'
-              : 'bg-medusa-accent/20 text-[#614E00] dark:text-[#FFF18C]'
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-current living-pulse" />
-            <div className="space-y-0.5">
-              <span className="text-[11px] font-mono uppercase tracking-wider font-semibold">
-                {voiceStatus === 'listening' ? 'Ouvindo...' : 'Tutor falando (STT Pausado)'}
-              </span>
-              {transcription && (
-                <p className="text-[12px] italic max-w-[260px] truncate">{transcription}</p>
-              )}
-            </div>
-          </div>
+        {!isInline && (
           <button
             type="button"
-            onClick={toggleVoiceMode}
-            className="text-[11px] font-mono uppercase tracking-wider underline hover:opacity-80 focus-visible:ring-2 focus:outline-none"
+            id="btn-close-tutor"
+            onClick={onClose}
+            aria-label="Fechar Tutor"
+            className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
           >
-            Desligar Voz
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
+        )}
+      </div>
+
+      {/* Destaque para Inglês / Prática Oral */}
+      {trackDef?.voiceEmphasis && (
+        <div className="px-4 py-2 bg-medusa-primary/10 border-b border-medusa-primary/20 flex items-center gap-1.5 text-[11px]">
+          <span className="material-symbols-outlined text-[15px] text-medusa-primary">mic</span>
+          <span className="font-semibold text-text-primary">Prática Oral &amp; Escuta Ativa</span>
+        </div>
+      )}
+
+      {/* Banner de Estado de Voz */}
+      {isVoiceActive && (
+        <div className="p-3 bg-medusa-primary/15 border-b border-medusa-primary/30 flex items-center gap-2 text-[12px]">
+          <span className="w-2 h-2 rounded-full bg-medusa-primary living-pulse" />
+          <span className="text-text-primary">
+            {voiceStatus === 'listening' ? 'Ouvindo...' : 'Preparando resposta...'}
+          </span>
+        </div>
+      )}
+
+      {transcription && (
+        <div className="p-2.5 bg-surface-secondary text-[11px] font-mono text-text-secondary border-b border-border/50 italic px-4">
+          {transcription}
         </div>
       )}
 
       {/* Lista de Mensagens */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-[13px] leading-relaxed">
+      <div className="flex-1 p-4 overflow-y-auto space-y-4 text-[13px]">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -257,7 +330,18 @@ export function TutorDrawer({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Rodapé / Input */}
+      {/* Rodapé / Input — Round 7 §13: bug real encontrado em produção (não só no sandbox). Os
+          dois botões de ícone tinham o tamanho ditado pelo CONTEÚDO (`p-2` + o glifo), sem
+          `flex-shrink-0` nem `overflow-hidden`. Isso funciona bem quando a fonte Material Symbols
+          carrega normalmente, mas não tem NENHUMA defesa contra o cenário em que ela falha ou
+          demora (conexão lenta, bloqueador de anúncios, firewall corporativo barrando fonts do
+          Google) — nesse caso o glifo cai pro nome literal do ícone ("mic_none", texto longo), o
+          botão incha pra ~90-120px de largura, e o botão Enviar é empurrado pra fora da tela (
+          medido em produção: chegava a ~60px além da borda direita em 390px de largura). Corrigido
+          com dimensão fixa (`w-9 h-9`) + `flex-shrink-0` + `overflow-hidden` nos dois botões — o
+          layout agora nunca depende do glifo carregar pra caber na tela. `min-w-0` no campo de
+          texto também é necessário: sem ele, um item `flex-1` ainda recusa encolher abaixo do
+          conteúdo intrínseco (comportamento padrão do flexbox), que é a outra metade do mesmo bug. */}
       <form
         onSubmit={handleSendMessage}
         className="p-3.5 border-t border-border/70 bg-surface-secondary/30 flex items-center gap-2"
@@ -267,13 +351,13 @@ export function TutorDrawer({
           id="btn-tutor-voice-toggle"
           onClick={toggleVoiceMode}
           title={isVoiceActive ? 'Pausar modo de voz' : 'Iniciar modo de voz'}
-          className={`btn-interactive p-2 rounded-full border transition-all flex items-center justify-center ${
+          className={`btn-interactive w-9 h-9 flex-shrink-0 rounded-full border overflow-hidden transition-all flex items-center justify-center ${
             isVoiceActive
               ? 'bg-medusa-primary border-medusa-primary text-[#1C2420]'
               : 'bg-surface border-border/70 text-text-secondary hover:text-text-primary'
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">
+          <span className="material-symbols-outlined text-[18px] leading-none">
             {isVoiceActive ? 'mic' : 'mic_none'}
           </span>
         </button>
@@ -283,8 +367,8 @@ export function TutorDrawer({
           id="tutor-input-field"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder="Tire uma dúvida sobre Ondulatória..."
-          className="flex-1 bg-surface border border-border/70 rounded-full px-4 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-medusa-primary/80 focus:ring-1 focus:ring-medusa-primary/60 transition-all"
+          placeholder={`Tire uma dúvida sobre ${trackDef?.lesson.topic || 'o estudo'}...`}
+          className="flex-1 min-w-0 bg-surface border border-border/70 rounded-full px-4 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-medusa-primary/80 focus:ring-1 focus:ring-medusa-primary/60 transition-all"
         />
 
         <button
@@ -292,11 +376,12 @@ export function TutorDrawer({
           id="btn-send-tutor-msg"
           disabled={!inputText.trim()}
           aria-label="Enviar mensagem"
-          className="btn-interactive p-2 rounded-full bg-medusa-primary text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none hover:opacity-90 transition-all flex items-center justify-center"
+          className="btn-interactive w-9 h-9 flex-shrink-0 rounded-full bg-medusa-primary text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none hover:opacity-90 transition-all overflow-hidden flex items-center justify-center"
         >
-          <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
+          <span className="material-symbols-outlined text-[18px] leading-none">arrow_upward</span>
         </button>
       </form>
     </div>
+    </>
   );
 }

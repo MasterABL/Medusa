@@ -1,0 +1,465 @@
+'use client';
+
+import React, { useRef, useState } from 'react';
+import { TRACK_DEFINITIONS } from './educationFixtures';
+import { ContextPanelSection } from '@/components/shell/ContextPanelSection';
+import { useEducationPanel } from '@/context/EducationPanelContext';
+import { NoticeSeverity } from './types';
+import { playFeedback } from '@/lib/audioFeedback';
+
+const MATERIAL_ICON: Record<string, string> = {
+  pdf: 'picture_as_pdf',
+  slides: 'slideshow',
+  planilha: 'table_chart',
+  imagem: 'image',
+};
+
+// Cor por TIPO de arquivo (identidade funcional, não decoração — ver Refinamento Visual §6.2:
+// "os ícones de materiais podem possuir cor. Não colorir todos automaticamente"). Cada cor já
+// existe no DESIGN.md; nenhuma nova introduzida.
+const MATERIAL_COLOR: Record<string, string> = {
+  pdf: 'text-[#18534B] dark:text-[#71DBD2]',
+  slides: 'text-[#3D4C1D] dark:text-[#D0EAA3]',
+  planilha: 'text-[#1B502C] dark:text-medusa-support',
+  imagem: 'text-[#8A6D00] dark:text-medusa-accent',
+};
+
+const NOTICE_STYLE: Record<NoticeSeverity, { icon: string; className: string }> = {
+  informativo: { icon: 'info', className: 'text-medusa-primary' },
+  atencao: { icon: 'error_outline', className: 'text-[#8A6D00] dark:text-medusa-accent' },
+  urgente: { icon: 'warning', className: 'text-medusa-alert' },
+};
+
+// Semana de referência (mesma âncora usada no cronograma do ENEM): hoje = Terça-feira, 22/Set.
+// Um prazo cujo rótulo é literalmente "hoje" ou "amanhã" (regra <48h) ganha destaque de urgência
+// real — nunca aplicado a datas distantes ("10/Out") só por estarem em uma lista de prazos.
+const URGENT_DEADLINE_LABELS = ['Terça-feira', 'Quarta-feira'];
+
+function inferFileKind(fileName: string): 'pdf' | 'slides' | 'planilha' | 'imagem' {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'pdf') return 'pdf';
+  if (['ppt', 'pptx', 'key'].includes(ext)) return 'slides';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'planilha';
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'imagem';
+  return 'pdf';
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+interface SessionUploadedFile {
+  id: string;
+  name: string;
+  kind: 'pdf' | 'slides' | 'planilha' | 'imagem';
+  sizeLabel: string;
+  objectUrl: string;
+  status: 'validating' | 'processing' | 'ready';
+  isExiting?: boolean;
+}
+
+/**
+ * Painel contextual da Faculdade — composição-base (Contexto → Próxima Ação → Domínio →
+ * Revisões → Cronograma, ver DESIGN.md) + Avisos com semântica visual real e um card de
+ * Materiais com upload de verdade (File API do navegador, arrastar-e-soltar ou seleção manual).
+ *
+ * AUDITORIA ANTI-FICÇÃO: o upload é real (o navegador lê o arquivo de verdade e permite abri-lo
+ * via `URL.createObjectURL`), mas a persistência é escopo-de-sessão — vive só em memória deste
+ * componente React. Recarregar a página (F5) ou trocar de disciplina e voltar depois de um
+ * refresh perde os arquivos adicionados nesta sessão, porque não existe um backend de Storage
+ * real conectado a este fluxo ainda. Isso é dito explicitamente na UI (não fingido como
+ * persistência real).
+ */
+export function FaculdadeContextPanel() {
+  const trackDef = TRACK_DEFINITIONS.faculdade;
+  const { faculdadeDisciplineCode, openReviewModal, isSessionCompleted, sessionResultMirror, facultyExtraDisciplines, requestStartStudy } = useEducationPanel();
+  // Fixture + disciplinas adicionadas pelo usuário nesta sessão — mesma lista combinada do
+  // FaculdadeHub.tsx (ver EducationPanelContext.tsx), para as duas superfícies nunca divergirem.
+  const disciplines = [...(trackDef.disciplines ?? []), ...facultyExtraDisciplines];
+  const selected = disciplines.find((d) => d.code === faculdadeDisciplineCode) ?? disciplines[0];
+
+  const [uploadsByDiscipline, setUploadsByDiscipline] = useState<Record<string, SessionUploadedFile[]>>({});
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!selected) return null;
+
+  const sessionUploads = uploadsByDiscipline[selected.code] ?? [];
+
+  const addFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    playFeedback('upload_drop');
+    const added: SessionUploadedFile[] = Array.from(files).map((file) => ({
+      id: `upload-${selected.code}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: file.name,
+      kind: inferFileKind(file.name),
+      sizeLabel: formatSize(file.size),
+      objectUrl: URL.createObjectURL(file),
+      status: 'validating',
+    }));
+    setUploadsByDiscipline((prev) => ({
+      ...prev,
+      [selected.code]: [...(prev[selected.code] ?? []), ...added],
+    }));
+
+    // Multi-stage visual progression: DROP -> VALIDANDO -> PROCESSANDO -> PRONTO
+    const fileIds = added.map((f) => f.id);
+    setTimeout(() => {
+      setUploadsByDiscipline((prev) => ({
+        ...prev,
+        [selected.code]: (prev[selected.code] ?? []).map((f) =>
+          fileIds.includes(f.id) ? { ...f, status: 'processing' } : f
+        ),
+      }));
+    }, 450);
+
+    setTimeout(() => {
+      setUploadsByDiscipline((prev) => ({
+        ...prev,
+        [selected.code]: (prev[selected.code] ?? []).map((f) =>
+          fileIds.includes(f.id) ? { ...f, status: 'ready' } : f
+        ),
+      }));
+      playFeedback('upload_ready');
+    }, 1100);
+  };
+
+  const removeUpload = (id: string) => {
+    playFeedback('delete');
+    setUploadsByDiscipline((prev) => ({
+      ...prev,
+      [selected.code]: (prev[selected.code] ?? []).map((f) =>
+        f.id === id ? { ...f, isExiting: true } : f
+      ),
+    }));
+    setTimeout(() => {
+      setUploadsByDiscipline((prev) => ({
+        ...prev,
+        [selected.code]: (prev[selected.code] ?? []).filter((f) => {
+          if (f.id === id) {
+            URL.revokeObjectURL(f.objectUrl);
+            return false;
+          }
+          return true;
+        }),
+      }));
+    }, 180);
+  };
+
+  const contentToShow = selected.content;
+  const completedCount = contentToShow.filter((m) => m.status === 'completed').length;
+  const totalCount = contentToShow.length;
+  const masteryPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const nextAction = contentToShow.find((m) => m.status !== 'completed');
+  const reviewCandidates = contentToShow.filter((m) => m.status === 'completed').slice(0, 2);
+
+  // Revisão gerada pela sessão recém-concluída (ver Refinamento Visual §8) — só existe para a
+  // disciplina primária (FIS-204), a única com sessão de estudo real nesta fase.
+  const isPrimaryDiscipline = selected.code === disciplines.find((d) => d.isActive)?.code;
+  const justCompletedReview =
+    isSessionCompleted && isPrimaryDiscipline && sessionResultMirror?.track === 'faculdade'
+      ? {
+          id: 'just-completed-faculdade',
+          title: trackDef.lesson.topic,
+          subtitle: selected.title,
+          nextReviewDate: sessionResultMirror.nextReviewDate,
+        }
+      : null;
+
+  const notices: { text: string; severity: NoticeSeverity }[] =
+    selected.noticeDetails ?? selected.notices.map((text) => ({ text, severity: 'informativo' as NoticeSeverity }));
+
+  return (
+    <div id="context-panel-track-faculdade" key={selected.code} className="flex flex-col gap-6 study-summary-enter">
+      {/* 1. CONTEXTO DA TRILHA — compacto */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-6 h-6 rounded-lg bg-[#71DBD2]/15 border border-[#71DBD2]/30 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-[14px] text-[#18534B] dark:text-[#71DBD2]">school</span>
+          </span>
+          <span className="text-[11px] font-semibold text-text-primary truncate">
+            {selected.code} · {selected.title}
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-text-muted flex-shrink-0">{selected.credits} créditos</span>
+      </div>
+      <p className="text-[11px] text-text-secondary -mt-4">{selected.dateRange}</p>
+
+      {/* 2. PRÓXIMA AÇÃO — protagonista do painel: glass + hover (ver Refinamento Visual §3/§6.3) */}
+      {nextAction && (
+        <ContextPanelSection label="Próxima Ação">
+          {isPrimaryDiscipline && requestStartStudy ? (
+            <button
+              type="button"
+              id="panel-next-action-faculdade"
+              onClick={requestStartStudy}
+              className="w-full text-left p-3.5 rounded-xl bg-medusa-primary/10 backdrop-blur-sm border border-medusa-primary/30 flex flex-col gap-1 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass hover:border-[#71DBD2]/50 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{nextAction.title}</h4>
+              <p className="text-[11px] text-text-secondary">{selected.focusDuration} · {nextAction.code}</p>
+              <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[#18534B] dark:text-[#71DBD2]">
+                <span className="material-symbols-outlined text-[14px]">play_circle</span>
+                Continuar sessão
+              </span>
+            </button>
+          ) : (
+            <div
+              id="panel-next-action-faculdade"
+              className="p-3.5 rounded-xl bg-medusa-primary/10 backdrop-blur-sm border border-medusa-primary/30 flex flex-col gap-1"
+            >
+              <h4 className="text-[13px] font-semibold text-text-primary leading-snug">{nextAction.title}</h4>
+              <p className="text-[11px] text-text-secondary">{selected.focusDuration} · {nextAction.code}</p>
+              <p className="text-[10px] font-mono text-text-muted italic mt-1">
+                Sessão de estudo ainda não disponível para esta disciplina.
+              </p>
+            </div>
+          )}
+        </ContextPanelSection>
+      )}
+
+      {/* 3. DOMÍNIO — calculado ao vivo a partir do progresso real de conteúdos da disciplina */}
+      <ContextPanelSection label="Domínio da Disciplina Ativa">
+        <div className="p-3 rounded-xl bg-surface/60 border border-border/50 flex items-baseline justify-between">
+          <span className="text-2xl font-bold tracking-tight text-text-primary tabular-nums">{masteryPercent}%</span>
+          <span className="text-[11px] text-text-secondary">{completedCount}/{totalCount} conteúdos</span>
+        </div>
+        <div className="w-full bg-surface-subtle h-1.5 rounded-full overflow-hidden mt-1.5">
+          <div
+            className={`${masteryPercent >= 70 ? 'bg-medusa-support' : 'bg-medusa-accent'} h-full rounded-full transition-all duration-500`}
+            style={{ width: `${masteryPercent}%` }}
+          />
+        </div>
+      </ContextPanelSection>
+
+      {/* 4. PRÓXIMAS REVISÕES — destino real: mesmo modal usado por "Aulas Concluídas" no Hub */}
+      {(justCompletedReview || reviewCandidates.length > 0) && (
+        <ContextPanelSection label="Próximas Revisões">
+          <div id="panel-reviews-faculdade" className="flex flex-col gap-2">
+            {justCompletedReview && (
+              <div
+                id="panel-review-just-completed"
+                className="p-3 rounded-xl bg-medusa-support/10 border border-medusa-support/40 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-[#1B502C] dark:text-medusa-support">Recém-concluída</span>
+                  <h5 className="text-[12px] font-semibold text-text-primary truncate">{justCompletedReview.title}</h5>
+                  <p className="text-[11px] text-text-muted truncate">
+                    Revisão agendada: {justCompletedReview.nextReviewDate} · pode revisar antes
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="btn-panel-review-just-completed"
+                  onClick={() =>
+                    openReviewModal({
+                      id: justCompletedReview.id,
+                      title: justCompletedReview.title,
+                      subtitle: justCompletedReview.subtitle,
+                      completedAt: 'Agora',
+                      durationMinutes: undefined,
+                    })
+                  }
+                  className="flex-shrink-0 text-[11px] font-mono text-[#1B502C] dark:text-medusa-support bg-medusa-support/20 px-2.5 py-1 rounded-full border border-medusa-support/40 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Revisar agora
+                </button>
+              </div>
+            )}
+            {reviewCandidates.map((m) => (
+              <div key={m.id} className="p-3 rounded-xl bg-surface/70 border border-border/50 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h5 className="text-[12px] font-semibold text-text-primary truncate">{m.title}</h5>
+                  <p className="text-[11px] text-text-muted truncate">{m.code} · Próxima revisão: {trackDef.nextReviewSuggestion}</p>
+                </div>
+                <button
+                  type="button"
+                  id={`btn-panel-review-${m.id}`}
+                  onClick={() =>
+                    openReviewModal({
+                      id: m.id,
+                      title: m.title,
+                      subtitle: m.code,
+                      completedAt: m.date,
+                      durationMinutes: undefined,
+                    })
+                  }
+                  className="flex-shrink-0 text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-1 rounded-full border border-[#71DBD2]/30 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                >
+                  Revisão
+                </button>
+              </div>
+            ))}
+          </div>
+        </ContextPanelSection>
+      )}
+
+      {/* 5. CRONOGRAMA DA SEMANA = prazos com urgência semântica real (<48h) */}
+      {selected.deadlines.length > 0 && (
+        <ContextPanelSection label="Cronograma da Semana">
+          <div className="flex flex-col gap-1.5">
+            {selected.deadlines.map((dl) => {
+              const isUrgent = URGENT_DEADLINE_LABELS.includes(dl.date);
+              return (
+                <div key={dl.id} className="flex items-center justify-between text-[12px]">
+                  <span className="text-text-secondary flex items-center gap-1.5">
+                    {isUrgent && <span className="material-symbols-outlined text-[14px] text-medusa-alert">warning</span>}
+                    {dl.label}
+                  </span>
+                  <span className={`font-mono text-[11px] ${isUrgent ? 'text-medusa-alert font-semibold' : 'text-text-muted'}`}>
+                    {dl.date}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </ContextPanelSection>
+      )}
+
+      {/* Avisos — semântica visual real (informativo/atenção/urgente), nunca tudo vermelho */}
+      {notices.length > 0 && (
+        <ContextPanelSection label="Avisos">
+          <div id="context-panel-faculdade-notices" className="flex flex-col gap-1.5">
+            {notices.map((notice, i) => {
+              const style = NOTICE_STYLE[notice.severity];
+              return (
+                <div key={i} className="flex items-start gap-1.5 text-[12px] text-text-secondary">
+                  <span className={`material-symbols-outlined text-[14px] mt-0.5 flex-shrink-0 ${style.className}`}>
+                    {style.icon}
+                  </span>
+                  <span>{notice.text}</span>
+                </div>
+              );
+            })}
+          </div>
+        </ContextPanelSection>
+      )}
+
+      {/* Materiais — upload real via File API (sessão apenas, sem backend de Storage) */}
+      <ContextPanelSection label="Materiais" noBorder>
+        <div
+          id="faculdade-materials-dropzone"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDraggingOver(true);
+          }}
+          onDragLeave={() => setIsDraggingOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDraggingOver(false);
+            addFiles(e.dataTransfer.files);
+          }}
+          className={`rounded-xl border-2 border-dashed p-3 flex flex-col items-center gap-1.5 text-center transition-colors ${
+            isDraggingOver ? 'border-medusa-primary bg-medusa-primary/10' : 'border-border/60 bg-surface-subtle/50'
+          }`}
+        >
+          {/* Round 7 §1C: o ícone reage ao drag-enter (não só a cor de fundo do container) —
+              pequeno deslocamento vertical, coerente com o "arquivo entrando". */}
+          <span
+            className={`material-symbols-outlined text-[22px] transition-transform duration-200 ${
+              isDraggingOver ? 'text-medusa-primary -translate-y-0.5' : 'text-text-muted'
+            }`}
+          >
+            upload_file
+          </span>
+          <p className="text-[11px] text-text-secondary">Arraste o PDF da aula aqui</p>
+          <button
+            type="button"
+            id="btn-faculdade-select-file"
+            onClick={() => fileInputRef.current?.click()}
+            className="text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] hover:opacity-80 underline underline-offset-2"
+          >
+            ou selecionar arquivo
+          </button>
+          <input
+            ref={fileInputRef}
+            id="faculdade-material-file-input"
+            type="file"
+            multiple
+            accept=".pdf,.ppt,.pptx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.webp"
+            className="hidden"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5 mt-2">
+          {selected.materials.map((mat) => (
+            <div key={mat.id} className="flex items-center justify-between gap-2 text-[12px] p-1.5 -mx-1.5 rounded-lg transition-colors hover:bg-surface-secondary/60">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={`material-symbols-outlined text-[15px] flex-shrink-0 ${MATERIAL_COLOR[mat.kind]}`}>
+                  {MATERIAL_ICON[mat.kind]}
+                </span>
+                <span className="text-text-secondary truncate">{mat.name}</span>
+              </div>
+              <span className="text-[10px] font-mono text-text-muted flex-shrink-0">{mat.sizeLabel}</span>
+            </div>
+          ))}
+
+          {sessionUploads.map((file) => (
+            <a
+              key={file.id}
+              href={file.objectUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`stagger-item flex items-center justify-between gap-2 text-[12px] group transition-all duration-200 ${
+                file.isExiting ? 'opacity-0 -translate-x-2' : ''
+              }`}
+              title="Abrir arquivo enviado nesta sessão"
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={`material-symbols-outlined text-[15px] flex-shrink-0 ${MATERIAL_COLOR[file.kind]}`}>
+                  {MATERIAL_ICON[file.kind]}
+                </span>
+                <span className="text-text-primary truncate underline-offset-2 group-hover:underline">{file.name}</span>
+                {file.status === 'validating' && (
+                  <span className="text-[9px] font-mono uppercase text-amber-500 bg-amber-500/15 px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                    validando
+                  </span>
+                )}
+                {file.status === 'processing' && (
+                  <span className="text-[9px] font-mono uppercase text-medusa-primary bg-medusa-primary/15 px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary animate-pulse"></span>
+                    processando
+                  </span>
+                )}
+                {file.status === 'ready' && (
+                  <span className="text-[9px] font-mono uppercase text-medusa-primary bg-medusa-primary/15 px-1.5 py-0.5 rounded flex-shrink-0">
+                    novo
+                  </span>
+                )}
+              </div>
+              <span className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[10px] font-mono text-text-muted">{file.sizeLabel}</span>
+                <button
+                  type="button"
+                  aria-label={`Remover ${file.name}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeUpload(file.id);
+                  }}
+                  className="text-text-muted hover:text-medusa-alert focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none rounded-full"
+                >
+                  <span className="material-symbols-outlined text-[15px]">close</span>
+                </button>
+              </span>
+            </a>
+          ))}
+
+          {selected.materials.length === 0 && sessionUploads.length === 0 && (
+            <p className="text-[11px] text-text-muted italic">Nenhum material disponível ainda para esta disciplina.</p>
+          )}
+        </div>
+
+        <p className="text-[10px] text-text-muted italic mt-2 leading-relaxed">
+          Arquivos enviados aqui ficam disponíveis só nesta sessão do navegador (sem backend de
+          armazenamento conectado ainda) — recarregar a página os remove.
+        </p>
+      </ContextPanelSection>
+    </div>
+  );
+}

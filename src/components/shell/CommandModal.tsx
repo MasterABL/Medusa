@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 
 export function CommandModal() {
-  const { isCommandOpen, closeCommand, setMode, setTheme } = useShell();
+  const { isCommandOpen, closeCommand, setMode, setTheme, theme } = useShell();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -75,19 +75,21 @@ export function CommandModal() {
             </span>
           </button>
 
+          {/* Round 7 §4: o comando de tema Sépia foi removido (o tema em si saiu da UI). Trocado
+              por um alternador direto Claro/Escuro — os únicos 2 temas que restam. */}
           <button
             type="button"
             onClick={() => {
-              setTheme('sepia');
+              setTheme(theme === 'dark' ? 'light' : 'dark');
               closeCommand();
             }}
             className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-secondary text-text-primary transition-colors text-left"
           >
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-[18px] text-medusa-accent">
-                auto_stories
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
               </span>
-              <span>Ativar Tema Sépia (Paper Mode / Conforto Térmico)</span>
+              <span>Alternar para Tema {theme === 'dark' ? 'Claro' : 'Escuro'}</span>
             </div>
             <span className="text-[10px] font-mono bg-medusa-accent/30 text-text-primary px-1.5 py-0.5 rounded">
               Tema

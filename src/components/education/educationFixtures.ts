@@ -1,274 +1,1486 @@
 /**
- * MEDUSA — EDUCAÇÃO / FIXTURES DE DEMONSTRAÇÃO
+ * MEDUSA — EDUCAÇÃO / FIXTURES MULTI-TRILHA
  * ==============================================================================
- * REGRA ANTI-FICÇÃO / ESPECIFICAÇÃO DE PROTÓTIPO:
- * Os dados abaixo são fixtures controlados para a validação da experiência
- * de estudo de "Física · Mecânica Ondulatória".
+ * REGRA DE AUDITORIA E TRANSPARÊNCIA:
+ * Os dados abaixo são FIXTURES pré-definidas para as 3 trilhas oficiais do
+ * Learning OS: Faculdade, Inglês e Vestibular.
  *
- * NÃO contêm métricas arbitrárias ou inventadas (ex: "+5.0% retenção").
- * Todos os cálculos de score, duração e revisão derivam estritamente do
- * comportamento do usuário durante a sessão.
+ * Taxonomia Estrita de Dados:
+ * - FIXTURE: Metadados, currículos de módulos, 5 questões por trilha, diagnósticos
+ *   e próxima data de revisão nominal.
+ * - LOCAL STATE / DERIVED: Scores, anotações e respostas são computados em memória
+ *   React durante a sessão ativa.
+ * - NÃO IMPLEMENTADO: Persistência em banco de dados Supabase e processamento de
+ *   voz real em backend (Whisper / TTS).
  * ==============================================================================
  */
 
-import { ExerciseQuestion, LiveSummaryPoint, LessonMetadata } from './types';
+import { StudyTrack, TrackDefinition, TrackModuleItem } from './types';
 
-export const LESSON_FIXTURE: LessonMetadata = {
-  discipline: 'Física',
-  topic: 'Mecânica Ondulatória',
-  estimatedDuration: '45 min',
-  actualDurationSeconds: 2700, // 45 minutos exatos
-  module: 'Física Geral · Módulo 03',
-  nextTopic: 'Física · Acústica e Fenômenos Sonoros',
-};
-
-export const INITIAL_SUMMARY_POINTS: LiveSummaryPoint[] = [
+// Conteúdo de Física II (FIS-204) — reaproveitado tanto em `modules` (trilha ativa da Faculdade)
+// quanto em `disciplines[].content` (mesma disciplina, vista pelo seletor de disciplinas).
+const FACULDADE_FIS204_MODULES: TrackModuleItem[] = [
   {
-    id: 'sum-1',
-    timestamp: 120,
-    formattedTime: '02:00',
-    title: 'Definição de Onda Mecânica',
-    text: 'Perturbação que transporta energia e quantidade de movimento através de um meio elástico, sem transportar matéria.',
-    icon: 'waves',
-  },
-  {
-    id: 'sum-2',
-    timestamp: 480,
-    formattedTime: '08:00',
-    title: 'Equação Fundamental: v = λ · f',
-    text: 'A velocidade de propagação depende exclusivamente das propriedades do meio; na refração, a frequência permanece constante.',
-    icon: 'calculate',
-  },
-  {
-    id: 'sum-3',
-    timestamp: 950,
-    formattedTime: '15:50',
-    title: 'Interferência e Superposição',
-    text: 'O princípio da superposição estabelece que o deslocamento resultante é a soma algébrica dos deslocamentos individuais.',
-    icon: 'grain',
-  },
-  {
-    id: 'sum-4',
-    timestamp: 1420,
-    formattedTime: '23:40',
-    title: 'Ondas Estacionárias',
-    text: 'Resultam da superposição de duas ondas periódicas de mesma frequência e amplitude que se propagam em sentidos opostos.',
-    icon: 'line_weight',
-  },
-];
-
-export const EXERCISE_QUESTIONS: ExerciseQuestion[] = [
-  {
-    id: 1,
-    topic: 'Natureza das Ondas Mecânicas',
-    question:
-      'Uma explosão hipotética ocorre na superfície de um satélite lunar no vácuo do espaço. Um astronauta a 500 metros de distância poderá ouvir o estrondo da explosão?',
-    options: [
-      {
-        id: 'opt-1a',
-        letter: 'A',
-        text: 'Sim, pois a energia mecânica da explosão se propaga por ondas longitudinais no vácuo.',
-      },
-      {
-        id: 'opt-1b',
-        letter: 'B',
-        text: 'Não, pois as ondas sonoras são ondas mecânicas e exigem um meio material para propagação de perturbação de pressão.',
-      },
-      {
-        id: 'opt-1c',
-        letter: 'C',
-        text: 'Sim, contanto que o astronauta esteja com o rádio do traje desativado.',
-      },
-      {
-        id: 'opt-1d',
-        letter: 'D',
-        text: 'Não, pois a velocidade do som no vácuo é instantânea e inaudível pelo ouvido humano.',
-      },
-    ],
-    correctOptionId: 'opt-1b',
-    explanation:
-      'Ondas sonoras são ondas mecânicas longitudinais. Elas propagam oscilações de pressão através da colisão entre partículas de um meio material. No vácuo, não há matéria para sustentar essa propagação.',
-    confusionDiagnosis:
-      'É comum confundir ondas mecânicas (som) com ondas eletromagnéticas (luz, rádio). A luz da explosão seria vista imediatamente, mas o som mecânico é fisicamente impossível no vácuo.',
-  },
-  {
-    id: 2,
-    topic: 'Refração e Equação v = λ · f',
-    question:
-      'Quando uma onda sonora passa do ar para a água, sua velocidade de propagação aumenta significativamente (de ~340 m/s para ~1500 m/s). O que ocorre com a sua frequência e seu comprimento de onda?',
-    options: [
-      {
-        id: 'opt-2a',
-        letter: 'A',
-        text: 'A frequência aumenta proporcionalmente à velocidade e o comprimento de onda permanece fixo.',
-      },
-      {
-        id: 'opt-2b',
-        letter: 'B',
-        text: 'A frequência e o comprimento de onda diminuem pela maior densidade da água.',
-      },
-      {
-        id: 'opt-2c',
-        letter: 'C',
-        text: 'A frequência permanece constante (determinada pela fonte) e o comprimento de onda aumenta proporcionalmente.',
-      },
-      {
-        id: 'opt-2d',
-        letter: 'D',
-        text: 'O comprimento de onda diminui e a frequência duplica para conservar o momento.',
-      },
-    ],
-    correctOptionId: 'opt-2c',
-    explanation:
-      'A frequência de uma onda é determinada unicamente pela fonte emissora e não se altera ao mudar de meio. Como v = λ · f e a velocidade v aumentou na água, o comprimento de onda λ necessariamente aumenta na mesma proporção.',
-    confusionDiagnosis:
-      'Costuma-se imaginar que a frequência muda com a velocidade do meio. Lembre-se: meio altera velocidade e comprimento de onda; fonte emissora fixa a frequência.',
-  },
-  {
-    id: 3,
-    topic: 'Efeito Doppler',
-    question:
-      'Uma ambulância com sirene ligada aproxima-se rapidamente de um observador em repouso na calçada. O que o observador percebe em relação ao som emitido?',
-    options: [
-      {
-        id: 'opt-3a',
-        letter: 'A',
-        text: 'Uma frequência aparente maior (som mais agudo) devido à compressão espacial das frentes de onda na direção do movimento.',
-      },
-      {
-        id: 'opt-3b',
-        letter: 'B',
-        text: 'Uma velocidade de propagação maior do som no ar atmosférico.',
-      },
-      {
-        id: 'opt-3c',
-        letter: 'C',
-        text: 'Uma frequência aparente menor (som mais grave) porque a fonte se move mais rápido que o vento.',
-      },
-      {
-        id: 'opt-3d',
-        letter: 'D',
-        text: 'A mesma frequência e amplitude, pois o ar circundante é estacionário.',
-      },
-    ],
-    correctOptionId: 'opt-3a',
-    explanation:
-      'Pelo Efeito Doppler, quando a fonte se move em direção ao observador, cada nova frente de onda é emitida mais próxima da anterior, reduzindo a distância espacial aparente (λ) e aumentando a taxa de frentes de onda recebidas por segundo (frequência percebida mais alta / tom agudo).',
-    confusionDiagnosis:
-      'O Efeito Doppler não altera a velocidade da onda no meio (que continua sendo a velocidade do som no ar), mas sim o comprimento aparente das frentes e a frequência detectada.',
-  },
-  {
-    id: 4,
-    topic: 'Ondas Estacionárias',
-    question:
-      'Em uma corda vibrante de extremidades fixas no modo fundamental (1º harmônico), a estrutura de interferência formada apresenta:',
-    options: [
-      {
-        id: 'opt-4a',
-        letter: 'A',
-        text: 'Apenas nós em toda a extensão da corda sem deslocamento de energia.',
-      },
-      {
-        id: 'opt-4b',
-        letter: 'B',
-        text: 'Dois nós nas extremidades fixas e um ventre de amplitude máxima no centro.',
-      },
-      {
-        id: 'opt-4c',
-        letter: 'C',
-        text: 'Três ventres centrais e nenhum ponto de amplitude nula.',
-      },
-      {
-        id: 'opt-4d',
-        letter: 'D',
-        text: 'Um nó móvel no centro que se desloca periodicamente em direção às pontas.',
-      },
-    ],
-    correctOptionId: 'opt-4b',
-    explanation:
-      'Nas extremidades fixas da corda, o deslocamento é necessariamente nulo, formando nós (pontos de interferência destrutiva total). No modo fundamental, a corda vibra com um único ventre (ponto de interferência construtiva de amplitude máxima) localizado exatamente no ponto médio.',
-    confusionDiagnosis:
-      'Muitos estudantes confundem nós (amplitude zero / repouso) com ventres (amplitude máxima / oscilação pico a pico).',
-  },
-  {
-    id: 5,
-    topic: 'Difração de Ondas',
-    question:
-      'Para que uma onda mecânica contorne um obstáculo ou atravesse uma abertura manifestando difração acentuada e nítida, qual condição dimensional deve ser satisfeita?',
-    options: [
-      {
-        id: 'opt-5a',
-        letter: 'A',
-        text: 'O comprimento de onda (λ) deve ser da mesma ordem de grandeza ou maior que as dimensões do obstáculo ou fenda.',
-      },
-      {
-        id: 'opt-5b',
-        letter: 'B',
-        text: 'A fenda precisa ser pelo menos 1000 vezes maior que a amplitude da onda.',
-      },
-      {
-        id: 'opt-5c',
-        letter: 'C',
-        text: 'A velocidade da onda precisa superar a velocidade de escape no meio elástico.',
-      },
-      {
-        id: 'opt-5d',
-        letter: 'D',
-        text: 'O obstáculo deve absorver 100% da energia eletromagnética incidente.',
-      },
-    ],
-    correctOptionId: 'opt-5a',
-    explanation:
-      'A difração é a propriedade das ondas de contornar obstáculos e fendas. O efeito é tanto mais perceptível quanto mais próximo o comprimento de onda estiver das dimensões lineares da abertura (d ~ λ). Quando d >> λ, a propagação se aproxima da ótica geométrica em linha reta.',
-    confusionDiagnosis:
-      'Achar que qualquer fenda difrata igualmente qualquer onda. O som (λ de centímetros a metros) difrata facilmente em portas, enquanto a luz visível (λ de centenas de nanômetros) exige fendas micrométricas para difração evidente.',
-  },
-];
-
-export const EDUCATION_TRACK_FIXTURE = [
-  {
-    id: 'track-1',
-    code: 'FIS-101',
+    id: 'fac-mod-1',
+    code: 'FIS-201',
     title: 'Cinemática Vetorial & Dinâmica Newtoniana',
-    status: 'completed' as const,
+    status: 'completed',
     score: '9.2',
-    date: 'Concluído em 10/Set',
-    duration: '12h acumuladas',
+    date: 'Concluído em 08/Set',
+    duration: '14h acumuladas',
   },
   {
-    id: 'track-2',
-    code: 'FIS-102',
+    id: 'fac-mod-2',
+    code: 'FIS-202',
     title: 'Trabalho, Energia & Sistemas Conservativos',
-    status: 'completed' as const,
-    score: '8.8',
-    date: 'Concluído em 12/Set',
+    status: 'completed',
+    score: '8.9',
+    date: 'Concluído em 11/Set',
+    duration: '10h acumuladas',
+  },
+  {
+    id: 'fac-mod-3',
+    code: 'FIS-203',
+    title: 'Gravitação Newtoniana & Leis de Kepler',
+    status: 'completed',
+    score: '9.4',
+    date: 'Concluído em 14/Set',
     duration: '8h acumuladas',
   },
   {
-    id: 'track-3',
-    code: 'FIS-103',
-    title: 'Gravitação Universal & Leis de Kepler',
-    status: 'completed' as const,
-    score: '9.5',
-    date: 'Concluído em 14/Set',
-    duration: '6h acumuladas',
-  },
-  {
-    id: 'track-4',
-    code: 'FIS-201',
-    title: 'Mecânica Ondulatória: Perturbação e Superposição',
-    status: 'in_progress' as const, // vira 'completed' após a sessão!
+    id: 'fac-mod-4',
+    code: 'FIS-204',
+    title: 'Oscilações: MHS, Dinâmica e Energia',
+    status: 'in_progress',
     score: 'Pendente',
     date: 'Hoje · Sessão Recomendada',
     duration: '45 min programados',
   },
   {
-    id: 'track-5',
-    code: 'FIS-202',
-    title: 'Acústica, Ressonância e Fenômenos Sonoros',
-    status: 'locked' as const,
+    id: 'fac-mod-5',
+    code: 'FIS-205',
+    title: 'Oscilações Amortecidas, Forçadas e Ressonância',
+    status: 'locked',
     score: 'Bloqueado',
     date: 'Próxima etapa da trilha',
     duration: '50 min estimados',
   },
 ];
+
+// Conteúdo das demais disciplinas do período — mais enxuto que Física II (não há sessão de
+// estudo completa/exercícios fixture para elas ainda), mas real o suficiente para a seleção de
+// disciplina trocar conteúdo de verdade, não só um rótulo.
+const FACULDADE_MAT215_MODULES: TrackModuleItem[] = [
+  { id: 'mat-mod-1', code: 'MAT-215-01', title: 'Erros de Arredondamento & Representação de Ponto Flutuante', status: 'completed', score: '8.7', date: 'Concluído em 09/Set', duration: '6h acumuladas' },
+  { id: 'mat-mod-2', code: 'MAT-215-02', title: 'Métodos de Bisseção & Newton-Raphson', status: 'in_progress', score: 'Pendente', date: 'Hoje · Sessão Recomendada', duration: '40 min programados' },
+  { id: 'mat-mod-3', code: 'MAT-215-03', title: 'Interpolação Polinomial & Splines', status: 'locked', score: 'Bloqueado', date: 'Próxima etapa da trilha', duration: '45 min estimados' },
+];
+
+const FACULDADE_MEC130_MODULES: TrackModuleItem[] = [
+  { id: 'mec-mod-1', code: 'MEC-130-01', title: 'Tensão, Deformação & Lei de Hooke Generalizada', status: 'completed', score: '9.0', date: 'Concluído em 06/Set', duration: '5h acumuladas' },
+  { id: 'mec-mod-2', code: 'MEC-130-02', title: 'Flexão em Vigas & Diagramas de Esforços', status: 'in_progress', score: 'Pendente', date: 'Hoje · Sessão Recomendada', duration: '50 min programados' },
+  { id: 'mec-mod-3', code: 'MEC-130-03', title: 'Torção em Eixos Circulares', status: 'locked', score: 'Bloqueado', date: 'Próxima etapa da trilha', duration: '45 min estimados' },
+];
+
+const FACULDADE_CMP102_MODULES: TrackModuleItem[] = [
+  { id: 'cmp-mod-1', code: 'CMP-102-01', title: 'Complexidade Assintótica & Notação Big-O', status: 'completed', score: '9.5', date: 'Concluído em 12/Set', duration: '7h acumuladas' },
+  { id: 'cmp-mod-2', code: 'CMP-102-02', title: 'Árvores Binárias de Busca & Balanceamento', status: 'in_progress', score: 'Pendente', date: 'Hoje · Sessão Recomendada', duration: '40 min programados' },
+  { id: 'cmp-mod-3', code: 'CMP-102-03', title: 'Grafos: Busca em Largura & Profundidade', status: 'locked', score: 'Bloqueado', date: 'Próxima etapa da trilha', duration: '45 min estimados' },
+];
+
+export const TRACK_DEFINITIONS: Record<StudyTrack, TrackDefinition> = {
+  faculdade: {
+    id: 'faculdade',
+    name: 'Faculdade',
+    tagline: 'Física II · Engenharia & Ciências Exatas',
+    domainLabel: 'Ensino Superior · Bacharelado',
+    accentColor: '#71DBD2',
+    lesson: {
+      track: 'faculdade',
+      trackLabel: 'Faculdade',
+      discipline: 'Física II',
+      topic: 'Oscilações · Movimento Harmônico Simples (MHS)',
+      sessionObjective: 'Compreender a dinâmica do MHS, a força restauradora elástica e a dedução da equação diferencial do oscilador harmônico.',
+      estimatedDuration: '45 min',
+      actualDurationSeconds: 2700,
+      module: 'Física Geral II · Módulo 02: Sistemas Dinâmicos',
+      nextTopic: 'Física II · Oscilações Amortecidas, Forçadas e Ressonância',
+      nextTopicDescription: 'Dissipação viscosa de energia mecânica, fator de amortecimento γ, ressonância e curva de potência.',
+    },
+    summaryPoints: [
+      {
+        id: 'fac-sum-1',
+        timestamp: 120,
+        formattedTime: '02:00',
+        title: 'Força Restauradora e Lei de Hooke',
+        text: 'Em sistemas elásticos lineares, a força restauradora é proporcional e oposta ao deslocamento: F = -k·x, originando uma aceleração dependente da posição.',
+        icon: 'tune',
+      },
+      {
+        id: 'fac-sum-2',
+        timestamp: 480,
+        formattedTime: '08:00',
+        title: 'Equação Diferencial: d²x/dt² + ω₀²x = 0',
+        text: 'A frequência angular natural é ω₀ = √(k/m). A solução geral x(t) = A·cos(ω₀t + φ) descreve a evolução temporal com conservação de energia.',
+        icon: 'functions',
+      },
+      {
+        id: 'fac-sum-3',
+        timestamp: 950,
+        formattedTime: '15:50',
+        title: 'Conservação de Energia no MHS',
+        text: 'A energia mecânica total E = ½kA² é constante, alternando continuamente entre energia cinética máxima no equilíbrio (x=0) e potencial máxima nos pontos de retorno (x=±A).',
+        icon: 'bolt',
+      },
+      {
+        id: 'fac-sum-4',
+        timestamp: 1420,
+        formattedTime: '23:40',
+        title: 'Pêndulo Simples e Aproximação Harmônica',
+        text: 'Para pequenas amplitudes lineares (θ << 1 rad), sen(θ) ≈ θ, resultando em período independente da massa da esfera: T = 2π√(L/g).',
+        icon: 'timelapse',
+      },
+    ],
+    exerciseQuestions: [
+      {
+        id: 1,
+        topic: 'Dinâmica do Oscilador Harmônico',
+        question:
+          'Um bloco acoplado a uma mola ideal de constante k oscila em MHS horizontal sobre uma superfície sem atrito. No ponto de deslocamento máximo (x = +A), quais são os valores relativos da velocidade e da aceleração do bloco?',
+        options: [
+          {
+            id: 'opt-fac-1a',
+            letter: 'A',
+            text: 'Velocidade nula e aceleração máxima em módulo, apontando para a posição de equilíbrio.',
+          },
+          {
+            id: 'opt-fac-1b',
+            letter: 'B',
+            text: 'Velocidade máxima em módulo e aceleração nula, pois o bloco está na extremidade.',
+          },
+          {
+            id: 'opt-fac-1c',
+            letter: 'C',
+            text: 'Velocidade e aceleração ambas nulas, pois o corpo inverte momentaneamente o sentido.',
+          },
+          {
+            id: 'opt-fac-1d',
+            letter: 'D',
+            text: 'Velocidade máxima e aceleração máxima apontando no mesmo sentido da oscilação.',
+          },
+        ],
+        correctOptionId: 'opt-fac-1a',
+        explanation:
+          'Nas extremidades x = ±A, a velocidade v(t) inverte de sentido e passa pelo zero. Pela Lei de Hooke (F = -kx = ma), a força elástica atinge seu valor máximo, gerando aceleração máxima em módulo dirigida ao centro.',
+        confusionDiagnosis:
+          'Confundir aceleração máxima com velocidade máxima. Lembre-se de que a velocidade é defasada em 90° (π/2 rad) em relação ao deslocamento, enquanto a aceleração está em oposição de fase (180° / π rad).',
+      },
+      {
+        id: 2,
+        topic: 'Frequência Angular e Inércia',
+        question:
+          'Se a massa acoplada a um sistema oscilador massa-mola ideal for quadruplicada (4m) mantendo-se a mesma constante de rigidez k, o que ocorre com o período T da oscilação?',
+        options: [
+          {
+            id: 'opt-fac-2a',
+            letter: 'A',
+            text: 'O período é reduzido à metade (T/2).',
+          },
+          {
+            id: 'opt-fac-2b',
+            letter: 'B',
+            text: 'O período é duplicado (2T), pois T = 2π√(m/k).',
+          },
+          {
+            id: 'opt-fac-2c',
+            letter: 'C',
+            text: 'O período quadruplica (4T) de forma linear com a massa inercial.',
+          },
+          {
+            id: 'opt-fac-2d',
+            letter: 'D',
+            text: 'O período permanece inalterado, pois depende apenas da rigidez elástica da mola.',
+          },
+        ],
+        correctOptionId: 'opt-fac-2b',
+        explanation:
+          'A relação analítica do período no MHS é T = 2π√(m/k). Multiplicar a massa por 4 resulta em √(4m/k) = 2·√(m/k), dobrando o período da oscilação.',
+        confusionDiagnosis:
+          'Esquecer a raiz quadrada na relação do período com a massa inercial (achar que quadruplica em vez de duplicar).',
+      },
+      {
+        id: 3,
+        topic: 'Energia Mecânica em Função da Amplitude',
+        question:
+          'Um estudante duplica a amplitude de oscilação de um oscilador harmônico simples (de A para 2A). O que acontece com a energia mecânica total do sistema?',
+        options: [
+          {
+            id: 'opt-fac-3a',
+            letter: 'A',
+            text: 'A energia mecânica total quadruplica (4E), pois E é proporcional ao quadrado da amplitude (E = ½kA²).',
+          },
+          {
+            id: 'opt-fac-3b',
+            letter: 'B',
+            text: 'A energia mecânica dobra (2E), crescendo na mesma proporção da amplitude.',
+          },
+          {
+            id: 'opt-fac-3c',
+            letter: 'C',
+            text: 'A energia mecânica permanece constante, pois a frequência diminui para compensar.',
+          },
+          {
+            id: 'opt-fac-3d',
+            letter: 'D',
+            text: 'A energia potencial aumenta 8 vezes enquanto a energia cinética diminui.',
+          },
+        ],
+        correctOptionId: 'opt-fac-3a',
+        explanation:
+          'A energia mecânica total em um oscilador MHS é calculada por E = ½kA². Portanto, ao substituir A por 2A, obtemos E\' = ½k(2A)² = 4·(½kA²) = 4E.',
+        confusionDiagnosis:
+          'Imaginar que a energia mecânica tem crescimento linear com a amplitude geométrica. A dependência é estritamente quadrática.',
+      },
+      {
+        id: 4,
+        topic: 'Pêndulo Simples e Aceleração Gravitacional',
+        question:
+          'Um pêndulo simples de comprimento L opera com pequenas oscilações na Terra (g = 9,8 m/s²). Se esse mesmo pêndulo for levado à Lua (g ≈ 1,6 m/s²), o que ocorrerá com a frequência de oscilação f?',
+        options: [
+          {
+            id: 'opt-fac-4a',
+            letter: 'A',
+            text: 'A frequência aumentará, pois a gravidade reduzida oferece menor resistência inercial.',
+          },
+          {
+            id: 'opt-fac-4b',
+            letter: 'B',
+            text: 'A frequência diminuirá, pois f = (1/2π)√(g/L) e a aceleração da gravidade menor reduz a força restauradora tangencial.',
+          },
+          {
+            id: 'opt-fac-4c',
+            letter: 'C',
+            text: 'A frequência permanecerá rigorosamente idêntica, pois depende unicamente do comprimento L.',
+          },
+          {
+            id: 'opt-fac-4d',
+            letter: 'D',
+            text: 'O pêndulo parará de oscilar, necessitando de uma força externa contínua.',
+          },
+        ],
+        correctOptionId: 'opt-fac-4b',
+        explanation:
+          'A frequência do pêndulo simples é dada por f = (1/2π)·√(g/L). Como a gravidade na Lua é cerca de 6 vezes menor que na Terra, a força restauradora gravitacional tangencial é menor, reduzindo a frequência de oscilação.',
+        confusionDiagnosis:
+          'Confundir período com frequência (o período T aumenta, logo a frequência f necessariamente diminui).',
+      },
+      {
+        id: 5,
+        topic: 'Defasagem no Espaço de Fase',
+        question:
+          'No espaço de fase analítico do MHS (gráfico de momento linear p vs posição x), a trajetória de um oscilador harmônico simples sem perdas dissipativas é descrita geometricamente por:',
+        options: [
+          {
+            id: 'opt-fac-5a',
+            letter: 'A',
+            text: 'Uma elipse fechada (ou circunferência em coordenadas normalizadas), refletindo a conservação estrita da energia mecânica.',
+          },
+          {
+            id: 'opt-fac-5b',
+            letter: 'B',
+            text: 'Uma espiral convergente para a origem (0,0), indicando repouso térmico assintótico.',
+          },
+          {
+            id: 'opt-fac-5c',
+            letter: 'C',
+            text: 'Uma reta diagonal passando pela origem com inclinação proporcional a ω.',
+          },
+          {
+            id: 'opt-fac-5d',
+            letter: 'D',
+            text: 'Uma hipérbole aberta que diverge para o infinito nos pontos de equilíbrio.',
+          },
+        ],
+        correctOptionId: 'opt-fac-5a',
+        explanation:
+          'A equação de conservação E = p²/(2m) + ½kx² = constante tem a forma canônica x²/A² + p²/p_max² = 1, o que descreve uma elipse fechada no plano de fase para um sistema conservativo periódico.',
+        confusionDiagnosis:
+          'Confundir o gráfico temporal senoidal x(t) com o retrato de fase (p vs x), ou confundir sistema ideal conservativo com sistema amortecido (que formaria uma espiral).',
+      },
+    ],
+    modules: FACULDADE_FIS204_MODULES,
+    writtenLesson: {
+      intro:
+        'Todo sistema que oscila em torno de um ponto de equilíbrio — uma mola, um pêndulo, a corda de um instrumento — obedece à mesma lógica matemática quando o deslocamento é pequeno. Essa lógica é o Movimento Harmônico Simples (MHS), e entendê-la aqui é a base para tudo que vem depois em ondas, acústica e circuitos oscilantes.',
+      explanationModes: {
+        essencial: {
+          intro:
+            'Uma mola sempre tenta voltar ao seu tamanho natural. Se você a puxa para longe, ela puxa você de volta. Quanto mais você estica, mais difícil fica segurar.',
+          conceptSummary:
+            'Resistência Elástica: a mola sempre reage na direção contrária ao seu movimento. Puxar para a direita gera uma força que puxa para a esquerda.',
+          formulaDisplay: {
+            raw: 'F = -k · x',
+            label: 'Força Restauradora = -(Rigidez da Mola) × (Deformação)',
+            tokens: [
+              { symbol: 'F', meaning: 'Força restauradora que a mola exerce', visualTarget: 'force' },
+              { symbol: '-', meaning: 'Sentido oposto: resiste ao deslocamento', visualTarget: 'direction' },
+              { symbol: 'k', meaning: 'Rigidez elástica da mola', visualTarget: 'spring' },
+              { symbol: 'x', meaning: 'Distância esticada ou comprimida', visualTarget: 'displacement' },
+            ],
+          },
+          keyTakeaway:
+            'A mola nunca empurra você para longe do centro: ela sempre atrai o bloco de volta para a posição de repouso.',
+          depthNotes: [
+            'Visual: veja a seta da força no laboratório acima apontando sempre para o centro amarelo (x = 0).',
+            'Cotidiano: é esse mecanismo que absorve impactos nas suspensões de bicicletas e carros.',
+          ],
+        },
+        explicativo: {
+          intro:
+            'Em sistemas físicos reais, o ponto de equilíbrio é onde todas as forças se anulam. Quando tiramos um objeto dessa posição, a Lei de Hooke determina que surge uma força diretamente proporcional ao deslocamento que tenta restabelecer o equilíbrio.',
+          conceptSummary:
+            'Proporcionalidade Linear: se você dobrar a deformação da mola (x → 2x), a força restauradora também dobra (F → 2F). A constante k mede numericamente a dureza da mola em Newtons por metro.',
+          formulaDisplay: {
+            raw: 'F = -k · x',
+            label: 'F (Newtons) = -k (N/m) · x (metros)',
+            tokens: [
+              { symbol: 'F', meaning: 'Vetor Força Restauradora (aponta para o centro)', visualTarget: 'force' },
+              { symbol: '-', meaning: 'Oposição de fase: F e x têm sinais contrários', visualTarget: 'direction' },
+              { symbol: 'k', meaning: 'Constante de rigidez elástica do material', visualTarget: 'spring' },
+              { symbol: 'x', meaning: 'Vetor Deslocamento a partir da origem x=0', visualTarget: 'displacement' },
+            ],
+          },
+          keyTakeaway:
+            'O sinal negativo (-) é o elemento vital: sem ele, a força afastaria o corpo para o infinito em vez de criar um oscilador estável.',
+          depthNotes: [
+            'Equilíbrio Estável: qualquer perturbação inicial gera uma aceleração de retorno.',
+            'Rigidez k: uma mola macia tem k baixo (15 N/m); uma mola rígida tem k alto (60 N/m).',
+          ],
+        },
+        tecnico: {
+          intro:
+            'A formulação vetorial da Lei de Hooke F = -k·x combinada com a Segunda Lei de Newton (F = m·a) estabelece a Equação Diferencial Ordinária homogênea que governa o Movimento Harmônico Simples (MHS).',
+          conceptSummary:
+            'Dedução Analítica: m·(d²x/dt²) + k·x = 0 ⇒ d²x/dt² + ω₀²·x = 0. A frequência angular natural é ω₀ = √(k/m), com período de oscilação T = 2π√(m/k).',
+          formulaDisplay: {
+            raw: 'm · (d²x/dt²) + k · x = 0',
+            label: 'EDO Homogênea de 2ª Ordem com Solução Harmônica x(t) = A·cos(ω₀t + φ)',
+            tokens: [
+              { symbol: 'm', meaning: 'Massa inercial do corpo acoplado (kg)', visualTarget: 'mass' },
+              { symbol: 'd²x/dt²', meaning: 'Aceleração instantânea do bloco (m/s²)', visualTarget: 'acceleration' },
+              { symbol: 'k', meaning: 'Constante elástica da mola (N/m)', visualTarget: 'spring' },
+              { symbol: 'x', meaning: 'Posição instantânea no eixo x (m)', visualTarget: 'displacement' },
+            ],
+          },
+          keyTakeaway:
+            'No MHS, a velocidade v(t) está 90° defasada da posição x(t), e a aceleração a(t) está 180° defasada (oposição direta de fase).',
+          depthNotes: [
+            'Extremos (x = ±A): v = 0 (inversão do movimento) e aceleração máxima |a_max| = ω₀²A.',
+            'Ponto de Equilíbrio (x = 0): velocidade máxima |v_max| = ω₀A e aceleração nula (F = 0).',
+          ],
+        },
+        aprofundado: {
+          intro:
+            'Tratamento por Conservação de Energia Mecânica e Espaço de Fase: integrando a força restauradora F(x) = -kx ao longo do deslocamento, obtemos o potencial parabólico Ep(x) = ½kx², responsável pela troca contínua com a energia cinética.',
+          conceptSummary:
+            'Primeira Integral de Movimento: a energia mecânica total E_mec = Ec(t) + Ep(t) = ½mv² + ½kx² = ½kA² permanece rigorosamente constante ao longo de todo o ciclo conservativo.',
+          formulaDisplay: {
+            raw: 'E_total = ½ m v(t)² + ½ k x(t)² = ½ k A²',
+            label: 'Invariante de Energia Mecânica e Órbita Elíptica no Espaço de Fase',
+            tokens: [
+              { symbol: 'E_total', meaning: 'Energia Mecânica Total constante (Joules)', visualTarget: 'energy' },
+              { symbol: '½ m v²', meaning: 'Energia Cinética instantânea (máxima em x=0)', visualTarget: 'kinetic' },
+              { symbol: '½ k x²', meaning: 'Energia Potencial Elástica (máxima em x=±A)', visualTarget: 'potential' },
+              { symbol: '½ k A²', meaning: 'Energia determinada pela amplitude inicial A', visualTarget: 'amplitude' },
+            ],
+          },
+          keyTakeaway:
+            'No espaço de fase (x, v/ω₀), o estado do sistema percorre uma elipse fechada perfeita, comprovando a conservação de energia e a periodicidade estrita do sistema.',
+          depthNotes: [
+            'Regime de Hooke: válido apenas até o limite de escoamento elástico do material.',
+            'Troca Harmônica: sin²(ωt) + cos²(ωt) = 1 garante a transferência sem perdas entre cinético e potencial.',
+          ],
+        },
+      },
+      blocks: [
+        {
+          id: 'fac-block-1',
+          type: 'concept',
+          title: 'Força Restauradora e Lei de Hooke',
+          body: 'Em sistemas elásticos lineares, a força que o sistema exerce para voltar ao equilíbrio é proporcional ao deslocamento e sempre aponta no sentido contrário a ele. Quanto mais você estica ou comprime a mola, mais forte ela "puxa de volta" — nunca no mesmo sentido do deslocamento.',
+        },
+        {
+          id: 'fac-block-2',
+          type: 'formula',
+          title: 'Lei de Hooke',
+          formula: 'F = -k·x',
+          formulaLabel: 'k = constante elástica · x = deslocamento a partir do equilíbrio',
+          body: 'O sinal negativo não é um detalhe técnico: é ele que garante que a força sempre restaure o equilíbrio, nunca o afaste. Aplicando a 2ª Lei de Newton (F = m·a) a essa força, chegamos à equação diferencial que define o MHS.',
+        },
+        {
+          id: 'fac-block-3',
+          type: 'formula',
+          title: 'Equação Diferencial do Oscilador',
+          formula: 'd²x/dt² + ω₀²x = 0',
+          formulaLabel: 'ω₀ = √(k/m) — frequência angular natural',
+          body: 'A solução geral desta equação é x(t) = A·cos(ω₀t + φ), onde A é a amplitude e φ a fase inicial. Ela descreve exatamente como a posição evolui no tempo — e dela derivam velocidade e aceleração por simples derivação.',
+        },
+        {
+          id: 'fac-block-4',
+          type: 'example',
+          title: 'Nos extremos vs. no equilíbrio',
+          body: 'No ponto de deslocamento máximo (x = ±A), a velocidade é nula e a aceleração é máxima em módulo — é onde o sistema "muda de direção". No ponto de equilíbrio (x = 0), o oposto: velocidade máxima, aceleração nula, porque a força restauradora ali também é zero.',
+        },
+        {
+          id: 'fac-block-5',
+          type: 'application',
+          title: 'Conservação de Energia no MHS',
+          formula: 'E = ½kA²',
+          body: 'A energia mecânica total é constante e se alterna continuamente entre cinética (máxima no equilíbrio) e potencial elástica (máxima nos extremos). É essa troca contínua, sem perda, que caracteriza um oscilador ideal — sem atrito, a amplitude nunca diminui.',
+        },
+        {
+          id: 'fac-block-6',
+          type: 'comparison',
+          title: 'MHS na mola vs. no pêndulo simples',
+          body: 'A mesma matemática aparece em sistemas fisicamente diferentes, desde que a aproximação de pequenas oscilações valha.',
+          items: [
+            { label: 'Mola', text: 'ω₀ = √(k/m) — depende da rigidez e da massa.' },
+            { label: 'Pêndulo simples', text: 'ω₀ = √(g/L) — para θ pequeno (sen θ ≈ θ), o período T = 2π√(L/g) não depende da massa da esfera.' },
+          ],
+        },
+      ],
+    },
+    tutorGreeting:
+      'Olá! Sou seu tutor acadêmico para Física II. Posso esclarecer dúvidas sobre a dedução das equações diferenciais, o comportamento dos vetores no espaço de fase ou os passos dos exercícios.',
+    voiceEmphasis: false,
+    nextReviewSuggestion: 'Amanhã às 09:00',
+    notices: [
+      'Professor alterou o prazo da lista de exercícios para sexta-feira.',
+      'Nova mensagem da monitoria sobre a Questão 3.',
+    ],
+    disciplines: [
+      {
+        code: 'FIS-204',
+        title: 'Física II',
+        dateRange: '05/Ago – 14/Dez',
+        credits: 4,
+        isActive: true,
+        focusTopic: 'Oscilações · Movimento Harmônico Simples (MHS)',
+        focusObjective: 'Compreender a dinâmica do MHS, a força restauradora elástica e a dedução da equação diferencial do oscilador harmônico.',
+        focusDuration: '45 min',
+        content: FACULDADE_FIS204_MODULES,
+        notices: [
+          'Professor alterou o prazo da lista de exercícios para sexta-feira.',
+          'Nova mensagem da monitoria sobre a Questão 3.',
+        ],
+        // Referência fixa da semana letiva (ver comentário do cronograma do ENEM mais abaixo):
+        // hoje = Terça-feira, 22/Set. Usado para classificar severidade sem inventar datas novas.
+        noticeDetails: [
+          { text: 'Professor alterou o prazo da lista de exercícios para sexta-feira.', severity: 'atencao' },
+          { text: 'Nova mensagem da monitoria sobre a Questão 3.', severity: 'informativo' },
+        ],
+        materials: [
+          { id: 'fis-mat-1', name: 'Slides · Oscilações e MHS', kind: 'slides', sizeLabel: '2.4 MB' },
+          { id: 'fis-mat-2', name: 'Lista de Exercícios 3', kind: 'pdf', sizeLabel: '340 KB' },
+          { id: 'fis-mat-3', name: 'Tabela de Constantes Físicas', kind: 'pdf', sizeLabel: '120 KB' },
+        ],
+        deadlines: [
+          { id: 'fis-dl-1', label: 'Lista de Exercícios 3', date: 'Sexta-feira' },
+          { id: 'fis-dl-2', label: 'Prova 2 · Oscilações', date: '10/Out' },
+        ],
+      },
+      {
+        code: 'MAT-215',
+        title: 'Cálculo Numérico',
+        dateRange: '05/Ago – 12/Dez',
+        credits: 4,
+        isActive: false,
+        focusTopic: 'Métodos de Bisseção & Newton-Raphson',
+        focusObjective: 'Aplicar métodos iterativos para localizar raízes de funções não-lineares e comparar taxa de convergência.',
+        focusDuration: '40 min',
+        content: FACULDADE_MAT215_MODULES,
+        notices: ['Lista 3 liberada — prazo de entrega na próxima terça.'],
+        // "próxima terça" cai em cima de "hoje" (Terça 22/Set) — urgência real, não decorativa.
+        noticeDetails: [
+          { text: 'Lista 3 liberada — prazo de entrega na próxima terça.', severity: 'urgente' },
+        ],
+        materials: [
+          { id: 'mat-mat-1', name: 'Slides · Métodos Iterativos', kind: 'slides', sizeLabel: '1.8 MB' },
+          { id: 'mat-mat-2', name: 'Lista 3 · Bisseção e Newton-Raphson', kind: 'pdf', sizeLabel: '280 KB' },
+        ],
+        deadlines: [{ id: 'mat-dl-1', label: 'Lista 3', date: 'Terça-feira' }],
+      },
+      {
+        code: 'MEC-130',
+        title: 'Resistência dos Materiais',
+        dateRange: '06/Ago – 15/Dez',
+        credits: 3,
+        isActive: false,
+        focusTopic: 'Flexão em Vigas & Diagramas de Esforços',
+        focusObjective: 'Construir diagramas de esforço cortante e momento fletor para vigas isostáticas sob carregamento combinado.',
+        focusDuration: '50 min',
+        content: FACULDADE_MEC130_MODULES,
+        notices: ['Laboratório remarcado para quinta-feira, mesmo horário.'],
+        noticeDetails: [
+          { text: 'Laboratório remarcado para quinta-feira, mesmo horário.', severity: 'informativo' },
+        ],
+        materials: [
+          { id: 'mec-mat-1', name: 'Apostila · Flexão em Vigas', kind: 'pdf', sizeLabel: '3.1 MB' },
+          { id: 'mec-mat-2', name: 'Planilha · Diagramas de Esforços', kind: 'planilha', sizeLabel: '95 KB' },
+        ],
+        deadlines: [{ id: 'mec-dl-1', label: 'Relatório de Laboratório', date: 'Quinta-feira' }],
+      },
+      {
+        code: 'CMP-102',
+        title: 'Algoritmos & Estruturas de Dados',
+        dateRange: '07/Ago – 10/Dez',
+        credits: 3,
+        isActive: false,
+        focusTopic: 'Árvores Binárias de Busca & Balanceamento',
+        focusObjective: 'Implementar operações de inserção/remoção em BSTs e reconhecer quando o balanceamento (AVL) se torna necessário.',
+        focusDuration: '40 min',
+        content: FACULDADE_CMP102_MODULES,
+        notices: ['Monitoria extra marcada para tirar dúvidas do projeto final.'],
+        noticeDetails: [
+          { text: 'Monitoria extra marcada para tirar dúvidas do projeto final.', severity: 'informativo' },
+        ],
+        materials: [
+          { id: 'cmp-mat-1', name: 'Slides · Árvores Balanceadas', kind: 'slides', sizeLabel: '2.0 MB' },
+          { id: 'cmp-mat-2', name: 'Especificação do Projeto Final', kind: 'pdf', sizeLabel: '410 KB' },
+        ],
+        deadlines: [{ id: 'cmp-dl-1', label: 'Entrega do Projeto Final', date: '15/Out' }],
+      },
+    ],
+  },
+
+  ingles: {
+    id: 'ingles',
+    name: 'Inglês',
+    tagline: 'Inglês Intermediário · Fluência Oral & Compreensão Auditiva',
+    domainLabel: 'Idioma Global · Nível CEFR B1',
+    accentColor: '#D0EAA3',
+    lesson: {
+      track: 'ingles',
+      trackLabel: 'Inglês B1',
+      discipline: 'Inglês B1',
+      topic: 'Conversas do Cotidiano · Compreensão Auditiva & Fala',
+      sessionObjective: 'Compreender e responder com naturalidade a perguntas em conversas cotidianas, com precisão gramatical e fluidez de turn-taking.',
+      estimatedDuration: '30 min',
+      actualDurationSeconds: 1800,
+      module: 'Módulo 03 · Interação Oral & Fluência',
+      nextTopic: 'Inglês B1 · Pedidos Educados, Esclarecimentos e Perguntas Indiretas',
+      nextTopicDescription: 'Fórmulas de polidez para pedidos indiretos ("Would you mind...", "Could you tell me..."), pedidos de esclarecimento e entonação natural.',
+    },
+    summaryPoints: [
+      {
+        id: 'ing-sum-1',
+        timestamp: 90,
+        formattedTime: '01:30',
+        title: 'Natural Turn-Taking in Conversations',
+        text: 'Em conversas cotidianas em inglês, evite silêncios longos usando marcadores naturais de fala (e.g., "Well...", "Actually...", "To be honest...") enquanto formula sua resposta.',
+        icon: 'record_voice_over',
+      },
+      {
+        id: 'ing-sum-2',
+        timestamp: 360,
+        formattedTime: '06:00',
+        title: 'Common Phrasal Verbs in Daily Talk',
+        text: 'Expressões como "catch up", "run into", "figure out" e "call off" são essenciais para soar natural sem tradução palavra por palavra do português.',
+        icon: 'chat',
+      },
+      {
+        id: 'ing-sum-3',
+        timestamp: 720,
+        formattedTime: '12:00',
+        title: 'Connected Speech & Word Reductions',
+        text: 'Nativos conectam consoantes finais a vogais iniciais ("pick it up" soa como "pi-ki-tup") e reduzem preposições como "to" (/tə/) e "for" (/fər/).',
+        icon: 'graphic_eq',
+      },
+      {
+        id: 'ing-sum-4',
+        timestamp: 1100,
+        formattedTime: '18:20',
+        title: 'Polite Inquiries and Softening',
+        text: 'Suavizar declarações com "I was wondering if...", "Could you possibly..." em vez de comandos diretos ("Give me...") melhora a aceitação social e a naturalidade.',
+        icon: 'sentiment_satisfied',
+      },
+    ],
+    exerciseQuestions: [
+      {
+        id: 1,
+        topic: 'Listening Comprehension & Context',
+        question:
+          'Você ouve a seguinte fala em um diálogo casual: "Hey Sarah, I completely lost track of time! Are you still up for catching that film tonight?" O que o falante está comunicando?',
+        options: [
+          {
+            id: 'opt-ing-1a',
+            letter: 'A',
+            text: 'Ele perdeu o relógio e quer saber se o cinema ainda existe.',
+          },
+          {
+            id: 'opt-ing-1b',
+            letter: 'B',
+            text: 'Ele se atrasou ou perdeu a noção das horas, mas ainda quer saber se Sarah tem interesse em ir ao cinema juntos.',
+          },
+          {
+            id: 'opt-ing-1c',
+            letter: 'C',
+            text: 'Ele está cancelando o encontro porque o filme já terminou.',
+          },
+          {
+            id: 'opt-ing-1d',
+            letter: 'D',
+            text: 'Ele está pedindo para Sarah comprar os ingressos pela internet.',
+          },
+        ],
+        correctOptionId: 'opt-ing-1b',
+        explanation:
+          '"Lost track of time" é uma expressão idiomática muito comum que significa "perder a noção da hora". "To be up for something" significa estar disposto ou animado para fazer algo.',
+        confusionDiagnosis:
+          'Traduzir "track of time" literalmente como "trilha de tempo" ou achar que "catch a film" significa segurar algo físico, perdendo o sentido de ver um filme.',
+      },
+      {
+        id: 2,
+        topic: 'Situational Polite Response',
+        question:
+          'Um colega de trabalho lhe faz uma solicitação durante um dia atarefado: "Could you possibly look over this report before the two o\'clock meeting?" Qual é a resposta mais adequada e natural em um contexto profissional B1?',
+        options: [
+          {
+            id: 'opt-ing-2a',
+            letter: 'A',
+            text: '"I am busy now, do it yourself."',
+          },
+          {
+            id: 'opt-ing-2b',
+            letter: 'B',
+            text: '"Sure, I\'d be happy to. Just give me twenty minutes to wrap up what I\'m working on."',
+          },
+          {
+            id: 'opt-ing-2c',
+            letter: 'C',
+            text: '"Yes, I look over report yesterday already."',
+          },
+          {
+            id: 'opt-ing-2d',
+            letter: 'D',
+            text: '"No, because meetings are useless in my opinion."',
+          },
+        ],
+        correctOptionId: 'opt-ing-2b',
+        explanation:
+          'A alternativa B usa estrutura polida e comum no ambiente corporativo internacional ("Sure, I\'d be happy to... Just give me... to wrap up..."), mantendo cordialidade e clareza de prazo.',
+        confusionDiagnosis:
+          'Usar respostas excessivamente rudes ou frases com gramática truncada ("I look over report yesterday").',
+      },
+      {
+        id: 3,
+        topic: 'Phrasal Verbs in Real Context',
+        question:
+          'Complete a lacuna na frase: "We spent two hours discussing the budget issue, but we still haven\'t _______ a feasible solution." Qual phrasal verb preenche a frase corretamente?',
+        options: [
+          {
+            id: 'opt-ing-3a',
+            letter: 'A',
+            text: 'come up with (elaborar / propor)',
+          },
+          {
+            id: 'opt-ing-3b',
+            letter: 'B',
+            text: 'run out of (ficar sem mantimentos)',
+          },
+          {
+            id: 'opt-ing-3c',
+            letter: 'C',
+            text: 'give up on (desistir de)',
+          },
+          {
+            id: 'opt-ing-3d',
+            letter: 'D',
+            text: 'look down on (menosprezar alguém)',
+          },
+        ],
+        correctOptionId: 'opt-ing-3a',
+        explanation:
+          '"To come up with a solution/idea" significa propor, criar ou alcançar uma solução mentalmente. É a regência exata para problemas e ideias.',
+        confusionDiagnosis:
+          'Confundir phrasal verbs de três palavras com partículas parecidas (come up with vs. run out of).',
+      },
+      {
+        id: 4,
+        topic: 'Indirect Questions Structure',
+        question:
+          'Como transformar a pergunta direta "What time does the presentation start?" em uma pergunta indireta formal e polida?',
+        options: [
+          {
+            id: 'opt-ing-4a',
+            letter: 'A',
+            text: '"Could you tell me what time does the presentation start?"',
+          },
+          {
+            id: 'opt-ing-4b',
+            letter: 'B',
+            text: '"Could you tell me what time the presentation starts?"',
+          },
+          {
+            id: 'opt-ing-4c',
+            letter: 'C',
+            text: '"Tell me what time is the start of presentation?"',
+          },
+          {
+            id: 'opt-ing-4d',
+            letter: 'D',
+            text: '"What time presentation is starting, please tell?"',
+          },
+        ],
+        correctOptionId: 'opt-ing-4b',
+        explanation:
+          'Em perguntas indiretas ("Could you tell me..."), a oração subordinada perde a inversão interrogativa e o auxiliar "does": o verbo volta para a ordem afirmativa direta ("the presentation starts").',
+        confusionDiagnosis:
+          'Manter o auxiliar interrogativo "does" dentro da pergunta indireta (erro comum: "Could you tell me what time does...").',
+      },
+      {
+        id: 5,
+        topic: 'Spoken Fluency & Clarification',
+        question:
+          'Durante uma conversa em inglês com ruído ambiente, você não compreendeu o último ponto mencionado. Qual frase expressa pedido de esclarecimento com cortesia e naturalidade?',
+        options: [
+          {
+            id: 'opt-ing-5a',
+            letter: 'A',
+            text: '"What? Speak louder!"',
+          },
+          {
+            id: 'opt-ing-5b',
+            letter: 'B',
+            text: '"I didn\'t quite catch that last point, would you mind repeating it?"',
+          },
+          {
+            id: 'opt-ing-5c',
+            letter: 'C',
+            text: '"Your voice is bad, say again."',
+          },
+          {
+            id: 'opt-ing-5d',
+            letter: 'D',
+            text: '"I do not understand anything you talked."',
+          },
+        ],
+        correctOptionId: 'opt-ing-5b',
+        explanation:
+          '"I didn\'t quite catch that" é a forma mais natural e idiomática de expressar que não conseguiu ouvir ou compreender algo, seguida por "would you mind repeating it?" que denota alto grau de cortesia.',
+        confusionDiagnosis:
+          'Usar "What?" ou transferir a culpa para o interlocutor ("say again"), o que pode soar agressivo em conversas em inglês.',
+      },
+    ],
+    modules: [
+      {
+        id: 'ing-mod-1',
+        code: 'ENG-101',
+        title: 'A1 Fundamentals: Pronouns, To Be & Basic Routine',
+        status: 'completed',
+        score: '9.8',
+        date: 'Concluído em 05/Set',
+        duration: '12h acumuladas',
+        lessons: [
+          { id: 'ing-mod-1-l1', title: 'Pronomes pessoais & verbo To Be', status: 'completed', durationMinutes: 25 },
+          { id: 'ing-mod-1-l2', title: 'Rotina diária & advérbios de frequência', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-1-l3', title: 'Perguntas básicas & Wh-questions', status: 'completed', durationMinutes: 25 },
+          { id: 'ing-mod-1-l4', title: 'Revisão A1 & checkpoint de fluência', status: 'completed', durationMinutes: 20 },
+        ],
+      },
+      {
+        id: 'ing-mod-2',
+        code: 'ENG-102',
+        title: 'A2 Routine, Past Simple & Everyday Places',
+        status: 'completed',
+        score: '9.0',
+        date: 'Concluído em 10/Set',
+        duration: '10h acumuladas',
+        lessons: [
+          { id: 'ing-mod-2-l1', title: 'Passado simples: verbos regulares', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-2-l2', title: 'Passado simples: verbos irregulares comuns', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-2-l3', title: 'Lugares do dia a dia & preposições', status: 'completed', durationMinutes: 25 },
+        ],
+      },
+      {
+        id: 'ing-mod-3',
+        code: 'ENG-201',
+        title: 'B1 Spoken Interaction: Natural Conversations',
+        status: 'in_progress',
+        score: 'Pendente',
+        date: 'Hoje · Sessão Recomendada',
+        duration: '30 min programados',
+        lessons: [
+          { id: 'ing-mod-3-l1', title: 'Small talk & marcadores de conversa', status: 'completed', durationMinutes: 30 },
+          { id: 'ing-mod-3-l2', title: 'Everyday Conversations: Listening & Speaking', status: 'current', durationMinutes: 30 },
+          { id: 'ing-mod-3-l3', title: 'Phrasal verbs do cotidiano', status: 'locked', durationMinutes: 30 },
+          { id: 'ing-mod-3-l4', title: 'Pedidos educados & esclarecimentos', status: 'locked', durationMinutes: 30 },
+        ],
+      },
+      {
+        id: 'ing-mod-4',
+        code: 'ENG-202',
+        title: 'B1 Business Communication & Problem Solving',
+        status: 'locked',
+        score: 'Bloqueado',
+        date: 'Próxima etapa da trilha',
+        duration: '35 min estimados',
+        lessons: [
+          { id: 'ing-mod-4-l1', title: 'E-mails profissionais & tom formal', status: 'locked', durationMinutes: 35 },
+          { id: 'ing-mod-4-l2', title: 'Reuniões: propor e negociar', status: 'locked', durationMinutes: 35 },
+          { id: 'ing-mod-4-l3', title: 'Resolução de problemas em equipe', status: 'locked', durationMinutes: 35 },
+        ],
+      },
+      {
+        id: 'ing-mod-5',
+        code: 'ENG-203',
+        title: 'B2 Spoken Argumentation, Debate & Idioms',
+        status: 'locked',
+        score: 'Bloqueado',
+        date: 'Etapa avançada',
+        duration: '40 min estimados',
+        lessons: [
+          { id: 'ing-mod-5-l1', title: 'Construindo argumentos com coesão', status: 'locked', durationMinutes: 40 },
+          { id: 'ing-mod-5-l2', title: 'Idioms & expressões idiomáticas', status: 'locked', durationMinutes: 40 },
+        ],
+      },
+    ],
+    completedLessonsHistory: [
+      { id: 'hist-1', title: 'Small talk & marcadores de conversa', moduleTitle: 'B1 Spoken Interaction', completedAt: 'Ontem às 18:40', durationMinutes: 30 },
+      { id: 'hist-2', title: 'Lugares do dia a dia & preposições', moduleTitle: 'A2 Routine & Past Simple', completedAt: '10/Set', durationMinutes: 25 },
+      { id: 'hist-3', title: 'Passado simples: verbos irregulares comuns', moduleTitle: 'A2 Routine & Past Simple', completedAt: '09/Set', durationMinutes: 30 },
+      { id: 'hist-4', title: 'Revisão A1 & checkpoint de fluência', moduleTitle: 'A1 Fundamentals', completedAt: '05/Set', durationMinutes: 20 },
+    ],
+    writtenLesson: {
+      intro:
+        'Falar inglês naturalmente não é só saber gramática — é saber conduzir uma conversa: preencher silêncios, usar expressões idiomáticas do dia a dia e entender a fala conectada dos nativos. Esta aula cobre exatamente essas três camadas, na ordem em que elas aparecem numa conversa real.',
+      explanationModes: {
+        essencial: {
+          intro: 'Em vez de traduzir mentalmente palavra por palavra, use expressões prontas de conexão como "Well..." e "Actually..." para falar com mais fluidez sem travar.',
+          conceptSummary: 'Fluência Prática: marcadores curtos compram tempo para pensar e conectam frases de maneira natural.',
+          keyTakeaway: 'Nenhum nativo fala em frases perfeitamente isoladas: eles conectam o final de uma palavra com o começo da outra.',
+          depthNotes: ['Dica auditiva: ouça como "pick it up" soa como uma palavra só: "pi-ki-tup".'],
+        },
+        explicativo: {
+          intro: 'A conversa em inglês depende de turn-taking: sinais que indicam quando você está ouvindo, quando está pensando e quando quer a vez de falar.',
+          conceptSummary: 'Marcadores de Discurso & Phrasal Verbs: combinam significado idiomático e polidez comunicativa.',
+          keyTakeaway: 'A suavização ("Could you please..." vs "Give me...") define o tom da relação interpessoal.',
+          depthNotes: ['Phrasal verbs: "catch up", "call off", "run into" não podem ser traduzidos ao pé da letra.'],
+        },
+        tecnico: {
+          intro: 'Análise fonética da fala conectada (Connected Speech): elisão, assimilação consonantal e redução de vogais fracas ao schwa (/ə/).',
+          conceptSummary: 'Fonologia Aplicada: preposições átonas sofrem enfraquecimento rítmico ("to" vira /tə/, "for" vira /fər/).',
+          keyTakeaway: 'O inglês é uma língua de ritmo acentual (stress-timed), enquanto o português é de ritmo silábico (syllable-timed).',
+          depthNotes: ['Stress-timing: a distância temporal entre sílabas tônicas é constante, forçando a compressão das átonas.'],
+        },
+        aprofundado: {
+          intro: 'Pragmática linguística e sociolinguística: registro informal, atenuadores epistêmicos (hedging) e adequação contextual em ambientes globais.',
+          conceptSummary: 'Competência Pragmática: o domínio de marcadores modais e entonação ascendente/descendente para negociação de significado.',
+          keyTakeaway: 'A fluência avançada (C1/C2) reside na habilidade de gerenciar a polidez negativa e evitar a imposição direta.',
+          depthNotes: ['Hedging: uso de "I was wondering if...", "It seems like..." para mitigar riscos de conflito na comunicação corporativa.'],
+        },
+      },
+      blocks: [
+        {
+          id: 'ing-block-1',
+          type: 'concept',
+          title: 'Natural Turn-Taking in Conversations',
+          body: 'Em conversas cotidianas, silêncios longos soam estranhos enquanto você formula uma resposta. Nativos preenchem esse espaço com marcadores naturais de fala — "Well...", "Actually...", "To be honest..." — que sinalizam "estou pensando", sem quebrar o ritmo da troca.',
+        },
+        {
+          id: 'ing-block-2',
+          type: 'example',
+          title: 'Phrasal Verbs do dia a dia',
+          body: 'Expressões como "catch up" (colocar o papo em dia), "run into" (encontrar por acaso) e "call off" (cancelar) aparecem o tempo todo na fala informal. Traduzir palavra por palavra do português não funciona aqui — o significado é do conjunto, não das partes.',
+        },
+        {
+          id: 'ing-block-3',
+          type: 'concept',
+          title: 'Connected Speech & Word Reductions',
+          body: 'Nativos conectam a consoante final de uma palavra à vogal inicial da próxima — "pick it up" soa como "pi-ki-tup". Preposições curtas também reduzem: "to" vira /tə/, "for" vira /fər/. É por isso que o inglês falado soa "mais rápido" do que o inglês escrito sugere.',
+        },
+        {
+          id: 'ing-block-4',
+          type: 'comparison',
+          title: 'Pedido direto vs. pedido suavizado',
+          body: 'A mesma solicitação muda completamente de tom dependendo da estrutura escolhida — e isso importa socialmente, não só gramaticalmente.',
+          items: [
+            { label: 'Direto (comando)', text: '"Give me the report." — soa como uma ordem, raramente apropriado entre colegas.' },
+            { label: 'Suavizado (pedido)', text: '"I was wondering if you could send me the report?" — a mesma solicitação, com muito mais aceitação social.' },
+          ],
+        },
+        {
+          id: 'ing-block-5',
+          type: 'application',
+          title: 'Juntando tudo numa resposta real',
+          body: 'Uma resposta natural combina as três camadas: um marcador de abertura, o phrasal verb certo, e a pronúncia conectada. "Well, I totally lost track of time — are you still up for catching that film tonight?" soa natural porque usa as três ao mesmo tempo, não porque é gramaticalmente "correta".',
+        },
+      ],
+    },
+    tutorGreeting:
+      'Olá! Sou seu parceiro de conversação e treinador de idioma. Posso ajudar você a praticar respostas, tirar dúvidas de vocabulário ou exercitar pronúncia e conversação oral.',
+    voiceEmphasis: true,
+    nextReviewSuggestion: 'Amanhã às 08:30',
+    masteryDomains: [
+      { id: 'ing-mastery-speaking', label: 'Speaking', percent: 62 },
+      { id: 'ing-mastery-listening', label: 'Listening', percent: 74 },
+      { id: 'ing-mastery-reading', label: 'Reading', percent: 81 },
+      { id: 'ing-mastery-writing', label: 'Writing', percent: 55 },
+    ],
+    vocabulary: [
+      {
+        id: 'ing-voc-1',
+        term: 'come up with',
+        translation: 'propor, elaborar (uma ideia ou solução)',
+        example: 'We need to come up with a plan before Friday.',
+      },
+      {
+        id: 'ing-voc-2',
+        term: 'run into',
+        translation: 'encontrar alguém por acaso',
+        example: 'I ran into my old teacher at the supermarket.',
+      },
+      {
+        id: 'ing-voc-3',
+        term: 'catch up',
+        translation: 'colocar o papo em dia / recuperar o atraso',
+        example: 'Let\'s catch up over coffee this weekend.',
+      },
+      {
+        id: 'ing-voc-4',
+        term: 'I was wondering if...',
+        translation: 'fórmula educada para um pedido indireto',
+        example: 'I was wondering if you could help me with this report.',
+      },
+      {
+        id: 'ing-voc-5',
+        term: 'I didn\'t quite catch that',
+        translation: 'pedido educado de repetição/esclarecimento',
+        example: 'Sorry, I didn\'t quite catch that — could you repeat it?',
+      },
+      {
+        id: 'ing-voc-6',
+        term: 'to wrap up',
+        translation: 'finalizar, encerrar algo',
+        example: 'Give me ten minutes to wrap up this email.',
+      },
+    ],
+    // Expandido (Refinamento Visual §7.4) de 2 para 6 itens, cobrindo tipos pedagógicos
+    // diferentes sobre o MESMO tema da aula (turn-taking, phrasal verbs, pedidos educados,
+    // connected speech já estabelecidos em `summaryPoints`) — não conteúdo novo desconectado só
+    // para aumentar a contagem. A arquitetura (`VoiceExerciseView.tsx`) já era genérica sobre
+    // `prompts.length`; o limite de 2 era só o tamanho desta lista.
+    voicePrompts: [
+      {
+        id: 'ing-voice-1',
+        type: 'repeticao',
+        instruction: 'Leia a frase em voz alta, com atenção à entonação natural.',
+        targetPhrase: 'I was wondering if you could tell me what time the meeting starts.',
+        simulatedTranscript: '"I was wondering if you could tell me what time the meeting starts."',
+        feedback: 'Boa pronúncia. A entonação ficou natural, como em uma conversa real.',
+      },
+      {
+        id: 'ing-voice-2',
+        type: 'resposta_curta',
+        instruction: 'Agora pratique um pedido de esclarecimento educado.',
+        targetPhrase: 'Sorry, I didn\'t quite catch that. Could you say it again?',
+        simulatedTranscript: '"Sorry, I didn\'t quite catch that. Could you say it again?"',
+        feedback: 'Você foi compreendido. Essa é exatamente a forma natural de pedir para repetir.',
+      },
+      {
+        id: 'ing-voice-3',
+        type: 'pergunta_resposta',
+        instruction: 'Responda com uma frase completa: "What time do you usually catch up with friends during the week?"',
+        targetPhrase: 'I usually catch up with friends on Friday evenings, after work.',
+        simulatedTranscript: '"I usually catch up with friends on Friday evenings, after work."',
+        feedback: 'Ótima resposta completa — você usou "catch up" exatamente como praticamos no resumo da aula.',
+      },
+      {
+        id: 'ing-voice-4',
+        type: 'role_play',
+        instruction: 'Role-play: um colega pede para você revisar um relatório antes da reunião das 14h. Responda educadamente aceitando, mas peça 20 minutos.',
+        targetPhrase: 'Sure, I\'d be happy to. Just give me twenty minutes to wrap up what I\'m working on.',
+        simulatedTranscript: '"Sure, I\'d be happy to. Just give me twenty minutes to wrap up what I\'m working on."',
+        feedback: 'Muito natural — tom cordial e prazo claro, exatamente como em um ambiente profissional real.',
+      },
+      {
+        id: 'ing-voice-5',
+        type: 'pronuncia',
+        instruction: 'Foco em connected speech: uma consoante final conectando com a vogal seguinte.',
+        targetPhrase: 'Could you pick it up on your way home?',
+        simulatedTranscript: '"Could you pick it up on your way home?"',
+        feedback: 'Boa conexão entre "pick" e "it up" — soou como "pi-ki-tup", igual à fala nativa.',
+      },
+      {
+        id: 'ing-voice-6',
+        type: 'resposta_contextual',
+        instruction: 'Contexto: você está em uma videochamada com ruído e perdeu o último ponto do colega. Responda de forma natural e educada.',
+        targetPhrase: 'I\'m sorry, could you repeat that last part? The connection is a bit rough on my end.',
+        simulatedTranscript: '"I\'m sorry, could you repeat that last part? The connection is a bit rough on my end."',
+        feedback: 'Perfeito — você contextualizou o motivo do pedido, o que soa ainda mais natural em inglês profissional.',
+      },
+    ],
+    immersionScenario: {
+      title: 'Pedindo um café em Londres',
+      setting: 'Você está em uma cafeteria e o atendente pergunta o que você deseja pedir.',
+      turns: [
+        {
+          id: 'imm-1',
+          speakerLine: '"Hi there! What can I get started for you today?"',
+          userPromptHint: 'Peça um cappuccino e pergunte se eles têm leite de aveia.',
+          simulatedTranscript: '"Hi, could I get a cappuccino, please? Do you have oat milk?"',
+          feedback: 'Muito bem. Pedido claro e educado — exatamente como um falante nativo faria.',
+        },
+        {
+          id: 'imm-2',
+          speakerLine: '"Sure! For here or to go?"',
+          userPromptHint: 'Diga que é para levar (to go).',
+          simulatedTranscript: '"To go, please."',
+          feedback: 'Perfeito. Resposta curta e natural, sem soar robotizada.',
+        },
+      ],
+    },
+  },
+
+  vestibular: {
+    id: 'vestibular',
+    // "ENEM" por instrução explícita de produto (ENEM/Inglês/Faculdade) — o resto do conteúdo
+    // desta trilha (tagline, domainLabel, lesson.*) já usava "ENEM" consistentemente; só este
+    // campo `name` (usado em cabeçalhos/rótulos de sessão em toda a UI) ainda dizia
+    // "Vestibular". O id interno permanece `vestibular` (StudyTrack) sem mudança de tipo.
+    name: 'ENEM',
+    // Simplificado (Refinamento Visual): "Matriz de Referência · Habilidades 01 a 04" era
+    // jargão de taxonomia interna do exame, sem valor de decisão para o usuário (mesmo
+    // problema de "Tempo Nominal do Ciclo" na Faculdade). "ENEM ·" também foi removido da
+    // tagline por já estar redundante com o `h1` (que já mostra "ENEM").
+    tagline: 'Ciências da Natureza & Tecnologias',
+    domainLabel: 'Preparação para o Vestibular',
+    accentColor: '#FFF18C',
+    lesson: {
+      track: 'vestibular',
+      trackLabel: 'ENEM · Ciências da Natureza',
+      discipline: 'ENEM · Física',
+      topic: 'Ondulatória · Fenômenos e Aplicações no Cotidiano',
+      sessionObjective: 'Resolver questões contextualizadas da Matriz de Referência do ENEM, aplicar v = λ · f e identificar distratores conceituais comuns em refração e difração.',
+      estimatedDuration: '45 min',
+      actualDurationSeconds: 2700,
+      module: 'Caderno de Ouro ENEM · Habilidades 01 a 04',
+      nextTopic: 'ENEM · Acústica, Efeito Doppler e Fenômenos Sonoros',
+      nextTopicDescription: 'Ressonância sonora, timbre vs. altura, poluição sonora em centros urbanos e cálculo de frequência percebida em fontes móveis.',
+    },
+    summaryPoints: [
+      {
+        id: 'vest-sum-1',
+        timestamp: 120,
+        formattedTime: '02:00',
+        title: 'Classificação de Ondas no ENEM',
+        text: 'Ondas mecânicas transportam apenas energia e momentum através de meios materiais (ex: som, ondas no mar). Ondas eletromagnéticas propagam-se no vácuo com velocidade c ≈ 3·10⁸ m/s.',
+        icon: 'waves',
+      },
+      {
+        id: 'vest-sum-2',
+        timestamp: 480,
+        formattedTime: '08:00',
+        title: 'A Equação Fundamental: v = λ · f',
+        text: 'Regra de ouro das questões do ENEM: a frequência f depende exclusivamente da fonte emissora. Na refração (mudança de meio), f é constante; se v varia, λ varia na mesma proporção.',
+        icon: 'calculate',
+      },
+      {
+        id: 'vest-sum-3',
+        timestamp: 950,
+        formattedTime: '15:50',
+        title: 'Fenômenos Ondulatórios Recorrentes',
+        text: 'Difração (contorno de fendas da ordem de λ), Interferência (superposição construtiva/destrutiva) e Polarização (exclusiva de ondas transversais, muito cobrada em óculos 3D).',
+        icon: 'grain',
+      },
+      {
+        id: 'vest-sum-4',
+        timestamp: 1420,
+        formattedTime: '23:40',
+        title: 'Diagnóstico de Distratores do ENEM',
+        text: 'O distrator mais frequente no ENEM supõe que "a frequência do som muda ao entrar na água" ou que "ondas sonoras se propagam no vácuo cósmico". Atenção ao enunciado!',
+        icon: 'fact_check',
+      },
+    ],
+    exerciseQuestions: [
+      {
+        id: 1,
+        topic: 'Natureza das Ondas Mecânicas no Vácuo',
+        question:
+          '(ENEM Adaptado) Em uma cena de ficção científica ambientada no espaço interestelar profundo (vácuo absoluto), uma nave alienígena explode a curta distância de uma estação orbital. Um astronauta dentro de seu traje observa o clarão luminoso da explosão e, em seguida, ouve um estrondo ensurdecedor. Do ponto de vista da física ondulatória, por que essa cena comete um erro conceitual?',
+        options: [
+          {
+            id: 'opt-vest-1a',
+            letter: 'A',
+            text: 'Porque as ondas sonoras são longitudinais e mecânicas, exigindo colisões entre partículas materiais de um meio para propagar variações de pressão.',
+          },
+          {
+            id: 'opt-vest-1b',
+            letter: 'B',
+            text: 'Porque no vácuo a velocidade do som é tão alta que o astronauta ouviria o som antes de enxergar o clarão luminoso.',
+          },
+          {
+            id: 'opt-vest-1c',
+            letter: 'C',
+            text: 'Porque ondas eletromagnéticas e sonoras sofrem difração total nas paredes do traje espacial, impedindo a audição.',
+          },
+          {
+            id: 'opt-vest-1d',
+            letter: 'D',
+            text: 'Porque a gravidade zero do espaço anula a amplitude de qualquer onda senoidal longitudinal.',
+          },
+        ],
+        correctOptionId: 'opt-vest-1a',
+        explanation:
+          'Ondas sonoras são perturbações mecânicas de pressão que necessitam de átomos/moléculas para se propagar. No vácuo cósmico, não há meio material para transmitir a onda sonora.',
+        confusionDiagnosis:
+          'Distrator clássico do ENEM: associar som à luz. A luz da explosão é visível no vácuo (onda eletromagnética), mas o som mecânico é fisicamente impossível sem meio.',
+      },
+      {
+        id: 2,
+        topic: 'Refração e Conservação de Frequência',
+        question:
+          '(ENEM Adaptado) Um sonar emite um pulso sonoro que se propaga inicialmente no ar atmosférico (v ≈ 340 m/s) e em seguida penetra na água do mar, onde a velocidade de propagação salta para aproximadamente 1500 m/s. Em relação à frequência e ao comprimento de onda do pulso sonoro refratado na água, o que ocorre?',
+        options: [
+          {
+            id: 'opt-vest-2a',
+            letter: 'A',
+            text: 'A frequência aumenta proporcionalmente à velocidade e o comprimento de onda permanece fixo.',
+          },
+          {
+            id: 'opt-vest-2b',
+            letter: 'B',
+            text: 'A frequência permanece constante (determinada pela fonte emissora) e o comprimento de onda aumenta proporcionalmente.',
+          },
+          {
+            id: 'opt-vest-2c',
+            letter: 'C',
+            text: 'A frequência e o comprimento de onda diminuem pela maior densidade da massa de água salgada.',
+          },
+          {
+            id: 'opt-vest-2d',
+            letter: 'D',
+            text: 'O comprimento de onda diminui à metade e a frequência quadruplica para conservar a energia mecânica.',
+          },
+        ],
+        correctOptionId: 'opt-vest-2b',
+        explanation:
+          'A frequência de uma onda é fixada unicamente pela fonte emissora e nunca varia com o meio. Pela equação fundamental v = λ · f, se a velocidade v cresceu no meio líquido, o comprimento de onda λ obrigatoriamente cresce na mesma proporção.',
+        confusionDiagnosis:
+          'O distrator mais escolhido pelos candidatos afirma que a frequência muda com a velocidade do meio. Lembre-se: meio dita velocidade e comprimento; fonte fixa a frequência.',
+      },
+      {
+        id: 3,
+        topic: 'Efeito Doppler em Veículos de Emergência',
+        question:
+          '(ENEM Adaptado) Uma ambulância emite som com frequência constante f₀ por sua sirene. Um pedestre parado na calçada observa o veículo se aproximar em alta velocidade e, logo após passar, se afastar. Como o pedestre percebe o som da sirene durante essa passagem?',
+        options: [
+          {
+            id: 'opt-vest-3a',
+            letter: 'A',
+            text: 'Mais agudo (maior frequência percebida) durante a aproximação, e mais grave (menor frequência percebida) durante o afastamento.',
+          },
+          {
+            id: 'opt-vest-3b',
+            letter: 'B',
+            text: 'Com velocidade de propagação maior durante a aproximação porque a velocidade da ambulância se soma à do som no ar.',
+          },
+          {
+            id: 'opt-vest-3c',
+            letter: 'C',
+            text: 'Mais grave durante a aproximação devido à compressão do ar frontal.',
+          },
+          {
+            id: 'opt-vest-3d',
+            letter: 'D',
+            text: 'Com a mesma frequência exata e inalterada, variando apenas o volume sonoro.',
+          },
+        ],
+        correctOptionId: 'opt-vest-3a',
+        explanation:
+          'Pelo Efeito Doppler, quando a fonte se aproxima, as frentes de onda são comprimidas espacialmente, aumentando o número de cristas por segundo detectadas pelo ouvinte (tom mais agudo). No afastamento, as frentes se distanciam (tom mais grave).',
+        confusionDiagnosis:
+          'Achar que a velocidade do som muda no ar (distrator B). A velocidade do som depende apenas do meio atmosférico, não da velocidade do carro emissor.',
+      },
+      {
+        id: 4,
+        topic: 'Ondas Estacionárias e Instrumentos de Corda',
+        question:
+          '(ENEM Adaptado) Em um violão, uma corda de comprimento L fixa nas duas extremidades é dedilhada, emitindo sua nota fundamental. Nessa condição de vibração, a configuração geométrica da onda estacionária formada na corda possui:',
+        options: [
+          {
+            id: 'opt-vest-4a',
+            letter: 'A',
+            text: 'Apenas ventres em toda a extensão da corda sem nenhum ponto em repouso.',
+          },
+          {
+            id: 'opt-vest-4b',
+            letter: 'B',
+            text: 'Dois nós nas extremidades fixas (amplitude nula) e um ventre central (ponto de oscilação de amplitude máxima).',
+          },
+          {
+            id: 'opt-vest-4c',
+            letter: 'C',
+            text: 'Três ventres centrais e nenhum ponto de interferência destrutiva.',
+          },
+          {
+            id: 'opt-vest-4d',
+            letter: 'D',
+            text: 'Um nó móvel que corre de uma ponta a outra da escala do instrumento.',
+          },
+        ],
+        correctOptionId: 'opt-vest-4b',
+        explanation:
+          'Nas extremidades fixas, o deslocamento é impedido, constituindo nós de interferência destrutiva. No primeiro harmônico (modo fundamental), a corda vibra com um único ventre central de amplitude máxima.',
+        confusionDiagnosis:
+          'Inverter nós (pontos parados de amplitude zero) com ventres (pontos de oscilação máxima).',
+      },
+      {
+        id: 5,
+        topic: 'Difração e Comprimento de Onda',
+        question:
+          '(ENEM Adaptado) Por que uma pessoa em uma sala consegue ouvir com clareza a voz de outra pessoa conversando no corredor ao lado através de uma porta aberta, mas não consegue enxergá-la pela mesma abertura?',
+        options: [
+          {
+            id: 'opt-vest-5a',
+            letter: 'A',
+            text: 'Porque o comprimento de onda do som (ordem de decímetros a metros) é comparável à abertura da porta, sofrendo difração acentuada, enquanto a luz possui comprimento de onda submicrométrico.',
+          },
+          {
+            id: 'opt-vest-5b',
+            letter: 'B',
+            text: 'Porque o som é uma onda eletromagnética e a luz é uma onda mecânica mais pesada.',
+          },
+          {
+            id: 'opt-vest-5c',
+            letter: 'C',
+            text: 'Porque a luz sofre refração completa nas bordas da porta e se anula por polarização.',
+          },
+          {
+            id: 'opt-vest-5d',
+            letter: 'D',
+            text: 'Porque a velocidade do som é maior que a da luz nas condições ambientais de uma sala.',
+          },
+        ],
+        correctOptionId: 'opt-vest-5a',
+        explanation:
+          'A difração é a capacidade da onda de contornar obstáculos ou aberturas. O fenômeno é perceptível quando a dimensão do obstáculo d é da mesma ordem do comprimento de onda λ (d ~ λ). Para o som, λ está entre centímetros e metros (ordem da porta). Para a luz visível, λ é de centenas de nanômetros, comportando-se como raios em linha reta.',
+        confusionDiagnosis:
+          'Achar que a difração depende da velocidade da onda e não da relação dimensional entre o comprimento de onda e o obstáculo.',
+      },
+    ],
+    modules: [
+      {
+        id: 'vest-mod-1',
+        code: 'ENEM-01',
+        title: 'Mecânica, Leis de Newton e Conservação da Energia',
+        status: 'completed',
+        score: '9.5',
+        date: 'Concluído em 07/Set',
+        duration: '15h acumuladas',
+      },
+      {
+        id: 'vest-mod-2',
+        code: 'ENEM-02',
+        title: 'Termologia, Calorimetria e Termodinâmica',
+        status: 'completed',
+        score: '9.0',
+        date: 'Concluído em 11/Set',
+        duration: '12h acumuladas',
+      },
+      {
+        id: 'vest-mod-3',
+        code: 'ENEM-03',
+        title: 'Ondulatória: Ondas Mecânicas, Eletromagnéticas e Fenômenos',
+        status: 'in_progress',
+        score: 'Pendente',
+        date: 'Hoje · Sessão Recomendada',
+        duration: '45 min programados',
+      },
+      {
+        id: 'vest-mod-4',
+        code: 'ENEM-04',
+        title: 'Acústica, Efeito Doppler e Fenômenos Sonoros',
+        status: 'locked',
+        score: 'Bloqueado',
+        date: 'Próxima etapa da trilha',
+        duration: '50 min estimados',
+      },
+      {
+        id: 'vest-mod-5',
+        code: 'ENEM-05',
+        title: 'Eletricidade, Circuitos e Potência Elétrica no ENEM',
+        status: 'locked',
+        score: 'Bloqueado',
+        date: 'Etapa seguinte',
+        duration: '55 min estimados',
+      },
+    ],
+    writtenLesson: {
+      intro:
+        'Ondulatória é um dos temas mais recorrentes de Ciências da Natureza no ENEM justamente porque uma única equação — v = λ·f — resolve a maioria das questões, desde que você saiba identificar o que muda e o que permanece constante em cada situação.',
+      explanationModes: {
+        essencial: {
+          intro: 'Uma onda transporta energia sem transportar matéria. O som precisa de ar para viajar; a luz viaja até pelo vácuo do espaço.',
+          conceptSummary: 'A Fórmula Mágica: v = λ·f. Se a onda for mais rápida ou mais lenta, o tamanho dela (λ) muda junto.',
+          formulaDisplay: {
+            raw: 'v = λ · f',
+            label: 'Velocidade = Comprimento de Onda × Frequência',
+          },
+          keyTakeaway: 'A cor da luz ou a nota do som (frequência) nunca muda ao mudar de meio — quem muda é a velocidade e o comprimento!',
+          depthNotes: ['No ENEM: lembre-se de que no espaço vazio do cinema não há som de explosão real.'],
+        },
+        explicativo: {
+          intro: 'Na Matriz de Referência do ENEM, a Ondulatória avalia a capacidade de relacionar propriedades físicas da onda com tecnologias cotidianas (Wi-Fi, ultrassom, micro-ondas).',
+          conceptSummary: 'Refração e Conservação de Frequência: a frequência depende unicamente da fonte oscilatória original.',
+          formulaDisplay: {
+            raw: 'v = λ · f',
+            label: 'v (m/s) = λ (metros) · f (Hertz)',
+          },
+          keyTakeaway: 'Quando a luz passa do ar para a água, ela desacelera (v diminui), logo seu comprimento de onda encurta (λ diminui), mantendo f constante.',
+          depthNotes: ['Distratores: alternativas que dizem que a frequência muda na refração são sempre incorretas.'],
+        },
+        tecnico: {
+          intro: 'Modelagem de ondas harmônicas unidimensionais: y(x,t) = A·sin(kx - ωt + φ), onde k = 2π/λ é o número de onda angular e ω = 2πf é a frequência angular.',
+          conceptSummary: 'Relação de Dispersão e Velocidade de Fase: v_fase = ω/k = λ·f. O meio impõe a permissividade e a permeabilidade (ou elasticidade e densidade linear).',
+          formulaDisplay: {
+            raw: 'v = √(T / μ)  e  v = λ · f',
+            label: 'Velocidade em Cordas Tensas (Fórmula de Taylor) e Equação Fundamental',
+          },
+          keyTakeaway: 'A velocidade de propagação de uma onda mecânica é propriedade intrínseca do meio elástico, independente da amplitude.',
+          depthNotes: ['Interferência: superposição com diferença de caminho óptico Δr = m·λ (construtiva) ou (m + ½)λ (destrutiva).'],
+        },
+        aprofundado: {
+          intro: 'Equação de Onda Clássica de d’Alembert: ∂²y/∂t² = v² (∂²y/∂x²). Solução por superposição de ondas progressivas e ondas estacionárias.',
+          conceptSummary: 'Modos Normais e Espectro Eletromagnético: quantização de modos em cavidades ressonantes e relação de Planck-Einstein E = hf.',
+          formulaDisplay: {
+            raw: '∂²y/∂x² = (1/v²) · (∂²y/∂t²)',
+            label: 'Equação Diferencial Parcial de Ondas de d’Alembert',
+          },
+          keyTakeaway: 'O princípio da superposição linear garante que múltiplas frequências trafeguem simultaneamente no mesmo meio sem se aniquilarem mutuamente (base das telecomunicações modernas).',
+          depthNotes: ['Efeito Doppler: f\' = f·(v ± v_obs)/(v ∓ v_fonte) — desvio para o azul e desvio para o vermelho no Universo em expansão.'],
+        },
+      },
+      blocks: [
+        {
+          id: 'vest-block-1',
+          type: 'concept',
+          title: 'Classificação de Ondas no ENEM',
+          body: 'Ondas mecânicas (som, ondas no mar) transportam apenas energia e momentum através de um meio material — sem meio, não há propagação. Ondas eletromagnéticas (luz, rádio) se propagam também no vácuo, com velocidade c ≈ 3·10⁸ m/s.',
+        },
+        {
+          id: 'vest-block-2',
+          type: 'formula',
+          title: 'A Equação Fundamental da Ondulatória',
+          formula: 'v = λ · f',
+          formulaLabel: 'v = velocidade · λ = comprimento de onda · f = frequência',
+          body: 'Regra de ouro das questões do ENEM: a frequência f depende exclusivamente da fonte emissora, nunca do meio. Quando a onda muda de meio (refração) e a velocidade v muda, é o comprimento de onda λ que se ajusta na mesma proporção — não a frequência.',
+        },
+        {
+          id: 'vest-block-3',
+          type: 'example',
+          title: 'Fenômenos Ondulatórios Recorrentes',
+          body: 'Difração acontece quando o contorno de uma fenda é da ordem do comprimento de onda. Interferência é a superposição construtiva ou destrutiva de duas ondas. Polarização é exclusiva de ondas transversais — é o princípio por trás dos óculos 3D e de filtros polarizadores, um dos temas mais cobrados dessa área.',
+        },
+        {
+          id: 'vest-block-4',
+          type: 'application',
+          title: 'Diagnóstico de Distratores do ENEM',
+          body: 'O distrator mais frequente afirma que "a frequência do som muda ao entrar na água" (falso — é a velocidade e o comprimento de onda que mudam) ou que "ondas sonoras se propagam no vácuo cósmico" (impossível — som é onda mecânica, precisa de meio material). Reconhecer esses dois padrões já resolve boa parte das questões da Matriz.',
+        },
+      ],
+    },
+    tutorGreeting:
+      'Olá! Sou seu mentor estratégico para o ENEM. Vamos analisar as questões pela Matriz de Referência, identificar os distratores clássicos e reforçar a fundamentação para garantir sua pontuação.',
+    voiceEmphasis: false,
+    nextReviewSuggestion: 'Amanhã às 07:30',
+    masteryDomains: [
+      { id: 'enem-mastery-natureza', label: 'Ciências da Natureza', percent: 78 },
+      { id: 'enem-mastery-matematica', label: 'Matemática', percent: 58 },
+      { id: 'enem-mastery-linguagens', label: 'Linguagens', percent: 70 },
+      { id: 'enem-mastery-humanas', label: 'Ciências Humanas', percent: 66 },
+    ],
+    // Semana de referência: Seg 21/Set a Dom 27/Set · Hoje = Ter 22/Set (weekOffset 0).
+    // weekOffset 1 = semana seguinte, só aparece no filtro "Mês" do Cronograma.
+    cronograma: [
+      {
+        id: 'cron-0', date: '15/Set', weekday: 'Ter', weekOffset: 0,
+        discipline: 'Todas as áreas', topic: 'Simulado · Linguagens e Códigos', subtopic: '45 questões, condições reais de prova',
+        activityType: 'simulado', status: 'concluido', durationMinutes: 90,
+        nextAction: 'Revisar as questões erradas do simulado',
+      },
+      {
+        id: 'cron-1', date: '21/Set', weekday: 'Seg', weekOffset: 0,
+        discipline: 'Humanas', topic: 'Revolução Industrial & Transformações Sociais', subtopic: 'Primeira e Segunda Revolução Industrial',
+        activityType: 'aula', status: 'atrasado', durationMinutes: 35,
+        nextAction: 'Retomar a aula e concluir os 3 exercícios pendentes',
+      },
+      {
+        id: 'cron-2', date: '21/Set', weekday: 'Seg', weekOffset: 0,
+        discipline: 'Matemática', topic: 'Função Afim', subtopic: 'Coeficientes, gráfico e taxa de variação',
+        activityType: 'aula', status: 'concluido', durationMinutes: 30,
+        nextAction: 'Revisão espaçada programada para domingo',
+      },
+      {
+        id: 'cron-3', date: '22/Set', weekday: 'Ter', weekOffset: 0, isToday: true,
+        discipline: 'Física', topic: 'Ondulatória', subtopic: 'v = λ·f e refração em meios distintos',
+        activityType: 'aula', status: 'planejado', durationMinutes: 45, hasVideoResource: true,
+        nextAction: 'Assistir a aula e responder 3 questões práticas',
+      },
+      {
+        id: 'cron-4', date: '22/Set', weekday: 'Ter', weekOffset: 0, isToday: true,
+        discipline: 'Química', topic: 'Estequiometria', subtopic: 'Balanceamento e proporções molares',
+        activityType: 'exercicio', status: 'planejado', durationMinutes: 30,
+        nextAction: 'Resolver a lista de 5 exercícios contextualizados',
+      },
+      {
+        id: 'cron-5', date: '23/Set', weekday: 'Qua', weekOffset: 0,
+        discipline: 'Biologia', topic: 'Genética Mendeliana', subtopic: '1ª e 2ª Leis de Mendel',
+        activityType: 'video', status: 'planejado', durationMinutes: 25, hasVideoResource: true,
+        nextAction: 'Assistir o vídeo indicado e fazer o resumo guiado',
+      },
+      {
+        id: 'cron-6', date: '24/Set', weekday: 'Qui', weekOffset: 0,
+        discipline: 'Todas as áreas', topic: 'Simulado · Ciências da Natureza', subtopic: '45 questões, condições reais de prova',
+        activityType: 'simulado', status: 'planejado', durationMinutes: 90,
+        nextAction: 'Reservar 90 min sem interrupções para o simulado',
+      },
+      {
+        id: 'cron-7', date: '25/Set', weekday: 'Sex', weekOffset: 0,
+        discipline: 'Linguagens', topic: 'Interpretação Textual', subtopic: 'Inferência e ambiguidade proposital',
+        activityType: 'exercicio', status: 'planejado', durationMinutes: 30,
+        nextAction: 'Resolver 5 questões de interpretação no estilo ENEM',
+      },
+      {
+        id: 'cron-8', date: '26/Set', weekday: 'Sáb', weekOffset: 0,
+        discipline: 'Redação', topic: 'Tema social contemporâneo', subtopic: 'Treino cronometrado, dissertativo-argumentativo',
+        activityType: 'redacao', status: 'planejado', durationMinutes: 90,
+        nextAction: 'Escrever a redação em 90 min e revisar a tese',
+      },
+      {
+        id: 'cron-9', date: '27/Set', weekday: 'Dom', weekOffset: 0,
+        discipline: 'Matemática', topic: 'Revisão Espaçada', subtopic: 'Cinemática e Funções — pontos de baixo domínio da semana',
+        activityType: 'revisao', status: 'planejado', durationMinutes: 40,
+        nextAction: 'Revisar os 2 tópicos com menor domínio da Semana 1',
+      },
+      {
+        id: 'cron-10', date: '30/Set', weekday: 'Qua', weekOffset: 1,
+        discipline: 'Física', topic: 'Acústica & Efeito Doppler', subtopic: 'Timbre, altura e frequência percebida',
+        activityType: 'aula', status: 'planejado', durationMinutes: 45,
+        nextAction: 'Assistir a aula e responder o checkpoint de fluência',
+      },
+      {
+        id: 'cron-11', date: '03/Out', weekday: 'Sáb', weekOffset: 1,
+        discipline: 'Todas as áreas', topic: 'Simulado Geral · 4 áreas', subtopic: 'Prova completa, condições reais de exame',
+        activityType: 'simulado', status: 'planejado', durationMinutes: 240,
+        nextAction: 'Bloquear a manhã inteira para o simulado completo',
+      },
+    ],
+  },
+};
+
+// Aliases de retrocompatibilidade para componentes legados
+export const LESSON_FIXTURE = TRACK_DEFINITIONS.faculdade.lesson;
+export const INITIAL_SUMMARY_POINTS = TRACK_DEFINITIONS.faculdade.summaryPoints;
+export const EXERCISE_QUESTIONS = TRACK_DEFINITIONS.faculdade.exerciseQuestions;
+export const EDUCATION_TRACK_FIXTURE = TRACK_DEFINITIONS.faculdade.modules;

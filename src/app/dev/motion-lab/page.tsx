@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useShell } from '@/context/ShellContext';
 import { ISLAND_STATE_LIST, ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
 import { IslandState, Theme, ShellMode } from '@/types/shell';
+import { playFeedback } from '@/lib/audioFeedback';
+import { IslandMediaPrototype } from '@/components/dev/IslandMediaPrototype';
 
 interface StaggerItem {
   id: string;
@@ -325,7 +327,7 @@ export default function MotionLabPage() {
             Coordenada entre canvas, superfícies, bordas e controles. Zero white halos no Dark Mode e sem animação em backdrop-filter.
           </p>
           <div className="flex items-center gap-2">
-            {(['light', 'sepia', 'dark'] as Theme[]).map((t) => (
+            {(['light', 'dark'] as Theme[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -337,7 +339,7 @@ export default function MotionLabPage() {
                     : 'bg-surface text-text-secondary border-border/60 hover:text-text-primary'
                 }`}
               >
-                {t === 'light' ? 'Claro (Aurora)' : t === 'sepia' ? 'Sépia (Paper)' : 'Escuro'}
+                {t === 'light' ? 'Claro (Aurora)' : 'Escuro'}
               </button>
             ))}
           </div>
@@ -496,6 +498,77 @@ export default function MotionLabPage() {
             <strong className="text-text-primary">Prefers-Reduced-Motion:</strong> Desativa breathing, stagger, scale e shake; substitui por crossfade tonal de 140ms.
           </span>
           <span className="font-mono text-medusa-support font-semibold">ATIVO NO SISTEMA</span>
+        </div>
+      </section>
+
+      {/* ================= SEÇÃO 6: PROTÓTIPO DE ÁUDIO + DYNAMIC ISLAND (Round 7 §16/§17) =================
+          Sound design real (upload/delete) + protótipo funcional do Island reagindo a música.
+          Ambos claramente rotulados como protótipo/teste — nunca produção. */}
+      <section
+        id="lab-audio-island-prototype"
+        aria-label="Protótipo de Áudio e Dynamic Island com Música"
+        className="bg-surface rounded-2xl p-6 border border-border/60 shadow-calm flex flex-col gap-5 text-xs"
+      >
+        <div className="border-b border-border/60 pb-3">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted">
+            06 · Protótipo — Sound Design & Dynamic Island + Música
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-semibold text-text-primary">Teste de som: upload/exclusão de arquivo</span>
+          <p className="text-[11px] text-text-secondary leading-relaxed">
+            Round 7 §15 — causa raiz real, não decisão de arquitetura: o card de Materiais da
+            Faculdade (`FaculdadeContextPanel.tsx`) nunca chamava `playFeedback()`. Corrigido nesta
+            rodada (som `action` real ao adicionar/remover um arquivo de verdade). Os botões abaixo
+            tocam os MESMOS sons reais, isolados aqui pra audição rápida sem precisar simular um
+            upload de arquivo de verdade.
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              id="btn-test-sound-upload"
+              onClick={() => playFeedback('action')}
+              className="btn-interactive px-3 py-1.5 rounded-full text-[11px] font-medium bg-medusa-primary/15 text-[#18534B] dark:text-[#71DBD2] border border-medusa-primary/30 hover:opacity-85 flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[14px]">upload_file</span>
+              Som de upload concluído
+            </button>
+            <button
+              type="button"
+              id="btn-test-sound-delete"
+              onClick={() => playFeedback('action')}
+              className="btn-interactive px-3 py-1.5 rounded-full text-[11px] font-medium bg-surface-secondary text-text-secondary border border-border/60 hover:text-text-primary flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[14px]">delete</span>
+              Som de exclusão
+            </button>
+            <button
+              type="button"
+              id="btn-test-sound-notification"
+              onClick={() => playFeedback('notification')}
+              className="btn-interactive px-3 py-1.5 rounded-full text-[11px] font-medium bg-surface-secondary text-text-secondary border border-border/60 hover:text-text-primary flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[14px]">notifications</span>
+              Notificação
+            </button>
+            <button
+              type="button"
+              id="btn-test-sound-completion"
+              onClick={() => playFeedback('completion')}
+              className="btn-interactive px-3 py-1.5 rounded-full text-[11px] font-medium bg-surface-secondary text-text-secondary border border-border/60 hover:text-text-primary flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[14px]">celebration</span>
+              Conclusão
+            </button>
+          </div>
+        </div>
+
+        <div className="h-px bg-border/60" />
+
+        <div>
+          <span className="text-[11px] font-semibold text-text-primary block mb-1">Protótipo: Dynamic Island reagindo a música</span>
+          <IslandMediaPrototype />
         </div>
       </section>
     </main>

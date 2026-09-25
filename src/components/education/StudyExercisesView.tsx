@@ -1,15 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ExerciseQuestion } from './types';
-import { EXERCISE_QUESTIONS } from './educationFixtures';
+import { ExerciseQuestion, TrackDefinition } from './types';
+import { playFeedback } from '@/lib/audioFeedback';
+import { AnimatedIcon } from '@/components/ui/AnimatedIcon';
 
 interface StudyExercisesViewProps {
+  trackDef: TrackDefinition;
   onFinishExercises: (correctCount: number, totalCount: number, errorTopics: string[]) => void;
   onOpenTutorForError: (question: ExerciseQuestion) => void;
 }
 
 export function StudyExercisesView({
+  trackDef,
   onFinishExercises,
   onOpenTutorForError,
 }: StudyExercisesViewProps) {
@@ -20,16 +23,17 @@ export function StudyExercisesView({
     { questionId: number; selectedOptionId: string; isCorrect: boolean }[]
   >([]);
 
-  const currentQuestion = EXERCISE_QUESTIONS[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === EXERCISE_QUESTIONS.length - 1;
+  const questions = trackDef.exerciseQuestions;
+  const currentQuestion = questions[currentQuestionIndex] || questions[0];
+  const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   const currentAnswer = userAnswers.find((a) => a.questionId === currentQuestion.id);
-  const isAnswered = Boolean(currentAnswer);
   const isCorrect = currentAnswer?.isCorrect ?? false;
 
   const handleSelectOption = (optId: string) => {
     if (isAnswerSubmitted) return;
     setSelectedOptionId(optId);
+    playFeedback('action');
   };
 
   const handleSubmitAnswer = () => {
@@ -42,20 +46,30 @@ export function StudyExercisesView({
       isCorrect: correct,
     };
 
-    setUserAnswers((prev) => [...prev, newAnswer]);
+    setUserAnswers((prev) => {
+      const filtered = prev.filter((a) => a.questionId !== currentQuestion.id);
+      return [...filtered, newAnswer];
+    });
     setIsAnswerSubmitted(true);
+    playFeedback(correct ? 'learning_correct' : 'learning_error');
+  };
+
+  const handleRetryQuestion = () => {
+    setIsAnswerSubmitted(false);
+    setSelectedOptionId(null);
+    playFeedback('action');
   };
 
   const handleNextQuestion = () => {
     if (isLastQuestion) {
-      // Calcular métricas reais da sessão
+      // Calcular métricas derivadas da sessão
       const finalAnswers = [...userAnswers];
       const correctCount = finalAnswers.filter((a) => a.isCorrect).length;
-      const errorQuestions = EXERCISE_QUESTIONS.filter(
+      const errorQuestions = questions.filter(
         (q) => !finalAnswers.find((a) => a.questionId === q.id)?.isCorrect
       );
       const errorTopics = errorQuestions.map((q) => q.topic);
-      onFinishExercises(correctCount, EXERCISE_QUESTIONS.length, errorTopics);
+      onFinishExercises(correctCount, questions.length, errorTopics);
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
       setSelectedOptionId(null);
@@ -73,11 +87,11 @@ export function StudyExercisesView({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#18534B] dark:text-[#71DBD2] bg-[#71DBD2]/15 px-2.5 py-0.5 rounded-full border border-[#71DBD2]/30">
-              Prática Deliberada · Ondulatória
+              Prática Deliberada · {trackDef.name}
             </span>
             <span className="text-text-muted/40">•</span>
             <span className="text-[11px] font-mono text-text-muted">
-              Questão {currentQuestionIndex + 1} de {EXERCISE_QUESTIONS.length}
+              Questão {currentQuestionIndex + 1} de {questions.length}
             </span>
           </div>
           <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-primary">
@@ -87,7 +101,7 @@ export function StudyExercisesView({
 
         {/* Indicador de Progresso com bolinhas de estado */}
         <div className="flex items-center gap-1.5 bg-surface p-1.5 rounded-full border border-border/70 shadow-subtle">
-          {EXERCISE_QUESTIONS.map((q, idx) => {
+          {questions.map((q, idx) => {
             const answered = userAnswers.find((a) => a.questionId === q.id);
             let dotClass = 'bg-surface-secondary border border-border text-text-muted';
             if (answered) {
@@ -123,17 +137,25 @@ export function StudyExercisesView({
           {currentQuestion.options.map((opt) => {
             const isSelected = selectedOptionId === opt.id;
             let itemStyle =
-              'bg-surface-secondary/60 border-border/60 hover:border-medusa-primary/40 text-text-secondary hover:text-text-primary';
+              'bg-surface-secondary/60 border-border/60 hover:border-medusa-primary/40 text-text-secondary hover:text-text-primary active:scale-[0.98]';
+
+            let statusIcon: React.ReactNode = opt.letter;
 
             if (isAnswerSubmitted) {
               if (opt.id === currentQuestion.correctOptionId) {
                 itemStyle =
-                  'bg-medusa-support/20 border-medusa-support/60 text-text-primary shadow-subtle';
+                  'bg-medusa-support/20 border-medusa-support/70 text-text-primary shadow-subtle spring-success font-medium';
+                statusIcon = (
+                  <AnimatedIcon name="check" state="success" size={15} />
+                );
               } else if (isSelected && !isCorrect) {
                 itemStyle =
-                  'bg-medusa-tertiary/20 border-medusa-tertiary/60 text-text-primary shadow-subtle';
+                  'bg-medusa-alert/15 border-medusa-alert/70 text-text-primary shadow-subtle shake-error';
+                statusIcon = (
+                  <AnimatedIcon name="close" state="error" size={15} />
+                );
               } else {
-                itemStyle = 'opacity-45 bg-surface-secondary/40 border-border/40';
+                itemStyle = 'opacity-40 bg-surface-secondary/40 border-border/40';
               }
             } else if (isSelected) {
               itemStyle =
@@ -156,7 +178,7 @@ export function StudyExercisesView({
                       : 'bg-surface border-border text-text-muted'
                   }`}
                 >
-                  {opt.letter}
+                  {statusIcon}
                 </span>
                 <span className="flex-1">{opt.text}</span>
               </button>
@@ -184,7 +206,7 @@ export function StudyExercisesView({
                 </span>
               </div>
               <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                {isCorrect ? 'Fixação Confirmada' : 'Ponto Crítico'}
+                {isCorrect ? 'Fixação Confirmada' : 'Diagnóstico'}
               </span>
             </div>
 
@@ -192,7 +214,7 @@ export function StudyExercisesView({
               {currentQuestion.explanation}
             </p>
 
-            {/* Se o usuário errou, consequência real: o que foi confundido e convite ao Tutor contextual */}
+            {/* Se o usuário errou, consequência pedagógica real: o que foi confundido, retry e convite ao Tutor */}
             {!isCorrect && (
               <div className="mt-1 pt-3 border-t border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
@@ -204,17 +226,27 @@ export function StudyExercisesView({
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  id="btn-understand-error"
-                  onClick={() => onOpenTutorForError(currentQuestion)}
-                  className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
-                >
-                  <span className="material-symbols-outlined text-medusa-primary text-[16px]">
-                    neurology
-                  </span>
-                  <span>Entender meu erro</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    id="btn-retry-question"
+                    onClick={handleRetryQuestion}
+                    className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+                  >
+                    <AnimatedIcon name="refresh" size={16} interactive />
+                    <span>Tentar novamente</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-understand-error"
+                    onClick={() => onOpenTutorForError(currentQuestion)}
+                    className="btn-interactive self-start sm:self-auto bg-surface hover:bg-surface-secondary border border-border/80 text-text-primary px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+                  >
+                    <AnimatedIcon name="tutor" size={16} interactive />
+                    <span>Entender meu erro</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useShell } from '@/context/ShellContext';
+import { AnimatedIcon, IconSemanticType } from '@/components/ui/AnimatedIcon';
+import { playFeedback } from '@/lib/audioFeedback';
 
 export function Sidebar() {
   const {
@@ -13,6 +15,7 @@ export function Sidebar() {
     activeRoute,
     setActiveRoute,
     breakpoint,
+    geometry,
   } = useShell();
 
   const isCompact = mode === 'compacto';
@@ -23,29 +26,39 @@ export function Sidebar() {
   // No Foco ou Mobile/Tablet, a sidebar permanente é 0px estrutural
   const isDrawerActive = (isFocus || isMobile || isTablet) && isDrawerOpen;
 
-  // Largura calculada estritamente (240px Amplo | 68px Compacto | 0px Foco)
-  const getSidebarWidth = () => {
-    if (isFocus || isMobile) return '0px';
-    if (isTablet) return isFocus ? '0px' : '68px';
-    return isCompact ? '68px' : '240px';
-  };
-
-  const navItems = [
-    { route: 'hoje', label: 'Hoje', icon: 'wb_sunny', badge: null, dot: true },
-    { route: 'agenda', label: 'Agenda', icon: 'calendar_today', badge: '3', dot: false },
-    { route: 'educacao', label: 'Educação', icon: 'menu_book', badge: '14', badgePill: true, dot: false },
-    { route: 'corpo', label: 'Corpo', icon: 'fitness_center', badge: null, dot: false },
-    { route: 'financas', label: 'Finanças', icon: 'account_balance_wallet', badge: null, dot: false, accentDot: true },
-    { route: 'progresso', label: 'Progresso', icon: 'insights', badge: null, dot: false },
+  const navItems: Array<{ route: string; label: string; icon: IconSemanticType; badge: string | null; badgePill?: boolean; dot?: boolean; accentDot?: boolean }> = [
+    { route: 'hoje', label: 'Hoje', icon: 'bolt', badge: null, dot: true },
+    { route: 'agenda', label: 'Agenda', icon: 'calendar', badge: '3', dot: false },
+    { route: 'educacao', label: 'Educação', icon: 'school', badge: '14', badgePill: true, dot: false },
+    { route: 'corpo', label: 'Corpo', icon: 'motion_mode', badge: null, dot: false },
+    { route: 'financas', label: 'Finanças', icon: 'layers', badge: null, dot: false, accentDot: true },
+    { route: 'progresso', label: 'Progresso', icon: 'analytics', badge: null, dot: false },
   ];
 
   // Conteúdo dos links de navegação compartilhado entre Sidebar e Drawer
+  //
+  // Achado de auditoria (real, pré-existente, não introduzido nesta rodada): este wrapper
+  // ficava com `w-[240px]` FIXO mesmo em Modo Compacto (68px). Os ícones de navegação usam
+  // `mx-auto` para centralizar quando colapsados — mas `mx-auto` centraliza contra a largura
+  // REAL do próprio contêiner, então contra um contêiner de 240px eles ficavam centralizados
+  // por volta de x≈98-142px, fora da faixa de 0-68px que o `<aside>` pai (com
+  // `overflow-hidden`) de fato exibe. Resultado visual real (confirmado por screenshot antes
+  // desta correção, com e sem o restante desta rodada): os ícones ficavam clipados/invisíveis
+  // em Modo Compacto, sobrando só fragmentos de texto de rótulo vazando para fora da faixa
+  // visível. A correção é fazer este wrapper acompanhar a largura real do `<aside>`
+  // (`geometry.sidebarWidth`) em vez de um valor fixo — assim `mx-auto`/`items-center` centralizam
+  // contra a largura verdadeira, e a transição de largura (`panel-transition`, mesmo token
+  // `--duration-layout` já usado pelo `<aside>`) produz refluxo real da composição interna,
+  // não apenas um clip estático de uma camada que não se move.
   const renderNavContent = (isDrawerContext = false) => {
     const isVisuallyCompact = isCompact || (isTablet && !isDrawerContext);
     const showLabels = !isVisuallyCompact || isDrawerContext;
 
     return (
-      <div className="flex flex-col justify-between h-full pt-5 pb-5 overflow-hidden w-[240px]">
+      <div
+        style={{ width: isDrawerContext ? '240px' : `${geometry.sidebarWidth}px` }}
+        className="flex flex-col justify-between h-full pt-5 pb-5 overflow-hidden panel-transition"
+      >
         <div className="flex flex-col gap-5 overflow-hidden">
           {/* Header da Sidebar */}
           <div className="flex items-center justify-between px-3 h-8 overflow-hidden">
@@ -59,9 +72,6 @@ export function Sidebar() {
             </div>
 
             <div className={`sidebar-label-collapse flex items-center gap-1 overflow-hidden ${showLabels ? 'sidebar-label-in max-w-[140px]' : 'sidebar-label-out max-w-0 pointer-events-none'}`}>
-              <span className="text-[9px] font-mono font-semibold tracking-wider text-text-muted uppercase px-1.5 py-0.5 rounded bg-surface border border-border">
-                SHELL V2
-              </span>
               {!isDrawerContext && (
                 <button
                   type="button"
@@ -88,6 +98,28 @@ export function Sidebar() {
             </div>
           </div>
 
+          {/* Recuperação da Sidebar em Modo Compacto (Desktop) — achado de auditoria: o botão de
+              expandir dentro do header ficava dentro de `.sidebar-label-out`, que tem
+              `pointer-events: none` quando recolhido, tornando-o inclicável e fora da faixa
+              visível de 68px. Este botão dedicado fica sempre clicável, dentro da largura
+              compacta, com o mesmo estilo dos ícones de navegação. Tablet fica de fora
+              deliberadamente: lá a largura compacta é uma regra de breakpoint, não uma escolha
+              reversível do usuário (calculateShellGeometry() ignora `mode` no tablet). */}
+          {isCompact && !isTablet && !isDrawerContext && (
+            <div className="flex justify-center px-2.5">
+              <button
+                type="button"
+                id="btn-sidebar-expand-compact"
+                onClick={() => setMode('amplo')}
+                aria-label="Expandir Sidebar"
+                title="Expandir Sidebar"
+                className="btn-interactive w-9 h-9 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-surface transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+              >
+                <span className="material-symbols-outlined text-[18px]">last_page</span>
+              </button>
+            </div>
+          )}
+
           {/* Navegação Primária */}
           <nav aria-label="Rotas Operacionais" className="flex flex-col gap-1 px-2.5">
             {navItems.map((item) => {
@@ -95,13 +127,15 @@ export function Sidebar() {
               return (
                 <button
                   key={item.route}
+                  id={`nav-item-${item.route}`}
                   type="button"
                   onClick={() => {
+                    playFeedback('navigation');
                     setActiveRoute(item.route);
                     if (isDrawerContext) closeDrawer();
                   }}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`nav-link btn-interactive relative flex items-center rounded-lg focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none text-left transition-all duration-280 ${
+                  className={`nav-link btn-interactive group relative flex items-center rounded-lg focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none text-left transition-all duration-280 ${
                     showLabels ? 'px-3 py-2 w-full gap-0' : 'justify-center w-11 h-10 mx-auto gap-0'
                   } ${
                     isActive
@@ -117,13 +151,14 @@ export function Sidebar() {
                       }`}
                     />
                   )}
-                  <span
-                    className={`material-symbols-outlined text-[19px] flex-shrink-0 ${
+                  <AnimatedIcon
+                    name={item.icon}
+                    state={isActive ? 'active' : 'idle'}
+                    size={19}
+                    className={`flex-shrink-0 ${
                       isActive ? 'text-[#2c6956] dark:text-medusa-primary' : 'text-text-muted'
                     }`}
-                  >
-                    {item.icon}
-                  </span>
+                  />
 
                   <div
                     className={`sidebar-label-collapse flex items-center flex-1 overflow-hidden whitespace-nowrap ${
@@ -184,41 +219,6 @@ export function Sidebar() {
           </nav>
         </div>
 
-        {/* Status Inferior */}
-        <div className="flex flex-col items-center px-2.5 overflow-hidden">
-          <div
-            className={`sidebar-label-collapse flex flex-col gap-2 w-full overflow-hidden ${
-              showLabels ? 'sidebar-label-in max-w-[220px]' : 'sidebar-label-out max-w-0 h-0 pointer-events-none'
-            }`}
-          >
-            <div className="bg-surface/80 rounded-xl p-3 border border-border/60 shadow-calm flex items-center justify-between">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse flex-shrink-0" />
-                <span className="text-[11px] text-text-secondary whitespace-nowrap">Ciclo Operacional</span>
-              </div>
-              <span className="text-[12px] font-mono font-semibold text-text-primary tabular-nums">
-                03/12
-              </span>
-            </div>
-            <div className="px-1 flex items-center justify-between text-[10px] font-mono text-text-muted uppercase whitespace-nowrap">
-              <span>GRID SHELL V2</span>
-              <span className="text-[#2c6956] dark:text-medusa-primary font-semibold">100% READY</span>
-            </div>
-          </div>
-
-          <div
-            className={`sidebar-label-collapse flex items-center justify-center overflow-hidden ${
-              !showLabels ? 'sidebar-label-in max-w-[40px]' : 'sidebar-label-out max-w-0 h-0 pointer-events-none'
-            }`}
-          >
-            <div
-              className="w-8 h-8 rounded-lg bg-surface/80 border border-border/60 flex items-center justify-center text-[10px] font-mono font-semibold text-text-muted shadow-subtle flex-shrink-0"
-              title="Ciclo Operacional: 03/12"
-            >
-              03
-            </div>
-          </div>
-        </div>
       </div>
     );
   };
@@ -233,13 +233,13 @@ export function Sidebar() {
           aria-label="Navegação Principal"
           aria-hidden={isFocus}
           style={{
-            width: getSidebarWidth(),
+            width: `${geometry.sidebarWidth}px`,
             pointerEvents: isFocus ? 'none' : 'auto',
           }}
-          className={`fixed left-0 top-0 h-full bg-surface-secondary border-r z-40 panel-transition shadow-calm overflow-hidden ${
-            isFocus
-              ? 'border-transparent'
-              : 'border-border/70 dark:border-border/50'
+          className={`fixed left-0 top-0 h-full bg-surface-secondary z-40 panel-transition shadow-calm overflow-hidden ${
+            geometry.sidebarWidth === 0
+              ? 'border-r-0 border-transparent'
+              : 'border-r border-border/70 dark:border-border/50'
           }`}
         >
           {renderNavContent(false)}

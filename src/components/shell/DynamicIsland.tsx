@@ -1,17 +1,43 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
+import { playFeedback } from '@/lib/audioFeedback';
 
 export function DynamicIsland() {
-  const { islandState, isQuiet, setIslandState, breakpoint } = useShell();
+  const { islandState, isQuiet, setIslandState, breakpoint, isVoiceActive, setVoiceActive } = useShell();
   const fixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
 
   const isExpanded = islandState !== 'collapsed';
   const isFocusMode = islandState === 'focus';
   const isCollapsed = islandState === 'collapsed';
   const isMobile = breakpoint === 'mobile';
+
+  // Deduplicação de áudio de transição de estado (Round Human Visual Gate 2 §12/§13)
+  const prevStateRef = useRef(islandState);
+  const prevVoiceRef = useRef(isVoiceActive);
+
+  useEffect(() => {
+    if (prevStateRef.current !== islandState) {
+      const prev = prevStateRef.current;
+      prevStateRef.current = islandState;
+
+      // Dispara som semântico somente na mudança real de estado (nunca por re-render)
+      if (islandState === 'processing') playFeedback('processing');
+      else if (islandState === 'success') playFeedback('success');
+      else if (islandState === 'error') playFeedback('error');
+      else if (islandState === 'attention') playFeedback('tutor');
+      else if (islandState === 'active' && prev === 'idle') playFeedback('open');
+    }
+  }, [islandState]);
+
+  useEffect(() => {
+    if (prevVoiceRef.current !== isVoiceActive) {
+      prevVoiceRef.current = isVoiceActive;
+      if (isVoiceActive) playFeedback('voice');
+    }
+  }, [isVoiceActive]);
 
   // Dynamic animation class based on semantic state
   const getStateAnimationClass = () => {
@@ -123,21 +149,38 @@ export function DynamicIsland() {
       <section
         id="island-capsule"
         role="region"
-        aria-label="Camada Contextual Island"
+        aria-label={isVoiceActive ? 'Modo de voz ativo — clique para encerrar' : 'Camada Contextual Island'}
         aria-expanded={isExpanded}
+        aria-pressed={isVoiceActive}
+        title={isVoiceActive ? 'Encerrar modo de voz' : undefined}
         className={`island-fluid-capsule flex items-center bg-surface/95 dark:bg-surface/90 backdrop-blur-md border border-border/70 dark:border-border/60 rounded-full shadow-island dark:shadow-island-dark hover:border-medusa-primary/40 cursor-pointer select-none max-w-[92vw] overflow-hidden ${
-          isCollapsed
+          isVoiceActive
+            ? 'w-11 h-11 min-w-[44px] justify-center p-0 gap-0 bg-medusa-primary/95 border-medusa-primary'
+            : isCollapsed
             ? 'w-[34px] h-[34px] min-w-[34px] justify-center p-0 gap-0'
             : 'px-3.5 py-1.5 gap-2 sm:gap-2.5 min-w-[120px]'
-        } ${isQuiet ? 'island-quiet' : ''} ${getStateAnimationClass()}`}
+        } ${isQuiet ? 'island-quiet' : ''} ${isVoiceActive ? 'island-voice-active' : getStateAnimationClass()}`}
         onClick={() => {
-          if (isCollapsed) setIslandState('active');
+          if (isVoiceActive) {
+            setVoiceActive(false);
+          } else if (isCollapsed) {
+            setIslandState('active');
+          }
         }}
       >
+        {/* Modo Voz: o Island encolhe para um círculo com microfone e pulsação de escuta */}
+        {isVoiceActive && (
+          <span className="material-symbols-outlined text-[19px] text-[#1C2420]" aria-hidden="true">
+            mic
+          </span>
+        )}
+
         {/* Living OS: Micro-sinal de vida orgânico calibrado */}
-        {renderIndicator()}
+        {!isVoiceActive && renderIndicator()}
 
         {/* Title Group with Fluid Crossfade */}
+        {!isVoiceActive && (
+        <>
         <div
           className={`island-collapsible flex items-center gap-1.5 sm:gap-2 text-[12px] sm:text-[13px] overflow-hidden ${
             showTitle ? 'island-item-in max-w-[320px]' : 'island-item-out max-w-0 pointer-events-none'
@@ -239,6 +282,8 @@ export function DynamicIsland() {
             </button>
           )}
         </div>
+        </>
+        )}
       </section>
     </div>
   );

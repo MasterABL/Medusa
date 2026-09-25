@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { Theme, ShellMode, IslandState, Breakpoint } from '@/types/shell';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { Theme, ShellMode, IslandState, Breakpoint, ShellGeometry, calculateShellGeometry } from '@/types/shell';
+import { unlockAudioOnFirstGesture } from '@/lib/audioFeedback';
 
 interface ShellContextValue {
   theme: Theme;
@@ -11,6 +12,7 @@ interface ShellContextValue {
   isContextOpen: boolean;
   toggleContext: () => void;
   setContextOpen: (open: boolean) => void;
+  geometry: ShellGeometry;
   isDrawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
@@ -19,6 +21,8 @@ interface ShellContextValue {
   closeCommand: () => void;
   islandState: IslandState;
   setIslandState: (state: IslandState) => void;
+  isVoiceActive: boolean;
+  setVoiceActive: (active: boolean) => void;
   isQuiet: boolean;
   toggleQuiet: (forced?: boolean) => void;
   breakpoint: Breakpoint;
@@ -35,17 +39,42 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   const [isDrawerOpen, setDrawerOpenState] = useState<boolean>(false);
   const [isCommandOpen, setCommandOpenState] = useState<boolean>(false);
   const [islandState, setIslandState] = useState<IslandState>('active');
+  // Sobreposição do modo Voz sobre o catálogo canônico (fechado) do Island — não é um 11º
+  // estado do catálogo, é um overlay ortogonal (ver DynamicIsland.tsx).
+  const [isVoiceActive, setVoiceActive] = useState<boolean>(false);
   const [isQuietManual, setIsQuietManual] = useState<boolean>(false);
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
   const [activeRoute, setActiveRouteState] = useState<string>('hoje');
   const [mounted, setMounted] = useState(false);
 
-  // Inicialização e persistência de tema
+  // Inicialização e persistência de tema e do painel regional
   useEffect(() => {
     setMounted(true);
-    const savedTheme = (localStorage.getItem('medusa-theme-v2') as Theme) || 'light';
+    // Round 7 §4: Sépia foi removido da UI — quem tinha 'sepia' salvo de uma visita anterior
+    // (valor válido até esta rodada) migra silenciosamente para 'light' em vez de ficar preso a
+    // um tema que não existe mais em nenhum seletor.
+    const rawSavedTheme = localStorage.getItem('medusa-theme-v2');
+    const savedTheme: Theme = rawSavedTheme === 'dark' ? 'dark' : 'light';
+    if (rawSavedTheme && rawSavedTheme !== savedTheme) {
+      try {
+        localStorage.setItem('medusa-theme-v2', savedTheme);
+      } catch {
+        // Fallback para storage restrito
+      }
+    }
     setThemeState(savedTheme);
     applyThemeToDOM(savedTheme);
+
+    // Feedback sonoro (Round 5 §10): o AudioContext nasce suspenso até um gesto real do
+    // usuário — registrado aqui, no provedor raiz, porque é o único lugar que garante cobrir
+    // o app inteiro desde o primeiro clique/tecla, não só uma tela específica.
+    unlockAudioOnFirstGesture();
+
+    // Persistência local do Context Panel (sobrevive a reload sem persistência no servidor)
+    const savedContext = localStorage.getItem('medusa-context-panel-open');
+    if (savedContext !== null) {
+      setContextOpenState(savedContext === 'true');
+    }
 
     // Detecção de Breakpoint (Desktop >= 1024, Tablet 768-1023, Mobile < 768)
     const updateBreakpoint = () => {
@@ -67,15 +96,8 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   const applyThemeToDOM = (t: Theme) => {
     const doc = document.documentElement;
     doc.classList.add('theme-transitioning');
-    doc.classList.remove('light', 'sepia', 'dark');
-
-    if (t === 'sepia') {
-      doc.classList.add('sepia');
-    } else if (t === 'dark') {
-      doc.classList.add('dark');
-    } else {
-      doc.classList.add('light');
-    }
+    doc.classList.remove('light', 'dark');
+    doc.classList.add(t === 'dark' ? 'dark' : 'light');
 
     setTimeout(() => {
       doc.classList.remove('theme-transitioning');
@@ -120,12 +142,30 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleContext = useCallback(() => {
-    setContextOpenState((prev) => !prev);
+    setContextOpenState((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('medusa-context-panel-open', String(next));
+      } catch {
+        // Fallback para storage restrito
+      }
+      return next;
+    });
   }, []);
 
   const setContextOpen = useCallback((open: boolean) => {
     setContextOpenState(open);
+    try {
+      localStorage.setItem('medusa-context-panel-open', String(open));
+    } catch {
+      // Fallback para storage restrito
+    }
   }, []);
+
+  // Cálculo da Geometria Unificada (Fonte Única da Verdade — ver src/types/shell.ts)
+  const geometry = useMemo(() => {
+    return calculateShellGeometry(mode, breakpoint, isContextOpen);
+  }, [mode, breakpoint, isContextOpen]);
 
   const openDrawer = useCallback(() => {
     setDrawerOpenState(true);
@@ -185,6 +225,7 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
         isContextOpen,
         toggleContext,
         setContextOpen,
+        geometry,
         isDrawerOpen,
         openDrawer,
         closeDrawer,
@@ -193,6 +234,8 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
         closeCommand,
         islandState,
         setIslandState,
+        isVoiceActive,
+        setVoiceActive,
         isQuiet,
         toggleQuiet,
         breakpoint,

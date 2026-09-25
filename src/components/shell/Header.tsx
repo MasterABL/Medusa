@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { DynamicIsland } from './DynamicIsland';
+import { SpotifyMusicWidget } from './SpotifyMusicWidget';
+import { AudioSettingsWidget } from './AudioSettingsWidget';
 import { Theme, ShellMode } from '@/types/shell';
+import { useClickOutside } from '@/lib/useClickOutside';
 
 export function Header() {
   const {
@@ -11,12 +14,12 @@ export function Header() {
     setMode,
     theme,
     setTheme,
-    isContextOpen,
     toggleContext,
     openDrawer,
     openCommand,
     breakpoint,
     activeRoute,
+    geometry,
   } = useShell();
 
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
@@ -25,50 +28,12 @@ export function Header() {
   const modeRef = useRef<HTMLDivElement>(null);
   const themeRef = useRef<HTMLDivElement>(null);
 
-  // Fechar dropdowns ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modeRef.current && !modeRef.current.contains(event.target as Node)) {
-        setModeDropdownOpen(false);
-      }
-      if (themeRef.current && !themeRef.current.contains(event.target as Node)) {
-        setThemeDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Cálculo geométrico dinâmico do Header baseado no modo
-  const getHeaderPositionStyle = () => {
-    if (breakpoint === 'mobile') {
-      return { left: '0px', right: '0px' };
-    }
-    if (breakpoint === 'tablet') {
-      // No tablet, sidebar recolhe para compacto ou drawer
-      const left = mode === 'foco' ? '0px' : '68px';
-      return { left, right: '0px' };
-    }
-
-    // Desktop
-    let left = '240px';
-    let right = isContextOpen ? '320px' : '0px';
-
-    if (mode === 'compacto') {
-      left = '68px';
-      right = isContextOpen ? '260px' : '0px';
-    } else if (mode === 'foco') {
-      left = '0px';
-      right = '0px';
-    }
-
-    return { left, right };
-  };
+  // Fechar dropdowns ao clicar fora (hook reutilizável — ver src/lib/useClickOutside.ts)
+  useClickOutside(modeRef, () => setModeDropdownOpen(false));
+  useClickOutside(themeRef, () => setThemeDropdownOpen(false));
 
   const getThemeLabel = (t: Theme) => {
     switch (t) {
-      case 'sepia':
-        return 'Sépia';
       case 'dark':
         return 'Escuro';
       default:
@@ -78,8 +43,6 @@ export function Header() {
 
   const getThemeIcon = (t: Theme) => {
     switch (t) {
-      case 'sepia':
-        return 'auto_stories';
       case 'dark':
         return 'dark_mode';
       default:
@@ -104,13 +67,11 @@ export function Header() {
     }
   };
 
-  const pos = getHeaderPositionStyle();
-
   return (
     <header
       id="top-header"
       role="banner"
-      style={{ left: pos.left, right: pos.right }}
+      style={geometry.headerStyle}
       className="fixed top-0 h-14 bg-background/90 backdrop-blur-md border-b border-border/70 dark:border-border/50 z-30 panel-transition"
     >
       <div className="w-full h-full px-4 sm:px-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center">
@@ -186,7 +147,7 @@ export function Header() {
                 >
                   <div>
                     <span className="block">Amplo</span>
-                    <span className="text-[10px] font-mono text-text-muted">240px + 320px</span>
+                    <span className="text-[10px] text-text-muted">Menu e painel lateral visíveis</span>
                   </div>
                   {mode === 'amplo' && (
                     <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary">check</span>
@@ -206,7 +167,7 @@ export function Header() {
                 >
                   <div>
                     <span className="block">Compacto</span>
-                    <span className="text-[10px] font-mono text-text-muted">68px + 260px</span>
+                    <span className="text-[10px] text-text-muted">Menu reduzido a ícones</span>
                   </div>
                   {mode === 'compacto' && (
                     <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary">check</span>
@@ -226,7 +187,7 @@ export function Header() {
                 >
                   <div>
                     <span className="block">Foco (Zen)</span>
-                    <span className="text-[10px] font-mono text-text-muted">0px + Drawer</span>
+                    <span className="text-[10px] text-text-muted">Só o conteúdo, sem distrações</span>
                   </div>
                   {mode === 'foco' && (
                     <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary">check</span>
@@ -236,7 +197,10 @@ export function Header() {
             )}
           </div>
 
-          {/* Seletor dos 3 Temas Permanentes [Claro | Sépia | Escuro] */}
+          {/* Seletor dos 2 Temas Permanentes [Claro | Escuro] — Round 7 §4: Sépia removido por
+              decisão explícita do Owner (Round 7 §1 Owner Precedence). Quem tinha 'sepia' salvo em
+              localStorage é migrado para 'light' pelo próprio `ShellContext` (nunca fica preso a
+              um tema que não existe mais na UI). */}
           <div className="relative flex-shrink-0" ref={themeRef}>
             <button
               type="button"
@@ -277,26 +241,6 @@ export function Header() {
 
                 <button
                   type="button"
-                  data-theme="sepia"
-                  onClick={() => {
-                    setTheme('sepia');
-                    setThemeDropdownOpen(false);
-                  }}
-                  className={`theme-select-btn flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-left transition-colors ${
-                    theme === 'sepia' ? 'bg-surface-secondary text-text-primary font-medium' : 'hover:bg-surface-secondary text-text-secondary'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#F8F7F0] border border-[#E4E5DA] inline-block" />
-                    <span>Sépia (Paper Mode)</span>
-                  </div>
-                  {theme === 'sepia' && (
-                    <span className="material-symbols-outlined text-[14px] text-[#2c6956] dark:text-medusa-primary" id="theme-check-sepia">check</span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
                   data-theme="dark"
                   onClick={() => {
                     setTheme('dark');
@@ -318,8 +262,19 @@ export function Header() {
             )}
           </div>
 
-          {/* Toggle Context Panel (Apenas quando modo não é Foco e viewport desktop) */}
-          {mode !== 'foco' && breakpoint === 'desktop' && (
+          {/* Música/Spotify (Round 5 §20) — ver auditoria de viabilidade completa em
+              SpotifyMusicWidget.tsx. Adjacente ao Island (mesma zona da Dynamic Island, "camada
+              viva" do cabeçalho) em vez de dentro dele, de propósito: modificar a máquina de
+              estados já testada do Island às cegas (sem conseguir verificar a integração real do
+              Spotify neste ambiente) era mais risco do que valia. */}
+          <SpotifyMusicWidget />
+
+          {/* Feedback sonoro (Round 5 §10) — mesma zona da entrada de música, "camada viva" do
+              cabeçalho. */}
+          <AudioSettingsWidget />
+
+          {/* Toggle Context Panel (Apenas quando o painel regional for suportado no layout atual) */}
+          {geometry.isContextAvailable && (
             <button
               type="button"
               id="toggle-context-panel"

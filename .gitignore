@@ -35,3 +35,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent-orchestrator: lock ephemeral de execução, nunca deve ser versionado (diferente dos
+# registros de auditoria em .ai/runs/*.json, que são commitados de propósito)
+.ai/runs/.orchestrator.lock

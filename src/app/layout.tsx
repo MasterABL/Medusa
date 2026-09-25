@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ShellProvider } from '@/context/ShellContext';
+import { AgendaProvider } from '@/context/AgendaContext';
+import { EducationPanelProvider } from '@/context/EducationPanelContext';
 import { ShellLayout } from '@/components/shell/ShellLayout';
 
 export const metadata: Metadata = {
@@ -36,7 +38,11 @@ export default function RootLayout({
       </head>
       <body className="antialiased selection:bg-medusa-primary selection:text-[#1C2420]">
         <ShellProvider>
-          <ShellLayout>{children}</ShellLayout>
+          <AgendaProvider>
+            <EducationPanelProvider>
+              <ShellLayout>{children}</ShellLayout>
+            </EducationPanelProvider>
+          </AgendaProvider>
         </ShellProvider>
       </body>
     </html>
