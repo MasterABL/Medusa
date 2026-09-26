@@ -31,6 +31,7 @@ interface EventDetailPanelProps {
   onEdit: (item: AgendaItem) => void;
   onDelete: (itemId: string) => void;
   onDeleteRecurring?: (item: AgendaItem, scope: RecurringDeleteScope) => void;
+  onReschedule?: (itemId: string, date: string, startTime: string, endTime: string) => void;
   suggestions?: ConflictSuggestion[];
   onApplySuggestion?: (item: AgendaItem, suggestion: ConflictSuggestion) => void;
 }
@@ -43,13 +44,25 @@ export function EventDetailPanel({
   onEdit,
   onDelete,
   onDeleteRecurring,
+  onReschedule,
   suggestions = [],
   onApplySuggestion,
 }: EventDetailPanelProps) {
-  const { theme } = useShell();
+  const { theme, setActiveRoute } = useShell();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteScope, setDeleteScope] = useState<RecurringDeleteScope>('this');
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const handleShiftTime = (deltaMinutes: number) => {
+    if (!item || !item.startTime || !item.endTime || !onReschedule) return;
+    const [sh, sm] = item.startTime.split(':').map(Number);
+    const [eh, em] = item.endTime.split(':').map(Number);
+    const startM = sh * 60 + sm + deltaMinutes;
+    const endM = eh * 60 + em + deltaMinutes;
+    if (startM < 0 || endM > 24 * 60) return;
+    const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    onReschedule(item.id, item.date, fmt(startM), fmt(endM));
+  };
 
   // Fechar com tecla Escape
   useEffect(() => {
@@ -98,6 +111,7 @@ export function EventDetailPanel({
 
   return (
     <aside
+      id="agenda-detail-panel"
       aria-label="Detalhes do compromisso"
       className="bg-surface rounded-2xl border border-border/80 p-5 sm:p-6 shadow-calm flex flex-col gap-5 relative transition-all duration-200 animate-in fade-in slide-in-from-right-2"
     >
@@ -140,7 +154,7 @@ export function EventDetailPanel({
           {item.title}
         </h3>
 
-        <div className="flex items-center gap-2 text-[12px] font-mono text-text-secondary tabular-nums">
+          <div className="flex items-center gap-2 text-[12px] font-mono text-text-secondary tabular-nums">
           <span className="material-symbols-outlined text-[16px] text-text-muted">schedule</span>
           {item.allDay ? (
             <span>Dia todo ({item.date})</span>
@@ -155,6 +169,29 @@ export function EventDetailPanel({
             </span>
           )}
         </div>
+
+        {/* Reagendamento Rápido (Fase 12) */}
+        {!item.allDay && item.startTime && item.endTime && onReschedule && (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-[10px] font-mono text-text-muted">Ajuste rápido:</span>
+            <button
+              type="button"
+              onClick={() => handleShiftTime(-30)}
+              title="Adiantar 30 minutos"
+              className="btn-interactive px-2 py-0.5 rounded-lg border border-border/70 bg-surface-secondary/50 hover:bg-surface text-[10px] font-mono text-text-secondary hover:text-text-primary transition-all shadow-subtle"
+            >
+              -30 min
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShiftTime(30)}
+              title="Adiar 30 minutos"
+              className="btn-interactive px-2 py-0.5 rounded-lg border border-border/70 bg-surface-secondary/50 hover:bg-surface text-[10px] font-mono text-text-secondary hover:text-text-primary transition-all shadow-subtle"
+            >
+              +30 min
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Alerta de Conflito com Duração Exata */}
@@ -269,6 +306,22 @@ export function EventDetailPanel({
         </div>
       )}
 
+      {/* Navegação Cross-Tab para Educação (Fase 3: Agenda → Educação) */}
+      {item.domain === 'education' && (
+        <button
+          type="button"
+          id="btn-go-to-education"
+          onClick={() => {
+            setActiveRoute('educacao');
+            onClose();
+          }}
+          className="btn-interactive w-full py-2.5 px-3.5 rounded-xl bg-medusa-primary/15 border border-medusa-primary/40 hover:bg-medusa-primary/25 text-[#18534B] dark:text-[#71DBD2] text-[12px] font-semibold flex items-center justify-center gap-2 shadow-subtle transition-all"
+        >
+          <span className="material-symbols-outlined text-[16px]">school</span>
+          <span>Abrir no contexto de Educação</span>
+        </button>
+      )}
+
       {/* Ações de Edição e Exclusão */}
       <div className="pt-2 flex flex-col gap-2">
         {confirmDelete ? (
@@ -326,6 +379,7 @@ export function EventDetailPanel({
                     onDelete(item.id);
                   }
                 }}
+                id="btn-confirm-delete"
                 className="btn-interactive px-3 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
               >
                 {item.kind === 'routine' && onDeleteRecurring ? 'Excluir' : 'Sim, excluir'}

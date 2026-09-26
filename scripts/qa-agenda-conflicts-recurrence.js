@@ -9,6 +9,26 @@
  * - Recorrência customizada (intervalo, dias da semana, término por data/contagem).
  */
 const puppeteer = require('puppeteer-core');
+const fs = require('fs');
+const path = require('path');
+
+function resolveBrowserPath() {
+  if (process.env.MEDUSA_BROWSER_PATH && fs.existsSync(process.env.MEDUSA_BROWSER_PATH)) {
+    return process.env.MEDUSA_BROWSER_PATH;
+  }
+  const candidatePaths = [
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    '/opt/pw-browsers/chromium',
+  ].filter(Boolean);
+
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) return p;
+  }
+  throw new Error('Nenhum executável de Chromium/Chrome/Edge encontrado.');
+}
 
 const URL = 'http://localhost:3000';
 let pass = 0;
@@ -108,7 +128,7 @@ async function getEventBlockRects(page) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: '/opt/pw-browsers/chromium',
+    executablePath: resolveBrowserPath(),
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
@@ -341,19 +361,27 @@ async function getEventBlockRects(page) {
     const page = await freshPage(browser, 1440, 960);
     await goToAgenda(page);
     await openAddDrawer(page);
+
+    // Agenda a rotina para amanhã (dia livre de fixtures onde o limite MAX_VISIBLE = 3 do Mês
+    // não mascara o tag em overflow +N, permitindo medição visual precisa antes e depois).
+    const tomorrowStr = await page.evaluate(() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    });
     await page.type('#form-title', 'QA Rotina Exclusao');
+    await setControlledInputValue(page, '#form-date', tomorrowStr);
+    await setControlledInputValue(page, '#form-start-time', '07:00');
+    await setControlledInputValue(page, '#form-end-time', '08:00');
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.includes('Rotina'));
       if (btn) btn.click();
     });
     await new Promise((r) => setTimeout(r, 150));
     await submitForm(page);
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 400));
 
-    // Achado real de review: a asserção original media "remaining >= 0" — length de array
-    // NUNCA é negativo, então isso sempre passava, mesmo se a série inteira tivesse sido
-    // apagada (tautologia, não testava nada). Corrigido pra comparar ANTES x DEPOIS na visão de
-    // Mês (janela larga o bastante pra uma rotina semanal sem data-fim aparecer mais de uma vez).
+    // Compara ANTES x DEPOIS na visão de Mês (janela larga onde a rotina semanal aparece múltiplas vezes)
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('[role="tab"]')).find((b) => b.textContent.trim() === 'Mês');
       if (btn) btn.click();
@@ -368,9 +396,16 @@ async function getEventBlockRects(page) {
       `before=${occurrencesBeforeDelete}`
     );
 
+    // Muda para visão Lista e avança 1 dia para o dia da ocorrência criada
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('[role="tab"]')).find((b) => b.textContent.trim() === 'Lista');
       if (btn) btn.click();
+    });
+    await new Promise((r) => setTimeout(r, 400));
+
+    await page.evaluate(() => {
+      const nextBtn = Array.from(document.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === 'Próximo período');
+      if (nextBtn) nextBtn.click();
     });
     await new Promise((r) => setTimeout(r, 400));
 
@@ -382,24 +417,24 @@ async function getEventBlockRects(page) {
     await new Promise((r) => setTimeout(r, 300));
 
     await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll('aside button')).find((b) => b.textContent.includes('Excluir'));
+      const btn = Array.from(document.querySelectorAll('#agenda-detail-panel button')).find((b) => b.textContent.includes('Excluir'));
       if (btn) btn.click();
     });
     await new Promise((r) => setTimeout(r, 200));
 
     const scopeOptions = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('aside input[name="delete-scope"]')).length
+      Array.from(document.querySelectorAll('#agenda-detail-panel input[name="delete-scope"]')).length
     );
     check('[ExclusãoRecorrência] 3 opções de escopo aparecem (somente este/próximos/série)', scopeOptions === 3, `count=${scopeOptions}`);
 
     // Escolhe "Somente este evento" (já é o default) e confirma
     await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll('aside button')).find((b) => b.textContent.trim() === 'Excluir');
+      const btn = document.querySelector('#btn-confirm-delete');
       if (btn) btn.click();
     });
     await new Promise((r) => setTimeout(r, 400));
 
-    // Mesma visão de Mês de antes — compara contra a contagem PRÉVIA, não um limite trivial.
+    // Mesma visão de Mês de antes — compara contra a contagem PRÉVIA
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('[role="tab"]')).find((b) => b.textContent.trim() === 'Mês');
       if (btn) btn.click();

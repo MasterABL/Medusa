@@ -2,13 +2,13 @@
  * Medusa — Agenda Context
  *
  * Provedor de Estado Local em Memória para a Agenda / Temporal OS.
- * Compartilha o estado temporal ativo entre o AgendaContainer e o ContextPanel,
+ * Compartilha o estado temporal ativo entre o AgendaContainer, o ContextPanel e a aba Hoje,
  * garantindo reatividade instantânea sem persistência falsa no backend.
  */
 
 'use client';
 
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import {
   AgendaCategory,
   AgendaDomain,
@@ -37,6 +37,20 @@ interface AgendaContextType {
   editingItem: AgendaItem | null;
   isCategoryModalOpen: boolean;
   activeSlotTime: { start: string; end: string } | null;
+
+  // Desfazer (Undo) e Ações em Lote
+  lastDeletedItems: AgendaItem[] | null;
+  undoLastDelete: () => void;
+  clearUndoToast: () => void;
+  deleteMultipleItems: (itemIds: string[]) => void;
+
+  // Reagendamento / Drag & Drop
+  rescheduleItem: (itemId: string, newDate: string, newStartTime: string, newEndTime: string) => void;
+
+  // Reconciliação com Cronograma de Educação
+  reconcileEducationBlocks: (
+    newBlocks: Array<{ disciplina: string; date: string; durationMinutes: number; startTime?: string; endTime?: string }>
+  ) => void;
 
   // Ações de Estado
   setCurrentDate: (date: Date) => void;
@@ -76,140 +90,240 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
   const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
   const [activeSlotTime, setActiveSlotTime] = useState<{ start: string; end: string } | null>(null);
+  const [lastDeletedItems, setLastDeletedItems] = useState<AgendaItem[] | null>(null);
+
+  // Expiração do Toast de Desfazer (7 segundos)
+  useEffect(() => {
+    if (!lastDeletedItems || lastDeletedItems.length === 0) return;
+    const timer = setTimeout(() => {
+      setLastDeletedItems(null);
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, [lastDeletedItems]);
+
+  const clearUndoToast = useCallback(() => {
+    setLastDeletedItems(null);
+  }, []);
+
+  const undoLastDelete = useCallback(() => {
+    if (!lastDeletedItems || lastDeletedItems.length === 0) return;
+    setItems((prev) => [...lastDeletedItems, ...prev]);
+    setLastDeletedItems(null);
+    playFeedback('action');
+  }, [lastDeletedItems]);
 
   // Navegação
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     setCurrentDate(new Date());
-  };
+  }, []);
 
-  const goToPrevDate = () => {
+  const goToPrevDate = useCallback(() => {
     setCurrentDate((prev) => getPrevDate(prev, viewMode));
-  };
+  }, [viewMode]);
 
-  const goToNextDate = () => {
+  const goToNextDate = useCallback(() => {
     setCurrentDate((prev) => getNextDate(prev, viewMode));
-  };
+  }, [viewMode]);
 
-  const openAddDrawerWithSlot = (startTime: string, endTime: string) => {
+  const openAddDrawerWithSlot = useCallback((startTime: string, endTime: string) => {
     setActiveSlotTime({ start: startTime, end: endTime });
     setEditingItem(null);
     setDrawerOpen(true);
-  };
+  }, []);
 
   // Criação ou Edição
-  const createOrUpdateItem = (itemData: Partial<AgendaItem>) => {
-    const nowISO = new Date().toISOString();
+  const createOrUpdateItem = useCallback(
+    (itemData: Partial<AgendaItem>) => {
+      const nowISO = new Date().toISOString();
 
-    if (itemData.id) {
-      // Atualização
+      if (itemData.id) {
+        // Atualização
+        setItems((prev) =>
+          prev.map((it) => {
+            if (it.id === itemData.id) {
+              return {
+                ...it,
+                ...itemData,
+                updatedAt: nowISO,
+              } as AgendaItem;
+            }
+            return it;
+          })
+        );
+        playFeedback('ready');
+      } else {
+        // Criação de novo item
+        const newItem: AgendaItem = {
+          id: `item-local-${Date.now()}`,
+          title: itemData.title || 'Sem Título',
+          kind: itemData.kind || 'event',
+          domain: itemData.domain || 'personal',
+          categoryId: itemData.categoryId || categories[0]?.id || 'cat-pessoal',
+          colorId: itemData.colorId || 'azul_lavanda',
+          date: itemData.date || formatDateISO(currentDate),
+          startTime: itemData.startTime,
+          endTime: itemData.endTime,
+          durationMinutes: itemData.durationMinutes,
+          allDay: itemData.allDay,
+          isFlexible: itemData.isFlexible,
+          recurrence: itemData.recurrence,
+          location: itemData.location,
+          description: itemData.description,
+          source: itemData.source || {
+            sourceType: 'manual',
+            sourceLabel: 'Entrada Manual',
+          },
+          status: 'scheduled',
+          createdAt: nowISO,
+          updatedAt: nowISO,
+        };
+
+        setItems((prev) => [newItem, ...prev]);
+        playFeedback('success');
+      }
+    },
+    [categories, currentDate]
+  );
+
+  // Exclusão com suporte a Desfazer (Undo)
+  const deleteItem = useCallback(
+    (itemId: string) => {
+      const baseId = itemId.includes('-virt-') ? itemId.split('-virt-')[0] : itemId;
+      const target = items.find((it) => it.id === baseId);
+      if (target) {
+        setLastDeletedItems([target]);
+      }
+      setItems((prev) => prev.filter((it) => it.id !== baseId));
+      playFeedback('delete');
+      if (selectedItemId === itemId || selectedItemId === baseId) {
+        setSelectedItemId(null);
+      }
+    },
+    [items, selectedItemId]
+  );
+
+  // Exclusão em Lote
+  const deleteMultipleItems = useCallback(
+    (itemIds: string[]) => {
+      const baseIds = new Set(itemIds.map((id) => (id.includes('-virt-') ? id.split('-virt-')[0] : id)));
+      const deleted = items.filter((it) => baseIds.has(it.id));
+      if (deleted.length > 0) {
+        setLastDeletedItems(deleted);
+      }
+      setItems((prev) => prev.filter((it) => !baseIds.has(it.id)));
+      playFeedback('delete');
+      if (selectedItemId && baseIds.has(selectedItemId)) {
+        setSelectedItemId(null);
+      }
+    },
+    [items, selectedItemId]
+  );
+
+  // Reagendamento direto / Drag & Drop
+  const rescheduleItem = useCallback(
+    (itemId: string, newDate: string, newStartTime: string, newEndTime: string) => {
+      const nowISO = new Date().toISOString();
+      const baseId = itemId.includes('-virt-') ? itemId.split('-virt-')[0] : itemId;
       setItems((prev) =>
         prev.map((it) => {
-          if (it.id === itemData.id) {
+          if (it.id === baseId) {
             return {
               ...it,
-              ...itemData,
+              date: newDate,
+              startTime: newStartTime,
+              endTime: newEndTime,
               updatedAt: nowISO,
-            } as AgendaItem;
+            };
           }
           return it;
         })
       );
-    } else {
-      // Criação de novo item
-      const newItem: AgendaItem = {
-        id: `item-local-${Date.now()}`,
-        title: itemData.title || 'Sem Título',
-        kind: itemData.kind || 'event',
-        domain: itemData.domain || 'personal',
-        categoryId: itemData.categoryId || categories[0]?.id || 'cat-pessoal',
-        colorId: itemData.colorId || 'azul_lavanda',
-        date: itemData.date || formatDateISO(currentDate),
-        startTime: itemData.startTime,
-        endTime: itemData.endTime,
-        durationMinutes: itemData.durationMinutes,
-        allDay: itemData.allDay,
-        isFlexible: itemData.isFlexible,
-        recurrence: itemData.recurrence,
-        location: itemData.location,
-        description: itemData.description,
-        source: itemData.source || {
-          sourceType: 'manual',
-          sourceLabel: 'Entrada Manual',
-        },
-        status: 'scheduled',
-        createdAt: nowISO,
-        updatedAt: nowISO,
-      };
+      playFeedback('ready');
+    },
+    []
+  );
 
-      setItems((prev) => [newItem, ...prev]);
-      // Confirmação sonora de "evento criado" (Round 6 §33) — só na criação, não na edição, pra
-      // não tocar som em todo ajuste pequeno de um item já existente.
-      playFeedback('action');
-    }
-  };
-
-  // Exclusão
-  // Ocorrências de rotina são expandidas virtualmente (id `${routine.id}-virt-${date}`,
-  // ver expandRecurringItems em agendaHelpers.ts) e não existem em `items` com esse id —
-  // achado de auditoria: excluir uma ocorrência de rotina resolvia para a série base para
-  // que a ação de fato remova algo, em vez de falhar silenciosamente. Excluir uma única
-  // ocorrência (mantendo as demais) exigiria um modelo de exceção por data e fica registrado
-  // como refinamento futuro, não implementado nesta rodada.
-  const deleteItem = (itemId: string) => {
-    const baseId = itemId.includes('-virt-') ? itemId.split('-virt-')[0] : itemId;
-    setItems((prev) => prev.filter((it) => it.id !== baseId));
-    // Confirmação sonora de "evento excluído" (Round 6 §33).
-    playFeedback('action');
-    if (selectedItemId === itemId) {
-      setSelectedItemId(null);
-    }
-  };
-
-  // Exclusão de uma ocorrência recorrente com distinção explícita de escopo (seção 9 do
-  // pedido de refinamento): "somente este evento" usa `recurrenceExceptions` (modelagem em
-  // Local State — nenhuma exceção real por ocorrência é persistida); "este e os próximos"
-  // reaproveita o campo `recurrence.until` já existente no modelo de dados, encerrando a
-  // série no dia anterior a esta ocorrência; "toda a série" remove o item base inteiro.
-  const deleteRecurringOccurrence = (
-    item: AgendaItem,
-    scope: 'this' | 'following' | 'series'
-  ) => {
-    const baseId = item.id.includes('-virt-') ? item.id.split('-virt-')[0] : item.id;
-
-    if (scope === 'series') {
-      setItems((prev) => prev.filter((it) => it.id !== baseId));
-      setSelectedItemId(null);
-      return;
-    }
-
-    const nowISO = new Date().toISOString();
-    setItems((prev) =>
-      prev.map((it) => {
-        if (it.id !== baseId) return it;
-        if (scope === 'this') {
+  // Reconciliação dos blocos de estudo do Cronograma (ZERO duplicações)
+  const reconcileEducationBlocks = useCallback(
+    (newBlocks: Array<{ disciplina: string; date: string; durationMinutes: number; startTime?: string; endTime?: string }>) => {
+      const nowISO = new Date().toISOString();
+      setItems((prev) => {
+        // Remove quaisquer blocos de educação anteriores para garantir reconciliação limpa
+        const nonEducationItems = prev.filter((it) => it.source?.sourceType !== 'education_session');
+        const generatedItems: AgendaItem[] = newBlocks.map((b) => {
+          const safeSlug = b.disciplina.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           return {
-            ...it,
-            recurrenceExceptions: [...(it.recurrenceExceptions || []), item.date],
+            id: `cronograma-block-${safeSlug}-${b.date}`,
+            title: `Estudo: ${b.disciplina} (ENEM)`,
+            kind: 'time_block',
+            domain: 'education',
+            categoryId: 'cat-enem',
+            colorId: 'amarelo_baunilha',
+            date: b.date,
+            startTime: b.startTime || '14:00',
+            endTime: b.endTime || '15:30',
+            durationMinutes: b.durationMinutes,
+            isFlexible: true,
+            description: 'Bloco gerado a partir do seu plano do Cronograma do ENEM — horário flexível, ajuste como preferir.',
+            source: { sourceType: 'education_session', sourceLabel: 'Cronograma ENEM' },
+            status: 'scheduled',
+            createdAt: nowISO,
             updatedAt: nowISO,
           };
-        }
-        // scope === 'following'
-        const untilDate = new Date(`${item.date}T00:00:00`);
-        untilDate.setDate(untilDate.getDate() - 1);
-        return {
-          ...it,
-          recurrence: it.recurrence
-            ? { ...it.recurrence, until: formatDateISO(untilDate) }
-            : it.recurrence,
-          updatedAt: nowISO,
-        };
-      })
-    );
-    setSelectedItemId(null);
-  };
+        });
+        return [...generatedItems, ...nonEducationItems];
+      });
+      playFeedback('ready');
+    },
+    []
+  );
+
+  // Exclusão recorrente com escopo
+  const deleteRecurringOccurrence = useCallback(
+    (item: AgendaItem, scope: 'this' | 'following' | 'series') => {
+      const baseId = item.id.includes('-virt-') ? item.id.split('-virt-')[0] : item.id;
+
+      if (scope === 'series') {
+        const target = items.find((it) => it.id === baseId);
+        if (target) setLastDeletedItems([target]);
+        setItems((prev) => prev.filter((it) => it.id !== baseId));
+        playFeedback('delete');
+        setSelectedItemId(null);
+        return;
+      }
+
+      const nowISO = new Date().toISOString();
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== baseId) return it;
+          if (scope === 'this') {
+            return {
+              ...it,
+              recurrenceExceptions: [...(it.recurrenceExceptions || []), item.date],
+              updatedAt: nowISO,
+            };
+          }
+          // scope === 'following'
+          const untilDate = new Date(`${item.date}T00:00:00`);
+          untilDate.setDate(untilDate.getDate() - 1);
+          return {
+            ...it,
+            recurrence: {
+              ...(it.recurrence || { frequency: 'weekly' }),
+              until: formatDateISO(untilDate),
+            },
+            updatedAt: nowISO,
+          };
+        })
+      );
+      playFeedback('delete');
+      setSelectedItemId(null);
+    },
+    [items]
+  );
 
   // Categorias
-  const saveCategory = (category: AgendaCategory) => {
+  const saveCategory = useCallback((category: AgendaCategory) => {
     setCategories((prev) => {
       const exists = prev.some((c) => c.id === category.id);
       if (exists) {
@@ -217,11 +331,13 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, category];
     });
-  };
+    playFeedback('ready');
+  }, []);
 
-  const deleteCategory = (categoryId: string) => {
+  const deleteCategory = useCallback((categoryId: string) => {
     setCategories((prev) => prev.filter((c) => c.id !== categoryId));
-  };
+    playFeedback('delete');
+  }, []);
 
   const contextValue = useMemo(
     () => ({
@@ -235,6 +351,12 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       editingItem,
       isCategoryModalOpen,
       activeSlotTime,
+      lastDeletedItems,
+      undoLastDelete,
+      clearUndoToast,
+      deleteMultipleItems,
+      rescheduleItem,
+      reconcileEducationBlocks,
       setCurrentDate,
       setViewMode,
       setSelectedDomainFilter,
@@ -263,6 +385,21 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       editingItem,
       isCategoryModalOpen,
       activeSlotTime,
+      lastDeletedItems,
+      undoLastDelete,
+      clearUndoToast,
+      deleteMultipleItems,
+      rescheduleItem,
+      reconcileEducationBlocks,
+      goToToday,
+      goToPrevDate,
+      goToNextDate,
+      openAddDrawerWithSlot,
+      createOrUpdateItem,
+      deleteItem,
+      deleteRecurringOccurrence,
+      saveCategory,
+      deleteCategory,
     ]
   );
 

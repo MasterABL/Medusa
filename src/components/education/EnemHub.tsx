@@ -6,6 +6,9 @@ import { TrackModuleList } from './TrackModuleList';
 import { EnemCronogramaView } from './EnemCronogramaView';
 import { CompletedActivityList } from './CompletedActivityList';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { useAgenda } from '@/context/AgendaContext';
+import { CronogramaOnboarding } from './CronogramaOnboarding';
+import { gerarBlocosAgendaSemana } from './cronogramaPlanner';
 import { getTrackAccent } from './trackAccent';
 
 interface EnemHubProps {
@@ -32,7 +35,15 @@ const SIMULADO_STATUS_LABEL: Record<string, string> = {
  */
 export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
   const accent = getTrackAccent(trackDef.id);
-  const { enemView: view, setEnemView: setView } = useEducationPanel();
+  const {
+    enemView: view,
+    setEnemView: setView,
+    isCronogramaConfigured,
+    cronogramaPlan,
+    setCronogramaPlan,
+    markCronogramaOnboardingSeen,
+  } = useEducationPanel();
+  const { reconcileEducationBlocks } = useAgenda();
   const cronograma = trackDef.cronograma ?? [];
   const simulados = cronograma.filter((b) => b.activityType === 'simulado');
   const completedModules = trackItems.filter((m) => m.status === 'completed');
@@ -146,7 +157,20 @@ export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
           </>
         )}
         {view === 'cronograma' && (
-          <EnemCronogramaView blocks={cronograma} onStartStudy={onStartStudy} />
+          !isCronogramaConfigured ? (
+            <CronogramaOnboarding
+              onFinish={(newPlan, diasReais) => {
+                setCronogramaPlan(newPlan);
+                markCronogramaOnboardingSeen();
+                if (diasReais && diasReais.length > 0) {
+                  const blocos = gerarBlocosAgendaSemana(newPlan, diasReais);
+                  reconcileEducationBlocks(blocos);
+                }
+              }}
+            />
+          ) : (
+            <EnemCronogramaView blocks={cronograma} onStartStudy={onStartStudy} plan={cronogramaPlan} />
+          )
         )}
       </div>
     </div>

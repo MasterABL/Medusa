@@ -8,10 +8,12 @@
 
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import { AgendaItem } from '@/types/agenda';
 import { useAgenda } from '@/context/AgendaContext';
 import { useShell } from '@/context/ShellContext';
+import { IslandState } from '@/types/shell';
+import { playFeedback } from '@/lib/audioFeedback';
 import { AgendaHeader } from './AgendaHeader';
 import { AgendaFilters } from './AgendaFilters';
 import { DayView } from './DayView';
@@ -42,6 +44,7 @@ export function AgendaContainer() {
     editingItem,
     isCategoryModalOpen,
     activeSlotTime,
+    lastDeletedItems,
     setCurrentDate,
     setViewMode,
     setSelectedDomainFilter,
@@ -52,6 +55,10 @@ export function AgendaContainer() {
     createOrUpdateItem,
     deleteItem,
     deleteRecurringOccurrence,
+    deleteMultipleItems,
+    undoLastDelete,
+    clearUndoToast,
+    rescheduleItem,
     saveCategory,
     deleteCategory,
     goToToday,
@@ -62,46 +69,79 @@ export function AgendaContainer() {
 
   const { setIslandState } = useShell();
 
-  // Pulso transiente do Dynamic Island (idêntico ao padrão já usado em EducationContainer:
-  // 'processing' por 320ms, retornando a 'idle' — nunca um estado persistente, já que o
-  // catálogo fechado de fixtures do Island tem texto específico de Educação por design,
-  // não deve ser adotado como se fosse conteúdo real da Agenda).
-  const pulseIslandProcessing = useCallback(() => {
-    setIslandState('processing');
-    window.setTimeout(() => setIslandState('idle'), 320);
+  // Pulso transiente e intencional do Dynamic Island (Fase 6)
+  const pulseIsland = useCallback((state: IslandState = 'context', durationMs: number = 380) => {
+    setIslandState(state);
+    window.setTimeout(() => setIslandState('idle'), durationMs);
   }, [setIslandState]);
+
+  // Auto-dismiss do Toast de Desfazer após 6 segundos
+  useEffect(() => {
+    if (!lastDeletedItems || lastDeletedItems.length === 0) return;
+    const timer = setTimeout(() => {
+      clearUndoToast();
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [lastDeletedItems, clearUndoToast]);
 
   const handleChangeViewMode = useCallback(
     (mode: typeof viewMode) => {
       if (mode === viewMode) return;
       setViewMode(mode);
-      pulseIslandProcessing();
+      pulseIsland('context', 320);
     },
-    [viewMode, setViewMode, pulseIslandProcessing]
+    [viewMode, setViewMode, pulseIsland]
   );
 
   const handleSaveItem = useCallback(
     (itemData: Parameters<typeof createOrUpdateItem>[0]) => {
       createOrUpdateItem(itemData);
-      pulseIslandProcessing();
+      pulseIsland('success', 420);
+      playFeedback('success');
     },
-    [createOrUpdateItem, pulseIslandProcessing]
+    [createOrUpdateItem, pulseIsland]
   );
 
   const handleDeleteItem = useCallback(
     (itemId: string) => {
       deleteItem(itemId);
-      pulseIslandProcessing();
+      pulseIsland('attention', 420);
+      playFeedback('delete');
     },
-    [deleteItem, pulseIslandProcessing]
+    [deleteItem, pulseIsland]
+  );
+
+  const handleDeleteMultipleItems = useCallback(
+    (itemIds: string[]) => {
+      deleteMultipleItems(itemIds);
+      pulseIsland('attention', 450);
+      playFeedback('delete');
+    },
+    [deleteMultipleItems, pulseIsland]
   );
 
   const handleDeleteRecurringOccurrence = useCallback(
     (item: AgendaItem, scope: 'this' | 'following' | 'series') => {
       deleteRecurringOccurrence(item, scope);
-      pulseIslandProcessing();
+      pulseIsland('attention', 420);
+      playFeedback('delete');
     },
-    [deleteRecurringOccurrence, pulseIslandProcessing]
+    [deleteRecurringOccurrence, pulseIsland]
+  );
+
+  const handleUndo = useCallback(() => {
+    undoLastDelete();
+    pulseIsland('success', 400);
+    playFeedback('ready');
+  }, [undoLastDelete, pulseIsland]);
+
+  const handleReschedule = useCallback(
+    (itemId: string, date: string, startTime: string, endTime: string) => {
+      rescheduleItem(itemId, date, startTime, endTime);
+      pulseIsland('success', 380);
+      playFeedback('action');
+    },
+    [rescheduleItem, pulseIsland]
   );
 
   // Expansão virtual de rotinas recorrentes para o horizonte visual atual
@@ -179,9 +219,10 @@ export function AgendaContainer() {
         startTime: suggestion.start,
         endTime: suggestion.end,
       });
-      pulseIslandProcessing();
+      pulseIsland('success', 380);
+      playFeedback('success');
     },
-    [createOrUpdateItem, pulseIslandProcessing]
+    [createOrUpdateItem, pulseIsland]
   );
 
   return (
@@ -265,6 +306,7 @@ export function AgendaContainer() {
               onSelectItem={(it) => setSelectedItemId(it.id)}
               onEditItem={handleOpenEdit}
               onDeleteItem={handleDeleteItem}
+              onDeleteMultiple={handleDeleteMultipleItems}
             />
           )}
         </div>
@@ -280,6 +322,7 @@ export function AgendaContainer() {
               onEdit={handleOpenEdit}
               onDelete={handleDeleteItem}
               onDeleteRecurring={handleDeleteRecurringOccurrence}
+              onReschedule={handleReschedule}
               suggestions={conflictSuggestions}
               onApplySuggestion={handleApplySuggestion}
             />
@@ -310,6 +353,41 @@ export function AgendaContainer() {
         onSaveCategory={saveCategory}
         onDeleteCategory={deleteCategory}
       />
+
+      {/* 6. Toast Flutuante de Desfazer Exclusão (Fase 5 §Recuperação / Undo) */}
+      {lastDeletedItems && lastDeletedItems.length > 0 && (
+        <aside
+          role="status"
+          aria-live="polite"
+          id="agenda-undo-toast"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface border border-medusa-primary/40 shadow-calm animate-in slide-in-from-bottom-4 duration-200"
+        >
+          <span className="w-2 h-2 rounded-full bg-medusa-primary living-pulse" />
+          <span className="text-[12px] font-medium text-text-primary">
+            {lastDeletedItems.length === 1
+              ? `"${lastDeletedItems[0].title}" removido`
+              : `${lastDeletedItems.length} itens removidos`}
+          </span>
+          <button
+            type="button"
+            id="btn-agenda-undo"
+            onClick={handleUndo}
+            className="btn-interactive ml-2 px-3 py-1 rounded-lg bg-medusa-primary hover:opacity-95 text-[#1C2420] text-[11px] font-semibold flex items-center gap-1 shadow-subtle transition-all"
+          >
+            <span className="material-symbols-outlined text-[14px]">undo</span>
+            <span>Desfazer</span>
+          </button>
+          <button
+            type="button"
+            id="btn-agenda-dismiss-undo"
+            onClick={clearUndoToast}
+            aria-label="Dispensar aviso"
+            className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-secondary text-[14px]"
+          >
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </aside>
+      )}
     </main>
   );
 }

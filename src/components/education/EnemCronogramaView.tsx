@@ -100,7 +100,10 @@ export function EnemCronogramaView({ blocks, onStartStudy, plan }: EnemCronogram
   // Intervalo entre blocos — configuração REAL e alterável (ver EducationPanelContext), mas
   // escopo de sessão. Não existe motor de agendamento: o efeito honesto e visível é limitado ao
   // tempo total estimado do período filtrado (soma das durações + intervalos entre os blocos).
-  const { studyIntervalMinutes, setStudyIntervalMinutes } = useEducationPanel();
+  const { studyIntervalMinutes, setStudyIntervalMinutes, cronogramaPlan, resetCronograma } = useEducationPanel();
+  const [showResetModal, setShowResetModal] = useState(false);
+  const activePlan = plan || cronogramaPlan;
+
   const totalBlockMinutes = filtered.reduce((sum, b) => sum + b.durationMinutes, 0);
   const totalIntervalMinutes = filtered.length > 1 ? (filtered.length - 1) * studyIntervalMinutes : 0;
   const totalEstimatedMinutes = totalBlockMinutes + totalIntervalMinutes;
@@ -164,25 +167,98 @@ export function EnemCronogramaView({ blocks, onStartStudy, plan }: EnemCronogram
 
   return (
     <div id="enem-cronograma-view" className="flex flex-col gap-4">
-      {/* Resumo do plano calculado no onboarding (Round 5 §12-15) — separado do cronograma
-          detalhado abaixo, de propósito: este resumo é derivado das respostas reais do usuário
-          (dias/horas/prazo/domínio); o cronograma detalhado continua sendo a mesma lista de
-          blocos curada de sempre, que não muda com essas respostas. Misturar os dois faria
-          parecer que os blocos foram gerados a partir do plano, o que não é verdade. */}
-      {plan && (
-        <div
-          id="cronograma-plan-summary"
-          className="p-3 rounded-xl bg-medusa-accent/10 border border-medusa-accent/30 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]"
+      {/* Resumo do plano calculado no onboarding (Round 5 §12-15) + Ação explícita Refazer (Fase 2) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        {activePlan ? (
+          <div
+            id="cronograma-plan-summary"
+            className="p-3 rounded-xl bg-medusa-accent/10 border border-medusa-accent/30 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] flex-1"
+          >
+            <span className="flex items-center gap-1.5 font-semibold text-text-primary">
+              <span className="material-symbols-outlined text-[15px] text-[#8A6D00] dark:text-medusa-accent">auto_awesome</span>
+              Seu plano calculado
+            </span>
+            <span className="text-text-secondary">
+              {activePlan.semanasRestantes} semana{activePlan.semanasRestantes !== 1 ? 's' : ''} até a prova
+            </span>
+            <span className="text-text-secondary">{activePlan.horasSemanais}h/semana</span>
+            <span className="text-text-secondary">{INTENSIDADE_LABEL[activePlan.intensidade]}</span>
+          </div>
+        ) : (
+          <div className="p-2.5 rounded-xl bg-surface-secondary/40 border border-border/50 text-[11px] text-text-muted flex items-center gap-2">
+            <span className="material-symbols-outlined text-[14px]">calendar_month</span>
+            <span>Cronograma Ativo</span>
+          </div>
+        )}
+
+        <button
+          type="button"
+          id="btn-redo-cronograma"
+          onClick={() => setShowResetModal(true)}
+          className="btn-interactive px-3.5 py-2 rounded-xl border border-border/70 hover:border-medusa-primary/50 text-[11px] font-medium text-text-secondary hover:text-text-primary bg-surface/80 hover:bg-surface flex items-center justify-center gap-1.5 transition-all shadow-subtle flex-shrink-0"
         >
-          <span className="flex items-center gap-1.5 font-semibold text-text-primary">
-            <span className="material-symbols-outlined text-[15px] text-[#8A6D00] dark:text-medusa-accent">auto_awesome</span>
-            Seu plano calculado
-          </span>
-          <span className="text-text-secondary">
-            {plan.semanasRestantes} semana{plan.semanasRestantes !== 1 ? 's' : ''} até a prova
-          </span>
-          <span className="text-text-secondary">{plan.horasSemanais}h/semana</span>
-          <span className="text-text-secondary">{INTENSIDADE_LABEL[plan.intensidade]}</span>
+          <span className="material-symbols-outlined text-[14px] text-medusa-primary">tune</span>
+          Refazer Cronograma
+        </button>
+      </div>
+
+      {/* Modal de Confirmação para Refazer Cronograma (Fase 2 Gate) */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="redo-dialog-title"
+            className="w-full max-w-md p-6 rounded-2xl bg-surface border border-medusa-primary/30 shadow-calm flex flex-col gap-4 text-left"
+          >
+            <div className="flex items-center gap-2.5 text-text-primary">
+              <span className="w-9 h-9 rounded-xl bg-medusa-primary/15 text-medusa-primary flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-[20px]">calendar_sync</span>
+              </span>
+              <div>
+                <h3 id="redo-dialog-title" className="text-[15px] font-semibold text-text-primary leading-tight">
+                  Recalcular Cronograma Temporal?
+                </h3>
+                <span className="text-[11px] text-text-muted font-mono">Reconciliação sem duplicações</span>
+              </div>
+            </div>
+            <p className="text-[12px] text-text-secondary leading-relaxed">
+              Ao refazer o cronograma, suas respostas do diagnóstico completo de 26 perguntas serão recalculadas. Os blocos de estudo sincronizados na sua <strong>Agenda</strong> serão reconciliados com a nova rotina, sem duplicar registros.
+            </p>
+            <div className="p-3 rounded-xl bg-surface-secondary/60 border border-border/60 text-[11px] text-text-muted space-y-1.5">
+              <div className="flex items-center gap-1.5 text-text-primary font-medium">
+                <span className="material-symbols-outlined text-[14px] text-medusa-support">check_circle</span>
+                O que será executado:
+              </div>
+              <ul className="list-disc list-inside space-y-0.5 pl-1">
+                <li>Diagnóstico temporal completo (26 perguntas estruturadas)</li>
+                <li>Preservação do histórico e compromissos existentes da Agenda</li>
+                <li>Substituição limpa dos blocos de estudo gerados</li>
+              </ul>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <button
+                type="button"
+                id="btn-cancel-redo-cronograma"
+                onClick={() => setShowResetModal(false)}
+                className="px-3.5 py-1.5 rounded-lg border border-border text-[12px] font-medium text-text-secondary hover:text-text-primary transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-redo-cronograma"
+                onClick={() => {
+                  setShowResetModal(false);
+                  resetCronograma();
+                }}
+                className="px-4 py-1.5 rounded-lg bg-medusa-primary hover:opacity-95 text-[#1C2420] text-[12px] font-semibold shadow-subtle transition-all flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[15px]">refresh</span>
+                Confirmar e Recalcular
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

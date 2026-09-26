@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { StudyTrack, SessionResult, DisciplineChip } from '@/components/education/types';
 import { CompletedActivityItem } from '@/components/education/CompletedActivityList';
 import { CronogramaPlan } from '@/components/education/cronogramaPlanner';
@@ -84,6 +84,8 @@ interface EducationPanelContextType {
   /** Resultado real do onboarding (ou o plano genérico, se o usuário pulou) — ver cronogramaPlanner.ts. */
   cronogramaPlan: CronogramaPlan | null;
   setCronogramaPlan: (plan: CronogramaPlan | null) => void;
+  resetCronograma: () => void;
+  isCronogramaConfigured: boolean;
 
   /**
    * Intervalo preferido entre blocos de estudo do ENEM — configuração REAL e alterável, mas
@@ -114,6 +116,22 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   const [cronogramaOnboardingSeen, setCronogramaOnboardingSeen] = useState(false);
   const [cronogramaPlan, setCronogramaPlan] = useState<CronogramaPlan | null>(null);
 
+  // Hidratação segura a partir do localStorage (Fase 2: Cronograma persistente)
+  useEffect(() => {
+    try {
+      const savedSeen = localStorage.getItem('medusa_cronograma_seen');
+      const savedPlan = localStorage.getItem('medusa_cronograma_plan');
+      if (savedSeen === 'true') {
+        setCronogramaOnboardingSeen(true);
+      }
+      if (savedPlan) {
+        setCronogramaPlan(JSON.parse(savedPlan));
+      }
+    } catch (e) {
+      console.warn('[EducationPanelContext] Não foi possível ler cronograma salvo:', e);
+    }
+  }, []);
+
   const setCurrentTrackMirrorCb = useCallback((track: StudyTrack) => setCurrentTrackMirror(track), []);
   const setIsSessionCompletedMirrorCb = useCallback((value: boolean) => setIsSessionCompletedMirror(value), []);
   // React trata valor de estado do tipo função como updater lazy — por isso `() => fn` aqui e em
@@ -129,7 +147,38 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   }, []);
   const openCronogramaOverlay = useCallback(() => setIsCronogramaOverlayOpen(true), []);
   const closeCronogramaOverlay = useCallback(() => setIsCronogramaOverlayOpen(false), []);
-  const markCronogramaOnboardingSeen = useCallback(() => setCronogramaOnboardingSeen(true), []);
+  
+  const markCronogramaOnboardingSeen = useCallback(() => {
+    setCronogramaOnboardingSeen(true);
+    try {
+      localStorage.setItem('medusa_cronograma_seen', 'true');
+    } catch {}
+  }, []);
+
+  const handleSetCronogramaPlan = useCallback((plan: CronogramaPlan | null) => {
+    setCronogramaPlan(plan);
+    try {
+      if (plan) {
+        localStorage.setItem('medusa_cronograma_plan', JSON.stringify(plan));
+        localStorage.setItem('medusa_cronograma_seen', 'true');
+        setCronogramaOnboardingSeen(true);
+      } else {
+        localStorage.removeItem('medusa_cronograma_plan');
+      }
+    } catch {}
+  }, []);
+
+  const resetCronograma = useCallback(() => {
+    setCronogramaPlan(null);
+    setCronogramaOnboardingSeen(false);
+    try {
+      localStorage.removeItem('medusa_cronograma_plan');
+      localStorage.removeItem('medusa_cronograma_seen');
+    } catch {}
+    setIsCronogramaOverlayOpen(true);
+  }, []);
+
+  const isCronogramaConfigured = Boolean(cronogramaPlan);
 
   return (
     <EducationPanelContext.Provider
@@ -159,7 +208,9 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
         cronogramaOnboardingSeen,
         markCronogramaOnboardingSeen,
         cronogramaPlan,
-        setCronogramaPlan,
+        setCronogramaPlan: handleSetCronogramaPlan,
+        resetCronograma,
+        isCronogramaConfigured,
       }}
     >
       {children}
