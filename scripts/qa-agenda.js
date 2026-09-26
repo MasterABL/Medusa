@@ -279,10 +279,12 @@ async function runAgendaQA() {
       });
       await wait(400);
 
-      const deletedItemText = await page.$$eval('span', (spans) =>
+      const deletedItemText = await page.$$eval('div[data-event-id] span, div[role="button"]:not(#agenda-undo-toast *) span', (spans) =>
         spans.map((s) => s.textContent.trim()).filter((t) => t.includes('Reunião de Alinhamento QA'))
       );
       assert('Compromisso excluído após confirmação em dois passos', deletedItemText.length === 0);
+      const undoToast = await page.$('#agenda-undo-toast');
+      assert('Toast de recuperação (Undo) visível após exclusão', !!undoToast);
     }
 
     // 7. MODAL DE CATEGORIAS E 24 CORES

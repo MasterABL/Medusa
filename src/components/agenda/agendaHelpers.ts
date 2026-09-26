@@ -576,15 +576,15 @@ function matchesRecurrenceBasePattern(routine: AgendaItem, candidate: Date): boo
   const rule = routine.recurrence;
   if (!rule) return false;
   const anchor = new Date(`${routine.date}T00:00:00`);
-  if (candidate < anchor) return false;
   const interval = rule.interval && rule.interval > 0 ? rule.interval : 1;
-
   if (rule.frequency === 'daily') {
+    if (candidate < anchor) return false;
     const diffDays = Math.round((candidate.getTime() - anchor.getTime()) / 86400000);
     return diffDays >= 0 && diffDays % interval === 0;
   }
 
   if (rule.frequency === 'monthly') {
+    if (candidate < anchor) return false;
     if (candidate.getDate() !== anchor.getDate()) return false;
     const diffMonths =
       (candidate.getFullYear() - anchor.getFullYear()) * 12 +
@@ -593,10 +593,12 @@ function matchesRecurrenceBasePattern(routine: AgendaItem, candidate: Date): boo
   }
 
   // weekly (padrão) — dias da semana explícitos, ou o próprio dia da âncora se nenhum for informado
+  const anchorWeek = startOfWeek(anchor);
+  if (startOfWeek(candidate) < anchorWeek) return false;
   const days = rule.daysOfWeek && rule.daysOfWeek.length > 0 ? rule.daysOfWeek : [anchor.getDay()];
   if (!days.includes(candidate.getDay())) return false;
   const diffWeeks = Math.round(
-    (startOfWeek(candidate).getTime() - startOfWeek(anchor).getTime()) / (7 * 86400000)
+    (startOfWeek(candidate).getTime() - anchorWeek.getTime()) / (7 * 86400000)
   );
   return diffWeeks >= 0 && diffWeeks % interval === 0;
 }

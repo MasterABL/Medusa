@@ -177,18 +177,18 @@ export function AgendaHeader({
         </div>
       </div>
 
-      {/* Linha de Honestidade de Estado Local */}
+      {/* Linha de Honestidade de Estado Local (Fase 10) */}
       <div className="flex items-center justify-between gap-2 text-[11px] text-text-muted font-mono">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
-          <span>Agenda · Sincronizada</span>
+          <span>Agenda · Estado Local Ativo</span>
         </div>
 
         <span
-          title="Os dados desta sessão não persistem após recarregar a página"
+          title="Os dados desta sessão operam em memória e Local State reativo sem backend remoto"
           className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-subtle/80 border border-border/50 text-text-muted select-none"
         >
-          Dados de exemplo · nada é salvo ainda
+          Sessão Local · Reconciliação Temporal
         </span>
       </div>
     </header>

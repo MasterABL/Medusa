@@ -75,7 +75,7 @@ export function EventBlock({
         borderColor: isSelected ? colorStyle.accent : colorStyle.border,
         color: colorStyle.text,
       }}
-      aria-selected={isSelected}
+      aria-pressed={isSelected}
       aria-label={`${item.title}, ${item.startTime || 'Dia todo'} às ${
         item.endTime || ''
       }, Categoria ${category?.name || 'Geral'}${
