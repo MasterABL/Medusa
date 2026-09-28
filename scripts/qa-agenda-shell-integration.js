@@ -1,4 +1,23 @@
 const puppeteer = require('puppeteer-core');
+const fs = require('fs');
+
+function resolveBrowserPath() {
+  if (process.env.MEDUSA_BROWSER_PATH && fs.existsSync(process.env.MEDUSA_BROWSER_PATH)) {
+    return process.env.MEDUSA_BROWSER_PATH;
+  }
+  const candidatePaths = [
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    '/opt/pw-browsers/chromium',
+  ].filter(Boolean);
+
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) return p;
+  }
+  throw new Error('Nenhum executável de Chromium/Chrome/Edge encontrado.');
+}
 
 const URL = 'http://localhost:3000';
 let pass = 0;
@@ -46,7 +65,7 @@ async function getContextGeometry(page) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: '/opt/pw-browsers/chromium',
+    executablePath: resolveBrowserPath(),
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });

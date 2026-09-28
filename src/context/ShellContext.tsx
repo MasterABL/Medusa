@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { Theme, ShellMode, IslandState, Breakpoint, ShellGeometry, calculateShellGeometry } from '@/types/shell';
+import { Theme, ShellMode, IslandState, Breakpoint, ShellGeometry, IslandNotification, calculateShellGeometry } from '@/types/shell';
 import { unlockAudioOnFirstGesture } from '@/lib/audioFeedback';
 
 interface ShellContextValue {
@@ -21,6 +21,8 @@ interface ShellContextValue {
   closeCommand: () => void;
   islandState: IslandState;
   setIslandState: (state: IslandState) => void;
+  islandNotification: IslandNotification | null;
+  triggerIslandNotification: (notification: IslandNotification) => void;
   isVoiceActive: boolean;
   setVoiceActive: (active: boolean) => void;
   isQuiet: boolean;
@@ -45,11 +47,26 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   const [isQuietManual, setIsQuietManual] = useState<boolean>(false);
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
   const [activeRoute, setActiveRouteState] = useState<string>('hoje');
+  const [islandNotification, setIslandNotification] = useState<IslandNotification | null>(null);
+  const notificationTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const notificationQueueRef = React.useRef<IslandNotification[]>([]);
+  const currentNotificationPriorityRef = React.useRef<number>(0);
+  const currentNotificationStartTimeRef = React.useRef<number>(0);
   const [mounted, setMounted] = useState(false);
 
-  // Inicialização e persistência de tema e do painel regional
+  // Inicialização e persistência de tema, rotas e do painel regional
   useEffect(() => {
     setMounted(true);
+    // Recuperação de rota persistida via URL hash ou localStorage
+    const validRoutes = ['hoje', 'agenda', 'educacao', 'corpo', 'financas', 'progresso'];
+    const hash = window.location.hash.replace('#', '').toLowerCase();
+    const savedRoute = localStorage.getItem('medusa-active-route');
+    if (hash && validRoutes.includes(hash)) {
+      setActiveRouteState(hash);
+    } else if (savedRoute && validRoutes.includes(savedRoute)) {
+      setActiveRouteState(savedRoute);
+    }
+
     // Round 7 §4: Sépia foi removido da UI — quem tinha 'sepia' salvo de uma visita anterior
     // (valor válido até esta rodada) migra silenciosamente para 'light' em vez de ficar preso a
     // um tema que não existe mais em nenhum seletor.
@@ -187,9 +204,111 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
     setIsQuietManual((prev) => (forced !== undefined ? forced : !prev));
   }, []);
 
+  const getNotificationPriority = (notif: IslandNotification): number => {
+    if (notif.state === 'attention' || notif.state === 'error') return 3;
+    if (notif.state === 'success') return 2;
+    return 1;
+  };
+
+  const processNextInQueue = useCallback(() => {
+    if (notificationQueueRef.current.length === 0) {
+      setIslandNotification(null);
+      setIslandState('active');
+      currentNotificationPriorityRef.current = 0;
+      currentNotificationStartTimeRef.current = 0;
+      return;
+    }
+
+    const nextNotification = notificationQueueRef.current.shift()!;
+    currentNotificationPriorityRef.current = getNotificationPriority(nextNotification);
+    currentNotificationStartTimeRef.current = Date.now();
+    setIslandNotification(nextNotification);
+    if (nextNotification.state) {
+      setIslandState(nextNotification.state);
+    }
+
+    const duration = Math.max(1400, nextNotification.durationMs || 1800);
+    notificationTimerRef.current = setTimeout(() => {
+      processNextInQueue();
+    }, duration);
+  }, []);
+
+  const triggerIslandNotification = useCallback(
+    (notification: IslandNotification) => {
+      const newPriority = getNotificationPriority(notification);
+      const now = Date.now();
+      const elapsedTime = now - currentNotificationStartTimeRef.current;
+      const MIN_DISPLAY_TIME = 1000;
+
+      // Se não há notificação ativa ou a notificação anterior já durou o tempo mínimo
+      if (!currentNotificationStartTimeRef.current || elapsedTime >= MIN_DISPLAY_TIME) {
+        if (newPriority >= currentNotificationPriorityRef.current || !currentNotificationStartTimeRef.current) {
+          if (notificationTimerRef.current) {
+            clearTimeout(notificationTimerRef.current);
+          }
+          currentNotificationPriorityRef.current = newPriority;
+          currentNotificationStartTimeRef.current = now;
+          setIslandNotification(notification);
+          if (notification.state) {
+            setIslandState(notification.state);
+          }
+          const duration = Math.max(1400, notification.durationMs || 1800);
+          notificationTimerRef.current = setTimeout(() => {
+            processNextInQueue();
+          }, duration);
+          return;
+        }
+      }
+
+      // Se a nova notificação é de alta prioridade (ex: alerta/atenção) e a atual é de baixo contexto
+      if (newPriority > currentNotificationPriorityRef.current && currentNotificationPriorityRef.current === 1) {
+        if (notificationTimerRef.current) {
+          clearTimeout(notificationTimerRef.current);
+        }
+        currentNotificationPriorityRef.current = newPriority;
+        currentNotificationStartTimeRef.current = now;
+        setIslandNotification(notification);
+        if (notification.state) {
+          setIslandState(notification.state);
+        }
+        const duration = Math.max(1400, notification.durationMs || 1800);
+        notificationTimerRef.current = setTimeout(() => {
+          processNextInQueue();
+        }, duration);
+        return;
+      }
+
+      // Caso contrário, enfileira com limite para evitar acúmulo desnecessário
+      if (notificationQueueRef.current.length < 3) {
+        notificationQueueRef.current.push(notification);
+      }
+    },
+    [processNextInQueue]
+  );
+
   const setActiveRoute = useCallback((route: string) => {
     setActiveRouteState(route);
     setDrawerOpenState(false);
+    try {
+      localStorage.setItem('medusa-active-route', route);
+      if (typeof window !== 'undefined') {
+        window.location.hash = route;
+      }
+    } catch {
+      // Fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const validRoutes = ['hoje', 'agenda', 'educacao', 'corpo', 'financas', 'progresso'];
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (hash && validRoutes.includes(hash)) {
+        setActiveRouteState(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   // Atalho de Teclado Global: ⌘K e ESC
@@ -234,6 +353,8 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
         closeCommand,
         islandState,
         setIslandState,
+        islandNotification,
+        triggerIslandNotification,
         isVoiceActive,
         setVoiceActive,
         isQuiet,

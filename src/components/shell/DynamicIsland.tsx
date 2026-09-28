@@ -6,8 +6,14 @@ import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
 import { playFeedback } from '@/lib/audioFeedback';
 
 export function DynamicIsland() {
-  const { islandState, isQuiet, setIslandState, breakpoint, isVoiceActive, setVoiceActive } = useShell();
-  const fixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+  const { islandState, isQuiet, setIslandState, breakpoint, isVoiceActive, setVoiceActive, islandNotification } = useShell();
+  const baseFixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+  const fixture = islandNotification ? {
+    ...baseFixture,
+    tag: islandNotification.title || islandNotification.tag || baseFixture.tag,
+    desc: islandNotification.desc || islandNotification.description || baseFixture.desc,
+    timerBadge: islandNotification.badge || baseFixture.timerBadge,
+  } : baseFixture;
 
   const isExpanded = islandState !== 'collapsed';
   const isFocusMode = islandState === 'focus';

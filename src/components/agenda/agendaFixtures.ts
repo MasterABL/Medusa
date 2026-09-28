@@ -69,21 +69,30 @@ export function formatDateISO(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function computeWeekDays(ref: Date): Date[] {
+  const d = new Date(ref);
+  const dayOfWeek = d.getDay();
+  const diffToMonday = (dayOfWeek + 6) % 7;
+  d.setDate(d.getDate() - diffToMonday);
+  return Array.from({ length: 7 }, (_, i) => {
+    const next = new Date(d);
+    next.setDate(d.getDate() + i);
+    return next;
+  });
+}
+
 /**
  * Gera as fixtures iniciais ancoradas na data atual do navegador e na semana canônica
  */
 export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaItem[] {
-  const todayStr = formatDateISO(referenceDate);
-
-  // Data canônica do prompt (Setembro 2026)
-  const canonicalYear = 2026;
-  const canonicalMonth = 8; // 0-indexed: Setembro
-  const d21 = formatDateISO(new Date(canonicalYear, canonicalMonth, 21));
-  const d22 = formatDateISO(new Date(canonicalYear, canonicalMonth, 22));
-  const d23 = formatDateISO(new Date(canonicalYear, canonicalMonth, 23));
-  const d24 = formatDateISO(new Date(canonicalYear, canonicalMonth, 24));
-  const d25 = formatDateISO(new Date(canonicalYear, canonicalMonth, 25));
-  const d28 = formatDateISO(new Date(canonicalYear, canonicalMonth, 28));
+  const weekDays = computeWeekDays(referenceDate);
+  const daySeg = formatDateISO(weekDays[0]); // Segunda
+  const dayTer = formatDateISO(weekDays[1]); // Terça
+  const dayQua = formatDateISO(weekDays[2]); // Quarta
+  const dayQui = formatDateISO(weekDays[3]); // Quinta
+  const daySex = formatDateISO(weekDays[4]); // Sexta
+  const daySab = formatDateISO(weekDays[5]); // Sábado
+  const dayDom = formatDateISO(weekDays[6]); // Domingo
 
   const items: AgendaItem[] = [
     // 1. Estudo — Função Afim (Educação, time_block)
@@ -94,7 +103,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'education',
       categoryId: 'cat-enem',
       colorId: 'amarelo_baunilha',
-      date: todayStr,
+      date: daySeg,
       startTime: '09:00',
       endTime: '10:00',
       durationMinutes: 60,
@@ -120,7 +129,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'body',
       categoryId: 'cat-treino',
       colorId: 'sage',
-      date: todayStr,
+      date: daySeg,
       startTime: '09:30',
       endTime: '10:30',
       durationMinutes: 60,
@@ -138,7 +147,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-01T08:00:00Z',
     },
 
-    // 3. Revisão — Inglês (Educação, time_block)
+    // 3. Revisão — Inglês (Educação, time_block) - Evento Isolado de 30 min
     {
       id: 'item-revisao-ingles',
       title: 'Revisão — Inglês',
@@ -146,9 +155,9 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'education',
       categoryId: 'cat-ingles',
       colorId: 'azul_ceu',
-      date: todayStr,
-      startTime: '14:00',
-      endTime: '14:30',
+      date: daySeg,
+      startTime: '17:30',
+      endTime: '18:00',
       durationMinutes: 30,
       allDay: false,
       isFlexible: true,
@@ -163,7 +172,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-02T10:00:00Z',
     },
 
-    // 4. Consulta Médica (Pessoal, event)
+    // 4. Consulta Médica (Pessoal, event) - Evento Isolado de 1h
     {
       id: 'item-consulta-medica',
       title: 'Consulta Médica',
@@ -171,9 +180,9 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'personal',
       categoryId: 'cat-pessoal',
       colorId: 'pessego',
-      date: todayStr,
-      startTime: '18:00',
-      endTime: '19:00',
+      date: daySeg,
+      startTime: '18:30',
+      endTime: '19:30',
       durationMinutes: 60,
       allDay: false,
       isFlexible: false,
@@ -188,7 +197,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-03T11:00:00Z',
     },
 
-    // 5. Rotina de Trabalho (Trabalho, routine) Seg-Qui 08:00-15:30
+    // 5. Rotina de Trabalho (Trabalho, routine) Qui-Sex 08:00-12:00
     {
       id: 'item-rotina-trabalho',
       title: 'Trabalho — Jornada Operacional',
@@ -196,15 +205,15 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'work',
       categoryId: 'cat-trabalho',
       colorId: 'azul_nevoa',
-      date: todayStr,
+      date: dayQui,
       startTime: '08:00',
-      endTime: '15:30',
-      durationMinutes: 450,
+      endTime: '12:00',
+      durationMinutes: 240,
       allDay: false,
       isFlexible: false,
       recurrence: {
         frequency: 'weekly',
-        daysOfWeek: [1, 2, 3, 4], // Segunda a Quinta
+        daysOfWeek: [4, 5], // Quinta e Sexta
       },
       description: 'Desenvolvimento de features e suporte de engenharia.',
       location: 'Escritório Híbrido / Remoto',
@@ -225,7 +234,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'education',
       categoryId: 'cat-faculdade',
       colorId: 'lavanda',
-      date: d28, // 28 de setembro
+      date: daySeg,
       allDay: true,
       description: 'Entrega do artigo sobre controle de constitucionalidade.',
       source: {
@@ -246,7 +255,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'finance',
       categoryId: 'cat-financas',
       colorId: 'terracota_suave',
-      date: d25, // 25 de setembro
+      date: daySex,
       allDay: true,
       description: 'Fatura mensal de banda larga residencial.',
       source: {
@@ -259,7 +268,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-01T08:00:00Z',
     },
 
-    // 8. Evento All-Day canônico do dia 23 de Setembro
+    // 8. Evento All-Day canônico
     {
       id: 'item-allday-prova',
       title: 'Prova Regimental — Teoria Geral',
@@ -267,7 +276,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'education',
       categoryId: 'cat-faculdade',
       colorId: 'violeta_pastel',
-      date: d23,
+      date: dayQua,
       allDay: true,
       description: 'Avaliação presencial no campus universitário.',
       source: {
@@ -279,7 +288,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-01T08:00:00Z',
     },
 
-    // 9. Compromisso do dia 22 de Setembro
+    // 9. Compromisso
     {
       id: 'item-alinhamento-arquit',
       title: 'Alinhamento Arquitetural Medusa',
@@ -287,9 +296,9 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'work',
       categoryId: 'cat-trabalho',
       colorId: 'azul_nevoa',
-      date: d22,
-      startTime: '11:00',
-      endTime: '12:00',
+      date: dayTer,
+      startTime: '17:30',
+      endTime: '18:30',
       durationMinutes: 60,
       allDay: false,
       description: 'Revisão do modelo de dados do Temporal OS.',
@@ -303,7 +312,7 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-01T08:00:00Z',
     },
 
-    // 10. Compromisso do dia 24 de Setembro
+    // 10. Compromisso
     {
       id: 'item-leitura-sintese',
       title: 'Sessão de Leitura & Síntese',
@@ -311,16 +320,149 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       domain: 'education',
       categoryId: 'cat-enem',
       colorId: 'amarelo_baunilha',
-      date: d24,
-      startTime: '16:00',
+      date: dayQui,
+      startTime: '16:30',
       endTime: '17:30',
-      durationMinutes: 90,
+      durationMinutes: 60,
       allDay: false,
       isFlexible: true,
       description: 'Leitura de filosofia moderna e resumo esquemático.',
       source: {
         sourceType: 'education_session',
         sourceLabel: 'Educação · Sessão de Foco',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+
+    // 11. Evento Longo de 3 Horas (Isolado na Terça-feira)
+    {
+      id: 'item-estudo-3h-enem',
+      title: 'Estudo: Matemática (ENEM)',
+      kind: 'time_block',
+      domain: 'education',
+      categoryId: 'cat-enem',
+      colorId: 'amarelo_baunilha',
+      date: dayTer,
+      startTime: '13:00',
+      endTime: '16:00',
+      durationMinutes: 180,
+      allDay: false,
+      isFlexible: true,
+      description: 'Bloco de aprofundamento em Geometria e Álgebra.',
+      source: {
+        sourceType: 'education_session',
+        sourceLabel: 'Cronograma ENEM',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+
+    // 12 e 13. Cluster de 2 Eventos Simultâneos na Terça-feira (11:00–12:00)
+    {
+      id: 'item-concorrente-2a',
+      title: 'Mentoria de Redação e Argumentação ENEM',
+      kind: 'event',
+      domain: 'education',
+      categoryId: 'cat-enem',
+      colorId: 'coral_pastel',
+      date: dayTer,
+      startTime: '11:00',
+      endTime: '12:00',
+      durationMinutes: 60,
+      allDay: false,
+      description: 'Mentoria individual sobre tese e intervenção.',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+    {
+      id: 'item-concorrente-2b',
+      title: 'Treino',
+      kind: 'event',
+      domain: 'body',
+      categoryId: 'cat-treino',
+      colorId: 'sage',
+      date: dayTer,
+      startTime: '11:00',
+      endTime: '12:00',
+      durationMinutes: 60,
+      allDay: false,
+      description: 'Sessão rápida de mobilidade articular.',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+
+    // 14, 15 e 16. Cluster de 3 Eventos Simultâneos na Quarta-feira (15:00–16:00)
+    {
+      id: 'item-concorrente-3a-longo',
+      title: 'Seminário de Pesquisa Acadêmica e Extensão Universitária',
+      kind: 'event',
+      domain: 'education',
+      categoryId: 'cat-faculdade',
+      colorId: 'violeta_pastel',
+      date: dayQua,
+      startTime: '15:00',
+      endTime: '16:00',
+      durationMinutes: 60,
+      allDay: false,
+      description: 'Apresentação de artigos e painel interdisciplinar.',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+    {
+      id: 'item-concorrente-3b-medio',
+      title: 'Plantão de Dúvidas ENEM',
+      kind: 'time_block',
+      domain: 'education',
+      categoryId: 'cat-enem',
+      colorId: 'amarelo_baunilha',
+      date: dayQua,
+      startTime: '15:00',
+      endTime: '16:00',
+      durationMinutes: 60,
+      allDay: false,
+      description: 'Resolução ao vivo de questões complexas.',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+    {
+      id: 'item-concorrente-3c-curto',
+      title: 'Sync',
+      kind: 'event',
+      domain: 'work',
+      categoryId: 'cat-trabalho',
+      colorId: 'azul_nevoa',
+      date: dayQua,
+      startTime: '15:00',
+      endTime: '16:00',
+      durationMinutes: 60,
+      allDay: false,
+      description: 'Alinhamento rápido de 15 minutos.',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
       },
       status: 'scheduled',
       createdAt: '2026-09-01T08:00:00Z',

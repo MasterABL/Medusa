@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { StudyTrack, SessionResult, DisciplineChip } from '@/components/education/types';
 import { CompletedActivityItem } from '@/components/education/CompletedActivityList';
 import { CronogramaPlan } from '@/components/education/cronogramaPlanner';
@@ -84,6 +84,8 @@ interface EducationPanelContextType {
   /** Resultado real do onboarding (ou o plano genérico, se o usuário pulou) — ver cronogramaPlanner.ts. */
   cronogramaPlan: CronogramaPlan | null;
   setCronogramaPlan: (plan: CronogramaPlan | null) => void;
+  resetCronograma: () => void;
+  isCronogramaConfigured: boolean;
 
   /**
    * Intervalo preferido entre blocos de estudo do ENEM — configuração REAL e alterável, mas
@@ -114,11 +116,45 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   const [cronogramaOnboardingSeen, setCronogramaOnboardingSeen] = useState(false);
   const [cronogramaPlan, setCronogramaPlan] = useState<CronogramaPlan | null>(null);
 
-  const setCurrentTrackMirrorCb = useCallback((track: StudyTrack) => setCurrentTrackMirror(track), []);
+  // Hidratação segura a partir do localStorage (Fase 2: Cronograma persistente e Rotas)
+  useEffect(() => {
+    try {
+      const savedSeen = localStorage.getItem('medusa_cronograma_seen');
+      const savedPlan = localStorage.getItem('medusa_cronograma_plan');
+      const savedTrack = localStorage.getItem('medusa_education_track') as StudyTrack | null;
+      const savedEnemView = localStorage.getItem('medusa_enem_view') as EnemView | null;
+      if (savedSeen === 'true') {
+        setCronogramaOnboardingSeen(true);
+      }
+      if (savedPlan) {
+        setCronogramaPlan(JSON.parse(savedPlan));
+      }
+      if (savedTrack && ['vestibular', 'ingles', 'faculdade'].includes(savedTrack)) {
+        setCurrentTrackMirror(savedTrack);
+      }
+      if (savedEnemView && ['visao-geral', 'cronograma'].includes(savedEnemView)) {
+        setEnemView(savedEnemView);
+      }
+    } catch (e) {
+      console.warn('[EducationPanelContext] Não foi possível ler estado salvo:', e);
+    }
+  }, []);
+
+  const setCurrentTrackMirrorCb = useCallback((track: StudyTrack) => {
+    setCurrentTrackMirror(track);
+    try {
+      localStorage.setItem('medusa_education_track', track);
+    } catch {}
+  }, []);
+
+  const handleSetEnemView = useCallback((view: EnemView) => {
+    setEnemView(view);
+    try {
+      localStorage.setItem('medusa_enem_view', view);
+    } catch {}
+  }, []);
+
   const setIsSessionCompletedMirrorCb = useCallback((value: boolean) => setIsSessionCompletedMirror(value), []);
-  // React trata valor de estado do tipo função como updater lazy — por isso `() => fn` aqui e em
-  // toda chamada de `setRequestStartStudyMirror`, nunca `fn` sozinho (armazenaria a referência
-  // errada / dispararia a função na hora, em vez de guardá-la para o clique real do usuário).
   const setRequestStartStudyMirrorCb = useCallback((fn: (() => void) | null) => {
     setRequestStartStudyMirror(() => fn);
   }, []);
@@ -129,7 +165,44 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   }, []);
   const openCronogramaOverlay = useCallback(() => setIsCronogramaOverlayOpen(true), []);
   const closeCronogramaOverlay = useCallback(() => setIsCronogramaOverlayOpen(false), []);
-  const markCronogramaOnboardingSeen = useCallback(() => setCronogramaOnboardingSeen(true), []);
+  
+  const markCronogramaOnboardingSeen = useCallback(() => {
+    setCronogramaOnboardingSeen(true);
+    try {
+      localStorage.setItem('medusa_cronograma_seen', 'true');
+    } catch {}
+  }, []);
+
+  const handleSetCronogramaPlan = useCallback((plan: CronogramaPlan | null) => {
+    setCronogramaPlan(plan);
+    try {
+      if (plan) {
+        localStorage.setItem('medusa_cronograma_plan', JSON.stringify(plan));
+        localStorage.setItem('medusa_cronograma_seen', 'true');
+        setCronogramaOnboardingSeen(true);
+      } else {
+        localStorage.removeItem('medusa_cronograma_plan');
+      }
+    } catch {}
+  }, []);
+
+  const resetCronograma = useCallback(() => {
+    setCronogramaPlan(null);
+    setCronogramaOnboardingSeen(false);
+    try {
+      localStorage.removeItem('medusa_cronograma_plan');
+      localStorage.removeItem('medusa_cronograma_seen');
+      localStorage.removeItem('medusa_cronograma_diag_answers');
+      localStorage.removeItem('medusa_cronograma_diag_multi');
+      localStorage.removeItem('medusa_cronograma_diag_custom');
+      localStorage.removeItem('medusa_cronograma_diag_step');
+      localStorage.removeItem('medusa_cronograma_diag_bloco');
+    } catch {}
+    setIsCronogramaOverlayOpen(false);
+    setEnemView('cronograma');
+  }, []);
+
+  const isCronogramaConfigured = Boolean(cronogramaPlan);
 
   return (
     <EducationPanelContext.Provider
@@ -143,7 +216,7 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
         requestStartStudy,
         setRequestStartStudyMirror: setRequestStartStudyMirrorCb,
         enemView,
-        setEnemView,
+        setEnemView: handleSetEnemView,
         faculdadeDisciplineCode,
         setFaculdadeDisciplineCode,
         facultyExtraDisciplines,
@@ -159,7 +232,9 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
         cronogramaOnboardingSeen,
         markCronogramaOnboardingSeen,
         cronogramaPlan,
-        setCronogramaPlan,
+        setCronogramaPlan: handleSetCronogramaPlan,
+        resetCronograma,
+        isCronogramaConfigured,
       }}
     >
       {children}

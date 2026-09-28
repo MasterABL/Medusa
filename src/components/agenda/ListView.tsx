@@ -11,7 +11,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AgendaCategory, AgendaItem, TimeConflict } from '@/types/agenda';
 import { EventListItem } from './EventListItem';
 import {
@@ -28,6 +28,7 @@ interface ListViewProps {
   onSelectItem: (item: AgendaItem) => void;
   onEditItem?: (item: AgendaItem) => void;
   onDeleteItem?: (itemId: string) => void;
+  onDeleteMultiple?: (itemIds: string[]) => void;
 }
 
 export function ListView({
@@ -38,9 +39,11 @@ export function ListView({
   onSelectItem,
   onEditItem,
   onDeleteItem,
+  onDeleteMultiple,
 }: ListViewProps) {
   const dateStr = formatDateISO(currentDate);
   const dayItems = items.filter((it) => it.date === dateStr);
+  const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
 
   // Detecção de conflitos para enriquecer os itens da lista
   const conflicts = detectTimeConflicts(dayItems);
@@ -69,6 +72,29 @@ export function ListView({
     );
   };
 
+  const toggleSelectBatch = (id: string) => {
+    setSelectedBatchIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedBatchIds.size === dayItems.length) {
+      setSelectedBatchIds(new Set());
+    } else {
+      setSelectedBatchIds(new Set(dayItems.map((it) => it.id)));
+    }
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedBatchIds.size === 0 || !onDeleteMultiple) return;
+    onDeleteMultiple(Array.from(selectedBatchIds));
+    setSelectedBatchIds(new Set());
+  };
+
   if (dayItems.length === 0) {
     return (
       <div className="bg-surface rounded-2xl border border-border/70 p-12 text-center shadow-subtle space-y-3">
@@ -88,7 +114,40 @@ export function ListView({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Barra de Ações em Lote (Fase 5 §Exclusão em massa) */}
+      <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-surface border border-border/60 text-[12px]">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            className="btn-interactive text-[11px] font-mono text-text-secondary hover:text-text-primary px-2.5 py-1 rounded-lg border border-border/70 bg-surface-secondary/40 flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-[15px]">
+              {selectedBatchIds.size === dayItems.length ? 'check_box' : selectedBatchIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'}
+            </span>
+            <span>{selectedBatchIds.size === dayItems.length ? 'Desmarcar todos' : 'Selecionar todos'}</span>
+          </button>
+          {selectedBatchIds.size > 0 && (
+            <span className="text-[11px] font-mono text-medusa-primary font-semibold">
+              {selectedBatchIds.size} selecionado{selectedBatchIds.size > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        {selectedBatchIds.size > 0 && onDeleteMultiple && (
+          <button
+            type="button"
+            id="btn-batch-delete"
+            onClick={handleBatchDelete}
+            className="btn-interactive px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-mono font-medium flex items-center gap-1 shadow-sm transition-all"
+          >
+            <span className="material-symbols-outlined text-[14px]">delete</span>
+            <span>Excluir selecionados</span>
+          </button>
+        )}
+      </div>
+
       {buckets.map((bucket) => {
         if (bucket.items.length === 0) return null;
 
@@ -138,6 +197,7 @@ export function ListView({
                 const cat = categories.find((c) => c.id === item.categoryId);
                 const conflict = getItemConflict(item);
                 const isSelected = selectedItemId === item.id;
+                const isSelectedForBatch = selectedBatchIds.has(item.id);
 
                 return (
                   <EventListItem
@@ -146,6 +206,9 @@ export function ListView({
                     category={cat}
                     conflict={conflict}
                     isSelected={isSelected}
+                    selectable={true}
+                    isSelectedForBatch={isSelectedForBatch}
+                    onToggleSelectBatch={() => toggleSelectBatch(item.id)}
                     onClick={() => onSelectItem(item)}
                     onEdit={onEditItem ? () => onEditItem(item) : undefined}
                     onDelete={onDeleteItem ? () => onDeleteItem(item.id) : undefined}

@@ -23,6 +23,7 @@ import {
 import { formatDateISO } from './agendaFixtures';
 import { useShell } from '@/context/ShellContext';
 import { getPastelThemeStyle } from './palette';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface DayViewProps {
   currentDate: Date;
@@ -30,6 +31,9 @@ interface DayViewProps {
   categories: AgendaCategory[];
   selectedItemId?: string | null;
   onSelectItem: (item: AgendaItem) => void;
+  onDoubleClickItem?: (item: AgendaItem) => void;
+  onContextMenu?: (item: AgendaItem) => void;
+  onRescheduleItem?: (itemId: string, newDate: string, newStartTime: string, newEndTime: string) => void;
   onSelectSlot?: (startTime: string, endTime: string) => void;
 }
 
@@ -39,9 +43,12 @@ export function DayView({
   categories,
   selectedItemId,
   onSelectItem,
+  onDoubleClickItem,
+  onContextMenu,
+  onRescheduleItem,
   onSelectSlot,
 }: DayViewProps) {
-  const { theme } = useShell();
+  const { theme, triggerIslandNotification } = useShell();
   const dateStr = formatDateISO(currentDate);
   const isToday = dateStr === formatDateISO(new Date());
 
@@ -50,6 +57,122 @@ export function DayView({
   const END_HOUR = 23;
   const TOTAL_HOURS = END_HOUR - START_HOUR;
   const TOTAL_MINUTES = TOTAL_HOURS * 60;
+
+  // Estado de Arrastar e Soltar no Dia (Drag & Drop)
+  const [dragState, setDragState] = React.useState<{
+    item: AgendaItem;
+    startTime: string;
+    endTime: string;
+    duration: number;
+    clampedMin: number;
+    hasConflict: boolean;
+    conflictTitle?: string;
+  } | null>(null);
+
+  const dragRef = React.useRef<{
+    item: AgendaItem;
+    startX: number;
+    startY: number;
+    duration: number;
+    isDragging: boolean;
+  } | null>(null);
+
+  const handlePointerDown = React.useCallback(
+    (e: React.PointerEvent, item: AgendaItem) => {
+      if (e.button !== 0 || item.allDay || !item.startTime || !item.endTime) return;
+      const startMin = parseTimeToMinutes(item.startTime);
+      const endMin = parseTimeToMinutes(item.endTime);
+      const duration = item.durationMinutes || (endMin - startMin);
+
+      dragRef.current = {
+        item,
+        startX: e.clientX,
+        startY: e.clientY,
+        duration,
+        isDragging: false,
+      };
+
+      const handlePointerMove = (moveEv: PointerEvent) => {
+        if (!dragRef.current) return;
+        const dist = Math.hypot(moveEv.clientX - dragRef.current.startX, moveEv.clientY - dragRef.current.startY);
+        if (dist <= 6 && !dragRef.current.isDragging) return;
+
+        dragRef.current.isDragging = true;
+
+        const timelineEl = document.getElementById('day-view-timeline-area');
+        if (!timelineEl) return;
+        const rect = timelineEl.getBoundingClientRect();
+
+        const relY = Math.min(rect.height, Math.max(0, moveEv.clientY - rect.top));
+        const minuteFromStart = (relY / rect.height) * TOTAL_MINUTES;
+        const snappedMin = Math.round(minuteFromStart / 15) * 15;
+        const maxStart = TOTAL_MINUTES - dragRef.current.duration;
+        const clampedMin = Math.max(0, Math.min(maxStart, snappedMin));
+
+        const startHourMin = START_HOUR * 60 + clampedMin;
+        const endHourMin = startHourMin + dragRef.current.duration;
+        const targetStartTime = `${String(Math.floor(startHourMin / 60)).padStart(2, '0')}:${String(startHourMin % 60).padStart(2, '0')}`;
+        const targetEndTime = `${String(Math.floor(endHourMin / 60)).padStart(2, '0')}:${String(endHourMin % 60).padStart(2, '0')}`;
+
+        const dayItems = items.filter(
+          (it) => it.date === dateStr && it.id !== item.id && !it.id.startsWith(item.id) && it.startTime && it.endTime
+        );
+        const overlap = dayItems.find(
+          (it) => it.startTime! < targetEndTime && targetStartTime < it.endTime!
+        );
+
+        setDragState({
+          item,
+          startTime: targetStartTime,
+          endTime: targetEndTime,
+          duration: dragRef.current.duration,
+          clampedMin,
+          hasConflict: Boolean(overlap),
+          conflictTitle: overlap?.title,
+        });
+      };
+
+      const handlePointerUp = (upEv: PointerEvent) => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+
+        if (dragRef.current?.isDragging && onRescheduleItem) {
+          const timelineEl = document.getElementById('day-view-timeline-area');
+          if (timelineEl) {
+            const rect = timelineEl.getBoundingClientRect();
+            const relY = Math.min(rect.height, Math.max(0, upEv.clientY - rect.top));
+            const minuteFromStart = (relY / rect.height) * TOTAL_MINUTES;
+            const snappedMin = Math.round(minuteFromStart / 15) * 15;
+            const maxStart = TOTAL_MINUTES - dragRef.current.duration;
+            const clampedMin = Math.max(0, Math.min(maxStart, snappedMin));
+
+            const startHourMin = START_HOUR * 60 + clampedMin;
+            const endHourMin = startHourMin + dragRef.current.duration;
+            const targetStartTime = `${String(Math.floor(startHourMin / 60)).padStart(2, '0')}:${String(startHourMin % 60).padStart(2, '0')}`;
+            const targetEndTime = `${String(Math.floor(endHourMin / 60)).padStart(2, '0')}:${String(endHourMin % 60).padStart(2, '0')}`;
+
+            onRescheduleItem(dragRef.current.item.id, dateStr, targetStartTime, targetEndTime);
+            triggerIslandNotification({
+              title: 'Evento Movido',
+              desc: `${targetStartTime}–${targetEndTime}`,
+              badge: 'Agenda',
+              state: 'success',
+              durationMs: 2000,
+            });
+            playFeedback('ready');
+          }
+        }
+        dragRef.current = null;
+        setDragState(null);
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
+    },
+    [dateStr, items, onRescheduleItem, triggerIslandNotification, TOTAL_MINUTES, START_HOUR]
+  );
 
   // Filtrar itens do dia
   const dayItems = items.filter((it) => it.date === dateStr);
@@ -110,6 +233,7 @@ export function DayView({
                   key={item.id}
                   type="button"
                   onClick={() => onSelectItem(item)}
+                  onDoubleClick={() => onDoubleClickItem?.(item)}
                   style={{
                     backgroundColor: colorStyle.bg,
                     borderColor: isSelected ? colorStyle.accent : colorStyle.border,
@@ -196,6 +320,38 @@ export function DayView({
               );
             })}
 
+            {/* Indicador Fantasma de Arrastar (Ghost Candidate) no Dia */}
+            {dragState && (
+              <div
+                id="day-drag-ghost"
+                style={{
+                  top: `${(dragState.clampedMin / TOTAL_MINUTES) * 100}%`,
+                  height: `${Math.max(3.5, (dragState.duration / TOTAL_MINUTES) * 100)}%`,
+                  minHeight: '34px',
+                }}
+                className={`absolute left-2 right-2 z-40 rounded-xl border-2 border-dashed p-2 flex items-center justify-between shadow-calm pointer-events-none transition-all duration-75 animate-in fade-in ${
+                  dragState.hasConflict
+                    ? 'bg-rose-500/25 border-rose-500 text-rose-900 dark:text-rose-100 ring-2 ring-rose-400/40'
+                    : 'bg-medusa-primary/25 border-medusa-primary text-text-primary ring-2 ring-medusa-primary/40'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-mono font-bold">
+                    {dragState.startTime}–{dragState.endTime}
+                  </span>
+                  <span className="text-[12px] font-semibold truncate">
+                    {dragState.item.title}
+                  </span>
+                </div>
+                {dragState.hasConflict && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[9.5px] font-mono font-semibold flex-shrink-0">
+                    <span className="material-symbols-outlined !text-[11px]">warning</span>
+                    <span>Conflito{dragState.conflictTitle ? `: ${dragState.conflictTitle}` : ''}</span>
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Eventos e Blocos Posicionados Proporcionalmente */}
             {timedItems.map((item, idx) => {
               const startMin = parseTimeToMinutes(item.startTime!);
@@ -210,19 +366,13 @@ export function DayView({
               const cat = categories.find((c) => c.id === item.categoryId);
               const conflict = getItemConflict(item);
               const isSelected = selectedItemId === item.id;
+              const isBeingDragged = dragState?.item.id === item.id;
 
-              // Colunas de 1..N para composição legível de eventos concorrentes (ver
-              // layoutConflictColumns em agendaHelpers.ts) — a faixa disponível (depois do
-              // gutter de horário) é dividida em `colCount` colunas iguais com um pequeno
-              // espaçamento entre elas; `colIndex` decide a posição, priorizada por domínio
-              // (Trabalho antes de Educação em caso de conflito, ver DOMAIN_PRIORITY_ORDER).
               const colInfo = conflictColumns.get(item.id) || { colIndex: 0, colCount: 1 };
               const { colIndex, colCount } = colInfo;
               const gapPercent = colCount > 1 ? 1.5 : 0;
               const columnWidthPercent = (100 - gapPercent * (colCount - 1)) / colCount;
               const leftPercent = colIndex * (columnWidthPercent + gapPercent);
-              // Colunas estreitas (3+) perdem a linha de horário para preservar legibilidade
-              // do título — "não basta diminuir a fonte", conteúdo secundário recua primeiro.
               const isNarrowColumn = colCount >= 3;
 
               return (
@@ -232,10 +382,8 @@ export function DayView({
                     top: `${topPercent}%`,
                     height: `${heightPercent}%`,
                   }}
-                  className="absolute left-14 sm:left-20 right-2 transition-all duration-200"
+                  className="absolute left-1 sm:left-2 right-1 sm:right-2 transition-all duration-200"
                 >
-                  {/* Sub-região de coluna dentro da faixa de eventos (mesmo gutter
-                      responsivo de sempre) — divide o espaço em 1..N colunas iguais. */}
                   <div
                     style={{
                       position: 'absolute',
@@ -243,6 +391,7 @@ export function DayView({
                       bottom: 0,
                       left: `${leftPercent}%`,
                       width: `${columnWidthPercent}%`,
+                      zIndex: isSelected ? 40 : isBeingDragged ? 5 : 10 + colIndex,
                     }}
                   >
                     <EventBlock
@@ -250,7 +399,11 @@ export function DayView({
                       category={cat}
                       conflict={conflict}
                       isSelected={isSelected}
+                      isDragging={isBeingDragged}
                       onClick={() => onSelectItem(item)}
+                      onDoubleClick={() => onDoubleClickItem?.(item)}
+                      onContextMenu={() => (onContextMenu ? onContextMenu(item) : onSelectItem(item))}
+                      onPointerDown={(e) => handlePointerDown(e, item)}
                       compact={isNarrowColumn}
                       style={{ width: '100%', height: '100%' }}
                     />

@@ -345,9 +345,15 @@ export function layoutConflictColumns(items: AgendaItem[]): Map<string, Conflict
       result.set(item.id, { colIndex: placedCol, colCount: 0 });
     }
 
-    const colCount = columnEnds.length;
     for (const item of cluster) {
-      result.get(item.id)!.colCount = colCount;
+      const rItem = getRange(item);
+      const overlappingWithItem = cluster.filter((other) => {
+        const rOther = getRange(other);
+        return rItem.start < rOther.end && rOther.start < rItem.end;
+      });
+      const maxColIndex = Math.max(...overlappingWithItem.map((o) => result.get(o.id)?.colIndex ?? 0));
+      const actualColCount = Math.max(1, maxColIndex + 1);
+      result.get(item.id)!.colCount = actualColCount;
     }
   }
 
@@ -369,6 +375,7 @@ export function calculateFreeTimeSlots(
   const timed = items
     .filter((it) => !it.allDay && it.kind !== 'deadline' && it.startTime && it.endTime)
     .map((it) => ({
+      item: it,
       start: parseTimeToMinutes(it.startTime!),
       end: parseTimeToMinutes(it.endTime!),
     }))
@@ -376,47 +383,90 @@ export function calculateFreeTimeSlots(
     .sort((a, b) => a.start - b.start);
 
   // Unir intervalos sobrepostos para encontrar buracos reais
-  const merged: { start: number; end: number }[] = [];
+  const merged: { start: number; end: number; beforeItem?: AgendaItem; afterItem?: AgendaItem }[] = [];
   for (const interval of timed) {
     const clampedStart = Math.max(startLimit, interval.start);
     const clampedEnd = Math.min(endLimit, interval.end);
 
     if (merged.length === 0) {
-      merged.push({ start: clampedStart, end: clampedEnd });
+      merged.push({ start: clampedStart, end: clampedEnd, afterItem: interval.item });
     } else {
       const last = merged[merged.length - 1];
       if (clampedStart <= last.end) {
         last.end = Math.max(last.end, clampedEnd);
+        last.afterItem = interval.item;
       } else {
-        merged.push({ start: clampedStart, end: clampedEnd });
+        merged.push({ start: clampedStart, end: clampedEnd, beforeItem: last.afterItem, afterItem: interval.item });
       }
     }
   }
 
   const freeSlots: FreeTimeSlot[] = [];
   let currentCursor = startLimit;
+  let prevItem: AgendaItem | undefined = undefined;
 
-  for (const interval of merged) {
+  for (let i = 0; i < merged.length; i++) {
+    const interval = merged[i];
+    const nextItem = interval.afterItem;
     const gap = interval.start - currentCursor;
+
     if (gap >= 30) {
+      // Temporal OS Smart Scheduling:
+      // Identifica buffer de deslocamento e preparação pré/pós compromisso
+      const needsPreBuffer = nextItem && (nextItem.domain === 'work' || nextItem.domain === 'external' || !!nextItem.location);
+      const needsPostBuffer = prevItem && (prevItem.domain === 'work' || prevItem.domain === 'external' || !!prevItem.location);
+
+      const bufferPre = needsPreBuffer ? (gap >= 60 ? 20 : 15) : (gap >= 90 ? 10 : 0);
+      const bufferPost = needsPostBuffer ? (gap >= 60 ? 15 : 10) : 0;
+      const totalBuffer = Math.min(gap - 20, bufferPre + bufferPost);
+
+      const usableStartMin = currentCursor + bufferPost;
+      const usableEndMin = interval.start - bufferPre;
+      const usableDuration = Math.max(0, usableEndMin - usableStartMin);
+
+      let commuteNote: string | undefined;
+      if (needsPreBuffer && needsPostBuffer) {
+        commuteNote = `Reserva ${totalBuffer} min de deslocamento/preparação entre compromissos`;
+      } else if (needsPreBuffer) {
+        commuteNote = `Reserva ${bufferPre} min de trajeto antes de ${nextItem?.title || 'compromisso'}`;
+      } else if (needsPostBuffer) {
+        commuteNote = `Reserva ${bufferPost} min de descompressão após ${prevItem?.title || 'compromisso'}`;
+      }
+
+      const label = usableDuration >= 30
+        ? `${formatDuration(usableDuration)} utilizáveis (${formatDuration(gap)} teoricamente livres)`
+        : `${formatDuration(gap)} livres (janela curta útil: ${formatDuration(usableDuration)})`;
+
       freeSlots.push({
         start: formatMinutesToTime(currentCursor),
         end: formatMinutesToTime(interval.start),
         durationMinutes: gap,
-        label: `${formatDuration(gap)} livres`,
+        usableStart: formatMinutesToTime(usableStartMin),
+        usableEnd: formatMinutesToTime(usableEndMin),
+        usableDurationMinutes: usableDuration,
+        bufferMinutes: totalBuffer,
+        commuteNote,
+        label,
       });
     }
     currentCursor = Math.max(currentCursor, interval.end);
+    prevItem = interval.afterItem;
   }
 
   // Intervalo final até o fim da jornada
   const finalGap = endLimit - currentCursor;
   if (finalGap >= 30) {
+    const postBuffer = prevItem && (prevItem.domain === 'work' || prevItem.domain === 'external') ? 15 : 0;
+    const usableDuration = Math.max(0, finalGap - postBuffer);
     freeSlots.push({
       start: formatMinutesToTime(currentCursor),
       end: formatMinutesToTime(endLimit),
       durationMinutes: finalGap,
-      label: `${formatDuration(finalGap)} livres`,
+      usableStart: formatMinutesToTime(currentCursor + postBuffer),
+      usableEnd: formatMinutesToTime(endLimit),
+      usableDurationMinutes: usableDuration,
+      bufferMinutes: postBuffer,
+      label: `${formatDuration(usableDuration)} utilizáveis (${formatDuration(finalGap)} livres)`,
     });
   }
 
@@ -576,15 +626,15 @@ function matchesRecurrenceBasePattern(routine: AgendaItem, candidate: Date): boo
   const rule = routine.recurrence;
   if (!rule) return false;
   const anchor = new Date(`${routine.date}T00:00:00`);
-  if (candidate < anchor) return false;
   const interval = rule.interval && rule.interval > 0 ? rule.interval : 1;
-
   if (rule.frequency === 'daily') {
+    if (candidate < anchor) return false;
     const diffDays = Math.round((candidate.getTime() - anchor.getTime()) / 86400000);
     return diffDays >= 0 && diffDays % interval === 0;
   }
 
   if (rule.frequency === 'monthly') {
+    if (candidate < anchor) return false;
     if (candidate.getDate() !== anchor.getDate()) return false;
     const diffMonths =
       (candidate.getFullYear() - anchor.getFullYear()) * 12 +
@@ -593,10 +643,12 @@ function matchesRecurrenceBasePattern(routine: AgendaItem, candidate: Date): boo
   }
 
   // weekly (padrão) — dias da semana explícitos, ou o próprio dia da âncora se nenhum for informado
+  const anchorWeek = startOfWeek(anchor);
+  if (startOfWeek(candidate) < anchorWeek) return false;
   const days = rule.daysOfWeek && rule.daysOfWeek.length > 0 ? rule.daysOfWeek : [anchor.getDay()];
   if (!days.includes(candidate.getDay())) return false;
   const diffWeeks = Math.round(
-    (startOfWeek(candidate).getTime() - startOfWeek(anchor).getTime()) / (7 * 86400000)
+    (startOfWeek(candidate).getTime() - anchorWeek.getTime()) / (7 * 86400000)
   );
   return diffWeeks >= 0 && diffWeeks % interval === 0;
 }

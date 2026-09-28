@@ -1,19 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ContextPanelSection } from '@/components/shell/ContextPanelSection';
 import { TRACK_DEFINITIONS } from '@/components/education/educationFixtures';
+import { useAgenda } from '@/context/AgendaContext';
+import { formatDateISO } from '@/components/agenda/agendaFixtures';
 
 /**
  * Painel contextual do Hoje — preserva o conteúdo já existente (Guardian/Bio-Estado, Próxima
- * Transição, Marcos da Sessão), só acrescenta Avisos relevantes. Os avisos vêm diretamente das
- * disciplinas da Faculdade (mesma fonte usada em Educação → Faculdade) — não é uma lista
- * duplicada à mão, é a mesma fixture agregada aqui.
+ * Transição, Marcos da Sessão), e conecta dinamicamente aos itens da Agenda quando existirem.
+ * Os avisos continuam agregados das disciplinas da Faculdade (Educação) sem duplicação.
  */
 export function TodayContextPanel() {
+  const { items: agendaItems } = useAgenda();
+  const todayStr = useMemo(() => formatDateISO(new Date()), []);
+  const todayItems = useMemo(() => {
+    return agendaItems
+      .filter((it) => it.date === todayStr)
+      .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+  }, [agendaItems, todayStr]);
+
   const avisos = (TRACK_DEFINITIONS.faculdade.disciplines ?? []).flatMap((d) =>
     d.notices.map((notice, i) => ({ id: `${d.code}-${i}`, discipline: d.title, notice }))
   );
+
+  const nextItem = todayItems[0];
 
   return (
     <>
@@ -43,14 +54,18 @@ export function TodayContextPanel() {
       {/* Seção 2: Próxima Transição */}
       <ContextPanelSection
         label="Próxima Transição"
-        rightSlot={<span className="text-[10px] font-mono text-text-muted tabular-nums">14:30</span>}
+        rightSlot={<span className="text-[10px] font-mono text-text-muted tabular-nums">{nextItem ? (nextItem.startTime || 'Hoje') : '14:30'}</span>}
       >
-        <h4 className="text-[13px] font-semibold tracking-tight text-text-primary">
-          Revisão Estratégica do Sistema
+        <h4 className="text-[13px] font-semibold tracking-tight text-text-primary truncate">
+          {nextItem ? nextItem.title : 'Revisão Estratégica do Sistema'}
         </h4>
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-text-secondary">Bloco de 45m</span>
-          <span className="text-text-muted font-mono tabular-nums">Em 2h 15m</span>
+          <span className="text-text-secondary">
+            {nextItem ? `Bloco de ${nextItem.durationMinutes || 45}m` : 'Bloco de 45m'}
+          </span>
+          <span className="text-text-muted font-mono tabular-nums">
+            {nextItem?.startTime ? `Às ${nextItem.startTime}` : 'Em 2h 15m'}
+          </span>
         </div>
       </ContextPanelSection>
 
@@ -60,18 +75,31 @@ export function TodayContextPanel() {
         rightSlot={<span className="text-[10px] font-mono text-text-muted">Hoje</span>}
       >
         <div className="space-y-2 text-[12px]">
-          <div className="flex items-baseline justify-between text-text-primary">
-            <span className="font-medium">Alinhamento Arquitetural</span>
-            <span className="text-text-muted font-mono text-[11px] tabular-nums">11:00</span>
-          </div>
-          <div className="flex items-baseline justify-between text-text-secondary">
-            <span>Sessão de Leitura &amp; Síntese</span>
-            <span className="text-text-muted font-mono text-[11px] tabular-nums">16:00</span>
-          </div>
-          <div className="flex items-baseline justify-between text-text-secondary">
-            <span>Caminhada Restaurativa</span>
-            <span className="text-text-muted font-mono text-[11px] tabular-nums">18:00</span>
-          </div>
+          {todayItems.length > 0 ? (
+            todayItems.slice(0, 4).map((it) => (
+              <div key={it.id} className="flex items-baseline justify-between text-text-primary">
+                <span className="font-medium truncate pr-2">{it.title}</span>
+                <span className="text-text-muted font-mono text-[11px] tabular-nums flex-shrink-0">
+                  {it.startTime || 'Dia todo'}
+                </span>
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between text-text-primary">
+                <span className="font-medium">Alinhamento Arquitetural</span>
+                <span className="text-text-muted font-mono text-[11px] tabular-nums">11:00</span>
+              </div>
+              <div className="flex items-baseline justify-between text-text-secondary">
+                <span>Sessão de Leitura &amp; Síntese</span>
+                <span className="text-text-muted font-mono text-[11px] tabular-nums">16:00</span>
+              </div>
+              <div className="flex items-baseline justify-between text-text-secondary">
+                <span>Caminhada Restaurativa</span>
+                <span className="text-text-muted font-mono text-[11px] tabular-nums">18:00</span>
+              </div>
+            </>
+          )}
         </div>
       </ContextPanelSection>
 

@@ -1,13 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { hojeFixtureItems } from '@/fixtures/hojeFixtures';
+import { useAgenda } from '@/context/AgendaContext';
+import { formatDateISO } from '@/components/agenda/agendaFixtures';
+import { AgendaItem } from '@/types/agenda';
 import {
   groupHojeItems,
   formatMinutes,
   CATEGORY_ICON,
   CATEGORY_LABEL,
   HojeItem,
+  HojeCategoria,
 } from '@/lib/hojeFoundation';
 
 function useNowMinutes(): number | null {
@@ -24,6 +28,26 @@ function useNowMinutes(): number | null {
   }, []);
 
   return now;
+}
+
+function mapAgendaToHojeItem(it: AgendaItem): HojeItem {
+  let cat: HojeCategoria = 'pessoal';
+  if (it.domain === 'education') cat = 'estudo';
+  else if (it.domain === 'work') cat = 'trabalho';
+  else if (it.domain === 'body') cat = 'saude';
+
+  let startMinutes = 8 * 60;
+  if (it.startTime) {
+    const [h, m] = it.startTime.split(':').map(Number);
+    if (!isNaN(h) && !isNaN(m)) startMinutes = h * 60 + m;
+  }
+  return {
+    id: it.id,
+    title: it.title,
+    category: cat,
+    startMinutes,
+    durationMinutes: it.durationMinutes || 60,
+  };
 }
 
 function ItemCard({ item, emphasis }: { item: HojeItem; emphasis?: 'current' | 'next' }) {
@@ -101,12 +125,26 @@ function HojeSkeleton() {
 
 export function HojeContainer() {
   const nowMinutes = useNowMinutes();
+  const { items: agendaItems } = useAgenda();
+
+  const todayStr = useMemo(() => formatDateISO(new Date()), []);
+  const todayItems = useMemo(() => {
+    const rawToday = agendaItems.filter((it) => it.date === todayStr);
+    if (rawToday.length > 0) {
+      return rawToday.map(mapAgendaToHojeItem).sort((a, b) => a.startMinutes - b.startMinutes);
+    }
+    return hojeFixtureItems;
+  }, [agendaItems, todayStr]);
+
+  const hasLiveAgendaItems = useMemo(() => {
+    return agendaItems.some((it) => it.date === todayStr);
+  }, [agendaItems, todayStr]);
 
   if (nowMinutes === null) {
     return <HojeSkeleton />;
   }
 
-  const { agora, proximo, depois, maisTarde } = groupHojeItems(hojeFixtureItems, nowMinutes);
+  const { agora, proximo, depois, maisTarde } = groupHojeItems(todayItems, nowMinutes);
 
   return (
     <main className="w-full pb-20 px-4 sm:px-8 max-w-5xl mx-auto flex flex-col gap-10 pt-6 flex-1 study-stage-enter">
@@ -122,7 +160,9 @@ export function HojeContainer() {
           O que está acontecendo agora
         </h1>
         <p className="text-[12px] text-text-muted mt-1">
-          Dados de exemplo desta sessão — nada aqui é salvo ainda.
+          {hasLiveAgendaItems
+            ? 'Integrado à Agenda do Medusa em tempo real.'
+            : 'Dados de exemplo desta sessão — adicione eventos na Agenda para sincronizar.'}
         </p>
       </section>
 

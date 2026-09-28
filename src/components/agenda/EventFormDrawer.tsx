@@ -16,11 +16,13 @@ import {
 } from '@/types/agenda';
 import { calculateDurationMinutes } from './agendaHelpers';
 import { formatDateISO } from './agendaFixtures';
+import { MedusaTimePicker } from './MedusaTimePicker';
+import { PASTEL_PALETTE } from './palette';
 
 interface EventFormDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (itemData: Partial<AgendaItem>) => void;
+  onSave: (itemData: Partial<AgendaItem>, scope?: 'this' | 'following' | 'series') => void;
   initialItem?: AgendaItem | null;
   categories: AgendaCategory[];
   defaultDate?: string;
@@ -42,6 +44,8 @@ export function EventFormDrawer({
   const [kind, setKind] = useState<AgendaItemKind>('event');
   const [domain, setDomain] = useState<AgendaDomain>('personal');
   const [categoryId, setCategoryId] = useState('');
+  const [colorId, setColorId] = useState('');
+  const [editScope, setEditScope] = useState<'this' | 'following' | 'series'>('series');
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -60,10 +64,12 @@ export function EventFormDrawer({
   // Inicializa o formulário com o item existente ou defaults limpos
   useEffect(() => {
     if (initialItem) {
+      setEditScope('series');
       setTitle(initialItem.title);
       setKind(initialItem.kind);
       setDomain(initialItem.domain);
       setCategoryId(initialItem.categoryId);
+      setColorId(initialItem.colorId || '');
       setDate(initialItem.date);
       setStartTime(initialItem.startTime || '09:00');
       setEndTime(initialItem.endTime || '10:00');
@@ -98,6 +104,7 @@ export function EventFormDrawer({
       setDescription('');
       if (categories.length > 0) {
         setCategoryId(categories[0].id);
+        setColorId(categories[0].colorId || 'amarelo_baunilha');
       }
     }
     setError(null);
@@ -109,6 +116,7 @@ export function EventFormDrawer({
     const matchingCat = categories.find((c) => c.domain === newDomain);
     if (matchingCat) {
       setCategoryId(matchingCat.id);
+      setColorId(matchingCat.colorId);
     }
   };
 
@@ -148,61 +156,70 @@ export function EventFormDrawer({
     }
 
     const selectedCat = categories.find((c) => c.id === categoryId);
-    const colorId = selectedCat ? selectedCat.colorId : 'azul_lavanda';
+    const finalColorId = colorId || (selectedCat ? selectedCat.colorId : 'azul_lavanda');
 
     const duration = isFullDay ? undefined : calculateDurationMinutes(startTime, endTime);
 
-    onSave({
-      id: initialItem?.id,
-      title: title.trim(),
-      kind,
-      domain,
-      categoryId,
-      colorId,
-      date,
-      startTime: isFullDay ? undefined : startTime,
-      endTime: isFullDay ? undefined : endTime,
-      durationMinutes: duration,
-      allDay: isFullDay,
-      isFlexible: kind === 'time_block' ? isFlexible : false,
-      // Achado de auditoria corrigido: `isRecurring` nunca era acionado pela interface (não
-      // havia nenhum controle que o definisse como true), então nenhuma rotina criada pelo
-      // formulário jamais salvava de fato uma `recurrence` — a rotina existia mas nunca se
-      // repetia. Agora a recorrência acompanha diretamente `kind === 'routine'`.
-      recurrence:
-        kind === 'routine'
-          ? {
-              frequency: recurrenceFreq,
-              interval: recurrenceInterval > 1 ? recurrenceInterval : undefined,
-              daysOfWeek:
-                recurrenceFreq === 'weekly' && recurrenceDays.length > 0
-                  ? recurrenceDays
-                  : undefined,
-              until: recurrenceEnd === 'date' && recurrenceUntil ? recurrenceUntil : undefined,
-              count: recurrenceEnd === 'count' ? recurrenceCount : undefined,
-            }
-          : undefined,
-      location: location.trim() || undefined,
-      description: description.trim() || undefined,
-      source: initialItem?.source || {
-        sourceType: 'manual',
-        sourceLabel: 'Entrada Manual',
+    const isRecurring = Boolean(
+      initialItem &&
+        (initialItem.recurrence ||
+          initialItem.kind === 'routine' ||
+          initialItem.id.includes('-virt-'))
+    );
+
+    onSave(
+      {
+        id: initialItem?.id,
+        title: title.trim(),
+        kind,
+        domain,
+        categoryId,
+        colorId: finalColorId,
+        date,
+        startTime: isFullDay ? undefined : startTime,
+        endTime: isFullDay ? undefined : endTime,
+        durationMinutes: duration,
+        allDay: isFullDay,
+        isFlexible: kind === 'time_block' ? isFlexible : false,
+        recurrence:
+          kind === 'routine'
+            ? {
+                frequency: recurrenceFreq,
+                interval: recurrenceInterval > 1 ? recurrenceInterval : undefined,
+                daysOfWeek:
+                  recurrenceFreq === 'weekly' && recurrenceDays.length > 0
+                    ? recurrenceDays
+                    : undefined,
+                until: recurrenceEnd === 'date' && recurrenceUntil ? recurrenceUntil : undefined,
+                count: recurrenceEnd === 'count' ? recurrenceCount : undefined,
+              }
+            : undefined,
+        location: location.trim() || undefined,
+        description: description.trim() || undefined,
+        source: initialItem?.source || {
+          sourceType: 'manual',
+          sourceLabel: 'Entrada Manual',
+        },
+        status: initialItem?.status || 'scheduled',
       },
-      status: initialItem?.status || 'scheduled',
-    });
+      isRecurring ? editScope : undefined
+    );
 
     onClose();
   };
 
   return (
     <div
+      id="event-form-drawer"
       role="dialog"
       aria-modal="true"
       aria-labelledby="event-form-title"
-      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[2px] transition-opacity duration-200"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 animate-in fade-in"
     >
       <div
-        className="w-full max-w-lg bg-surface h-full shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-border/80 animate-in slide-in-from-right duration-250 ease-out"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg bg-surface h-full shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-border/80 animate-in slide-in-from-right duration-400 ease-out"
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full justify-between">
           {/* Topo do Drawer */}
@@ -218,6 +235,7 @@ export function EventFormDrawer({
 
             <button
               type="button"
+              id="btn-close-event-drawer"
               onClick={onClose}
               aria-label="Fechar formulário"
               className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
@@ -325,6 +343,33 @@ export function EventFormDrawer({
               </div>
             </div>
 
+            {/* Seletor Explícito de Cor Pastel (24 cores) */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
+                Cor Visual (Paleta Pastel Medusa)
+              </label>
+              <div
+                id="event-color-swatches"
+                className="flex items-center gap-1.5 flex-wrap p-2.5 bg-surface-secondary/50 rounded-xl border border-border/60"
+              >
+                {PASTEL_PALETTE.map((p) => {
+                  const isSelected = colorId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setColorId(p.id)}
+                      title={p.name}
+                      style={{ backgroundColor: p.swatch }}
+                      className={`w-5 h-5 rounded-full transition-transform border border-black/10 dark:border-white/10 ${
+                        isSelected ? 'ring-2 ring-medusa-primary scale-125 z-10' : 'hover:scale-110'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Data & All-day Toggle */}
             <div className="space-y-3 border-t border-border/60 pt-4">
               <div className="flex items-center justify-between">
@@ -354,32 +399,36 @@ export function EventFormDrawer({
               />
             </div>
 
-            {/* Horários (se não for all-day nem deadline) */}
+            {/* Horários e Duração com MedusaTimePicker */}
             {!allDay && kind !== 'deadline' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="form-start-time" className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-                    Início
-                  </label>
+              <div className="space-y-1.5">
+                <span className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
+                  Horário e Duração
+                </span>
+                <MedusaTimePicker
+                  startTime={startTime}
+                  endTime={endTime}
+                  onChange={(s, e) => {
+                    setStartTime(s);
+                    setEndTime(e);
+                  }}
+                />
+                <div className="sr-only">
                   <input
                     id="form-start-time"
-                    type="time"
+                    type="text"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-surface-secondary border border-border/80 rounded-xl px-3 py-2 text-[13px] text-text-primary focus:outline-none focus:ring-2 focus:ring-focus-ring tabular-nums"
+                    aria-hidden="true"
+                    tabIndex={-1}
                   />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="form-end-time" className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-                    Fim
-                  </label>
                   <input
                     id="form-end-time"
-                    type="time"
+                    type="text"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-surface-secondary border border-border/80 rounded-xl px-3 py-2 text-[13px] text-text-primary focus:outline-none focus:ring-2 focus:ring-focus-ring tabular-nums"
+                    aria-hidden="true"
+                    tabIndex={-1}
                   />
                 </div>
               </div>
@@ -562,6 +611,69 @@ export function EventFormDrawer({
                 />
               </div>
             </div>
+
+            {/* Decisão Explícita de Escopo para Eventos Recorrentes (Fase 4 / Requisito 3) */}
+            {initialItem &&
+              (initialItem.recurrence ||
+                initialItem.kind === 'routine' ||
+                initialItem.id.includes('-virt-')) && (
+                <div
+                  id="recurring-edit-scope-box"
+                  className="p-4 rounded-xl bg-surface-secondary/80 border border-medusa-primary/40 space-y-3 animate-in fade-in duration-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-medusa-primary">repeat</span>
+                    <span className="text-[12px] font-semibold text-text-primary">
+                      Evento Recorrente — Escopo da Alteração
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary leading-relaxed">
+                    Você está alterando uma série periódica. Selecione em quais ocorrências esta edição (título, horário, cor ou duração) deve surtir efeito:
+                  </p>
+                  <div className="space-y-2 pt-0.5">
+                    {[
+                      {
+                        value: 'this',
+                        label: 'Somente este evento',
+                        desc: `Aplica exclusivamente na ocorrência de ${date}, preservando as demais ocorrências da série intactas`,
+                      },
+                      {
+                        value: 'following',
+                        label: 'Este e os próximos eventos',
+                        desc: `Aplica a partir de ${date} em diante, mantendo as ocorrências anteriores inalteradas`,
+                      },
+                      {
+                        value: 'series',
+                        label: 'Toda a série de eventos',
+                        desc: 'Aplica a todas as repetições passadas e futuras desta rotina',
+                      },
+                    ].map((opt) => (
+                      <label
+                        key={opt.value}
+                        id={`scope-edit-option-${opt.value}`}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer select-none transition-all ${
+                          editScope === opt.value
+                            ? 'bg-medusa-primary/10 border-medusa-primary text-text-primary shadow-subtle ring-1 ring-medusa-primary/40'
+                            : 'bg-surface border-border/70 hover:bg-surface-secondary text-text-secondary'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="recurrence-edit-scope"
+                          value={opt.value}
+                          checked={editScope === opt.value}
+                          onChange={() => setEditScope(opt.value as 'this' | 'following' | 'series')}
+                          className="mt-0.5 text-medusa-primary focus:ring-medusa-primary"
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-semibold leading-tight">{opt.label}</span>
+                          <span className="text-[10px] text-text-muted mt-0.5">{opt.desc}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             {/* Aviso Informativo de Origem */}
             {initialItem?.source && initialItem.source.sourceType !== 'manual' && (

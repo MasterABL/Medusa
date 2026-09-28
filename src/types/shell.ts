@@ -36,6 +36,16 @@ export interface IslandFixture {
   returnBehavior: string;
 }
 
+export interface IslandNotification {
+  title: string;
+  tag?: string;
+  desc?: string;
+  description?: string;
+  badge?: string;
+  state?: IslandState;
+  durationMs?: number;
+}
+
 export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
 
 export const SHELL_DIMENSIONS = {
@@ -86,14 +96,16 @@ export function calculateShellGeometry(
     sidebarWidth = SHELL_DIMENSIONS.SIDEBAR_COMPACT;
   }
 
-  // 2. Largura nominal do painel regional de acordo com o modo
-  const contextWidth = isCompact
+  // 2. Largura nominal do painel regional de acordo com o modo e breakpoint
+  // Em tablet / tela dividida, usa largura compacta (260px) para acomodar conteúdo + lateral
+  const contextWidth = (isTablet || isCompact)
     ? SHELL_DIMENSIONS.CONTEXT_COMPACT
     : SHELL_DIMENSIONS.CONTEXT_WIDE;
 
   // 3. Disponibilidade e Visibilidade do Context Panel
-  // No Foco, Tablet ou Mobile, o Context Panel permanece 100% fora da composição
-  const isContextAvailable = isDesktop && !isFocus;
+  // No Foco ou Mobile estreito (<768px), o painel lateral fixo não fica na composição principal.
+  // Em Desktop e Tablet / Tela Dividida (>=768px), o Context Panel funciona como coluna lateral real.
+  const isContextAvailable = !isMobile && !isFocus;
   const isContextVisible = isContextAvailable && isContextOpen;
 
   // 4. Largura efetiva ocupada no layout (refluxo real do conteúdo)

@@ -17,6 +17,9 @@ interface EventListItemProps {
   category?: AgendaCategory;
   conflict?: TimeConflict;
   isSelected?: boolean;
+  selectable?: boolean;
+  isSelectedForBatch?: boolean;
+  onToggleSelectBatch?: () => void;
   onClick: () => void;
   onEdit?: (e: React.MouseEvent) => void;
   onDelete?: (e: React.MouseEvent) => void;
@@ -27,6 +30,9 @@ export function EventListItem({
   category,
   conflict,
   isSelected,
+  selectable,
+  isSelectedForBatch,
+  onToggleSelectBatch,
   onClick,
   onEdit,
   onDelete,
@@ -87,13 +93,13 @@ export function EventListItem({
           onClick();
         }
       }}
-      aria-selected={isSelected}
+      aria-pressed={isSelected}
       aria-label={`${item.title}, ${item.startTime || 'Dia todo'} às ${item.endTime || ''}`}
       className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl border transition-all duration-160 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
         isSelected
           ? 'bg-surface-elevated border-medusa-primary/50 shadow-calm ring-1 ring-medusa-primary/30'
           : 'bg-surface border-border/70 hover:border-border hover:bg-surface-secondary hover:shadow-subtle'
-      }`}
+      } ${isSelectedForBatch ? 'ring-2 ring-medusa-primary/60 bg-medusa-primary/5' : ''}`}
     >
       {/* Indicador de cor à esquerda */}
       <div
@@ -101,7 +107,30 @@ export function EventListItem({
         style={{ backgroundColor: colorStyle.accent }}
       />
 
-      <div className="flex items-start sm:items-center gap-3.5 pl-1.5 min-w-0">
+      <div className="flex items-start sm:items-center gap-3 pl-1 min-w-0">
+        {/* Checkbox para seleção em lote (Fase 5) */}
+        {selectable && (
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={isSelectedForBatch}
+            aria-label={`Selecionar ${item.title}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelectBatch?.();
+            }}
+            className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all flex-shrink-0 mt-2 sm:mt-0 ${
+              isSelectedForBatch
+                ? 'bg-medusa-primary border-medusa-primary text-[#1C2420]'
+                : 'border-border/80 bg-surface/90 hover:border-medusa-primary'
+            }`}
+          >
+            {isSelectedForBatch && (
+              <span className="material-symbols-outlined text-[14px] font-bold">check</span>
+            )}
+          </button>
+        )}
+
         {/* Ícone de Domínio */}
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-subtle"

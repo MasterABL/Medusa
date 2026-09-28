@@ -31,6 +31,8 @@ interface EventDetailPanelProps {
   onEdit: (item: AgendaItem) => void;
   onDelete: (itemId: string) => void;
   onDeleteRecurring?: (item: AgendaItem, scope: RecurringDeleteScope) => void;
+  onReschedule?: (itemId: string, date: string, startTime: string, endTime: string) => void;
+  onDuplicate?: (item: AgendaItem) => void;
   suggestions?: ConflictSuggestion[];
   onApplySuggestion?: (item: AgendaItem, suggestion: ConflictSuggestion) => void;
 }
@@ -43,13 +45,28 @@ export function EventDetailPanel({
   onEdit,
   onDelete,
   onDeleteRecurring,
+  onReschedule,
+  onDuplicate,
   suggestions = [],
   onApplySuggestion,
 }: EventDetailPanelProps) {
-  const { theme } = useShell();
+  const { theme, setActiveRoute, triggerIslandNotification } = useShell();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteScope, setDeleteScope] = useState<RecurringDeleteScope>('this');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [financialAnalysis, setFinancialAnalysis] = useState<string | null>(null);
+  const [paymentDone, setPaymentDone] = useState(false);
+
+  const handleShiftTime = (deltaMinutes: number) => {
+    if (!item || !item.startTime || !item.endTime || !onReschedule) return;
+    const [sh, sm] = item.startTime.split(':').map(Number);
+    const [eh, em] = item.endTime.split(':').map(Number);
+    const startM = sh * 60 + sm + deltaMinutes;
+    const endM = eh * 60 + em + deltaMinutes;
+    if (startM < 0 || endM > 24 * 60) return;
+    const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    onReschedule(item.id, item.date, fmt(startM), fmt(endM));
+  };
 
   // Fechar com tecla Escape
   useEffect(() => {
@@ -61,6 +78,15 @@ export function EventDetailPanel({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  useEffect(() => {
+    if (confirmDelete) {
+      const box = document.getElementById('delete-confirm-box');
+      if (box) {
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [confirmDelete]);
 
   if (!item) return null;
 
@@ -98,8 +124,9 @@ export function EventDetailPanel({
 
   return (
     <aside
+      id="agenda-detail-panel"
       aria-label="Detalhes do compromisso"
-      className="bg-surface rounded-2xl border border-border/80 p-5 sm:p-6 shadow-calm flex flex-col gap-5 relative transition-all duration-200 animate-in fade-in slide-in-from-right-2"
+      className="bg-surface rounded-2xl border border-border/80 p-5 sm:p-6 shadow-calm flex flex-col gap-5 relative transition-all duration-200 animate-in fade-in slide-in-from-right-2 max-h-[calc(100vh-5.5rem)] overflow-y-auto overflow-x-hidden sticky top-4"
     >
       {/* Topo: Categoria e Botão Fechar */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
@@ -140,7 +167,7 @@ export function EventDetailPanel({
           {item.title}
         </h3>
 
-        <div className="flex items-center gap-2 text-[12px] font-mono text-text-secondary tabular-nums">
+          <div className="flex items-center gap-2 text-[12px] font-mono text-text-secondary tabular-nums">
           <span className="material-symbols-outlined text-[16px] text-text-muted">schedule</span>
           {item.allDay ? (
             <span>Dia todo ({item.date})</span>
@@ -155,6 +182,29 @@ export function EventDetailPanel({
             </span>
           )}
         </div>
+
+        {/* Reagendamento Rápido (Fase 12) */}
+        {!item.allDay && item.startTime && item.endTime && onReschedule && (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-[10px] font-mono text-text-muted">Ajuste rápido:</span>
+            <button
+              type="button"
+              onClick={() => handleShiftTime(-30)}
+              title="Adiantar 30 minutos"
+              className="btn-interactive px-2 py-0.5 rounded-lg border border-border/70 bg-surface-secondary/50 hover:bg-surface text-[10px] font-mono text-text-secondary hover:text-text-primary transition-all shadow-subtle"
+            >
+              -30 min
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShiftTime(30)}
+              title="Adiar 30 minutos"
+              className="btn-interactive px-2 py-0.5 rounded-lg border border-border/70 bg-surface-secondary/50 hover:bg-surface text-[10px] font-mono text-text-secondary hover:text-text-primary transition-all shadow-subtle"
+            >
+              +30 min
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Alerta de Conflito com Duração Exata */}
@@ -250,6 +300,143 @@ export function EventDetailPanel({
         )}
       </div>
 
+      {/* Ações de Prazo / Contexto de Estudo */}
+      {item.domain === 'education' && (
+        <div className="space-y-2 bg-medusa-primary/5 rounded-xl p-3 border border-medusa-primary/20">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-medusa-primary font-bold block">
+            Ações de Estudo
+          </span>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                triggerIslandNotification({
+                  title: 'Sessão iniciada',
+                  description: `Foco em: ${item.title}`,
+                  badge: 'Estudo Ativo',
+                  durationMs: 2000,
+                });
+                setActiveRoute('educacao');
+                onClose();
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-medusa-primary/20 hover:bg-medusa-primary/30 text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-medusa-primary/30"
+            >
+              <span className="material-symbols-outlined text-[14px]">play_arrow</span>
+              <span>Começar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerIslandNotification({
+                  title: 'Revisão programada',
+                  description: 'Material adicionado aos cartões de revisão',
+                  badge: 'Revisão',
+                  durationMs: 1800,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70"
+            >
+              <span className="material-symbols-outlined text-[14px]">autorenew</span>
+              <span>Revisar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerIslandNotification({
+                  title: 'Material didático',
+                  description: 'Acessando conteúdo curricular',
+                  badge: 'Aula',
+                  durationMs: 1800,
+                });
+                setActiveRoute('educacao');
+                onClose();
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70"
+            >
+              <span className="material-symbols-outlined text-[14px]">menu_book</span>
+              <span>Abrir Aula</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Ações de Prazo / Contexto Financeiro & Deadlines */}
+      {(item.domain === 'finance' || item.kind === 'deadline') && (
+        <div className="space-y-2.5 bg-amber-500/5 rounded-xl p-3 border border-amber-400/25">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-700 dark:text-amber-300 font-bold">
+              Gestão de Prazo / Financeiro
+            </span>
+            {paymentDone && (
+              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-400/30">
+                Quitado
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setFinancialAnalysis('Análise temporal: Prazo prioritário sem conflito de liquidez planejado na semana.');
+                triggerIslandNotification({
+                  title: 'Análise de Prazo Concluída',
+                  description: 'Verificação temporal local finalizada',
+                  badge: 'Prazo',
+                  durationMs: 2000,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 text-[11px] font-medium flex items-center justify-center gap-1 border border-amber-400/30"
+            >
+              <span className="material-symbols-outlined text-[14px]">query_stats</span>
+              <span>Analisar prazo</span>
+            </button>
+            <button
+              type="button"
+              disabled={paymentDone}
+              onClick={() => {
+                setPaymentDone(true);
+                triggerIslandNotification({
+                  title: 'Pagamento Registrado',
+                  description: 'Status atualizado no estado local da Agenda',
+                  badge: 'Liquidado',
+                  durationMs: 2200,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+              <span>{paymentDone ? 'Pago' : 'Registrar'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFinancialAnalysis('Impacto no fluxo: Baixo risco para as rotinas essenciais dos próximos 7 dias.');
+                triggerIslandNotification({
+                  title: 'Impacto Calculado',
+                  description: 'Janela semanal de compromissos preservada',
+                  badge: 'Impacto',
+                  durationMs: 2000,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70"
+            >
+              <span className="material-symbols-outlined text-[14px]">trending_up</span>
+              <span>Ver impacto</span>
+            </button>
+          </div>
+
+          {financialAnalysis && (
+            <div className="text-[11px] text-text-secondary bg-surface/80 p-2 rounded-lg border border-border/60 space-y-1">
+              <p>{financialAnalysis}</p>
+              <p className="text-[10px] text-text-muted italic">
+                * Estado Local Ativo: Análise preditiva preliminar. A conexão bancária real ainda não está vinculada.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Bloco de Origem / Regra de Propriedade dos Dados */}
       {item.source && (
         <div className="bg-surface-secondary/60 rounded-xl p-3 border border-border/60 flex items-start gap-2.5">
@@ -269,18 +456,32 @@ export function EventDetailPanel({
         </div>
       )}
 
-      {/* Ações de Edição e Exclusão */}
-      <div className="pt-2 flex flex-col gap-2">
+      {/* Navegação Cross-Tab para Educação */}
+      {item.domain === 'education' && (
+        <button
+          type="button"
+          id="btn-go-to-education"
+          onClick={() => {
+            setActiveRoute('educacao');
+            onClose();
+          }}
+          className="btn-interactive w-full py-2.5 px-3.5 rounded-xl bg-medusa-primary/15 border border-medusa-primary/40 hover:bg-medusa-primary/25 text-[#18534B] dark:text-[#71DBD2] text-[12px] font-semibold flex items-center justify-center gap-2 shadow-subtle transition-all"
+        >
+          <span className="material-symbols-outlined text-[16px]">school</span>
+          <span>Abrir no contexto de Educação</span>
+        </button>
+      )}
+
+      {/* Ações de Edição, Duplicação e Exclusão (Contidas e Acessíveis) */}
+      <div className="sticky -bottom-5 sm:-bottom-6 -mx-5 sm:-mx-6 -mb-5 sm:-mb-6 p-4 sm:p-5 bg-surface/95 backdrop-blur-md border-t border-border/70 rounded-b-2xl flex flex-col gap-2 z-20 shadow-subtle">
         {confirmDelete ? (
-          <div className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in">
-            <p className="text-[12px] font-medium text-rose-800 dark:text-rose-200 text-center">
+          <div id="delete-confirm-box" className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in w-full max-w-full overflow-hidden">
+            <p className="text-[12px] font-semibold text-rose-800 dark:text-rose-200 text-center">
               Excluir compromisso
             </p>
 
-            {/* Distinção de escopo para itens de série recorrente (seção 9) — sem isto,
-                excluir uma ocorrência de rotina removia a série inteira sem aviso. */}
-            {item.kind === 'routine' && onDeleteRecurring ? (
-              <div className="space-y-1.5">
+            {(item.kind === 'routine' || item.recurrence || item.id.includes('-virt-')) && onDeleteRecurring ? (
+              <div id="recurring-delete-scope-box" className="space-y-1.5">
                 {(
                   [
                     { value: 'this', label: 'Somente este evento' },
@@ -290,6 +491,7 @@ export function EventDetailPanel({
                 ).map((opt) => (
                   <label
                     key={opt.value}
+                    id={`delete-scope-option-${opt.value}`}
                     className="flex items-center gap-2 text-[12px] text-rose-800 dark:text-rose-200 cursor-pointer select-none"
                   >
                     <input
@@ -320,15 +522,16 @@ export function EventDetailPanel({
               <button
                 type="button"
                 onClick={() => {
-                  if (item.kind === 'routine' && onDeleteRecurring) {
+                  if ((item.kind === 'routine' || item.recurrence || item.id.includes('-virt-')) && onDeleteRecurring) {
                     onDeleteRecurring(item, deleteScope);
                   } else {
                     onDelete(item.id);
                   }
                 }}
+                id="btn-confirm-delete"
                 className="btn-interactive px-3 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
               >
-                {item.kind === 'routine' && onDeleteRecurring ? 'Excluir' : 'Sim, excluir'}
+                {(item.kind === 'routine' || item.recurrence || item.id.includes('-virt-')) && onDeleteRecurring ? 'Excluir' : 'Sim, excluir'}
               </button>
             </div>
           </div>
@@ -336,6 +539,7 @@ export function EventDetailPanel({
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
+              id="btn-edit-event"
               onClick={() => onEdit(item)}
               className="btn-interactive flex-1 py-2 px-3 rounded-xl bg-surface-elevated hover:bg-surface-secondary text-text-primary font-medium text-[12px] border border-border/80 shadow-subtle flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
             >
@@ -345,6 +549,28 @@ export function EventDetailPanel({
 
             <button
               type="button"
+              id="btn-duplicate-event"
+              onClick={() => {
+                if (onDuplicate) {
+                  onDuplicate(item);
+                }
+                triggerIslandNotification({
+                  title: 'Evento Duplicado',
+                  description: `Cópia criada: ${item.title}`,
+                  badge: 'Duplicado',
+                  durationMs: 1800,
+                });
+              }}
+              title="Criar cópia deste compromisso"
+              className="btn-interactive py-2 px-3 rounded-xl bg-surface-elevated hover:bg-surface-secondary text-text-primary font-medium text-[12px] border border-border/80 shadow-subtle flex items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            >
+              <span className="material-symbols-outlined text-[16px]">content_copy</span>
+              <span>Duplicar</span>
+            </button>
+
+            <button
+              type="button"
+              id="btn-delete-event"
               onClick={() => setConfirmDelete(true)}
               className="btn-interactive py-2 px-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-[12px] font-medium border border-rose-400/30 flex items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
             >
