@@ -14,7 +14,8 @@ interface Notice {
 }
 
 interface PendingApprovalsProps {
-  domain: DomainId;
+  /** Quais domínios listar (um ou vários). */
+  domain: DomainId | DomainId[];
   /** Roda o executor REAL do domínio depois da aprovação humana. Se lançar, a Action fecha como FAILED. */
   execute: (action: Action) => void;
   /** Relê o domínio depois de uma decisão. */
@@ -32,9 +33,12 @@ export function PendingApprovals({ domain, execute, onChanged, version = 0, head
   const [notices, setNotices] = useState<Notice[]>([]);
   const [tick, setTick] = useState(0);
   const pending = useMemo(
-    () => GuardianApproval.listApprovalRequests({ status: 'pending', domain }),
+    () => {
+      const wanted = Array.isArray(domain) ? domain : [domain];
+      return GuardianApproval.listApprovalRequests({ status: 'pending' }).filter((r) => wanted.includes(r.domain));
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [domain, version, tick]
+    [Array.isArray(domain) ? domain.join(',') : domain, version, tick]
   );
 
   const push = (n: Notice) => setNotices((prev) => [n, ...prev].slice(0, 3));
