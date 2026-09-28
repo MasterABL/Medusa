@@ -203,6 +203,38 @@ const DEFAULT_AUTONOMY_RULES: AutonomyPolicyRule[] = [
     ceilingLevel: 'L1',
     notes: 'Atualizar progresso de meta espiritual a partir de uma prática concluída — registro, não decisão sensível.',
   },
+  {
+    domain: 'guardian',
+    actionType: 'REMOVE_DUPLICATE_RECORDS',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Remove duplicatas exatas guardando uma cópia recuperável — correção de dados reversível.',
+  },
+  {
+    domain: 'guardian',
+    actionType: 'NORMALIZE_RECORD_FIELD',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Preenche/normaliza um campo derivável a partir do próprio registro.',
+  },
+  {
+    domain: 'guardian',
+    actionType: 'REDACT_EXPOSED_SECRET',
+    baseRisk: 'moderado',
+    reversible: false,
+    ceilingLevel: 'L2',
+    notes: 'Mascarar um segredo em texto armazenado perde o valor original — sempre supervisionado.',
+  },
+  {
+    domain: 'guardian',
+    actionType: 'ROTATE_SECRET',
+    baseRisk: 'alto',
+    reversible: false,
+    ceilingLevel: 'L3',
+    notes: 'Rotacionar credencial afeta sistemas externos — aprovação humana obrigatória.',
+  },
 ];
 
 const DEFAULT_SOUND_PROFILES: DomainSoundProfile[] = [

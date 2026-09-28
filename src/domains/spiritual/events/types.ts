@@ -9,6 +9,9 @@ export const SPIRITUAL_EVENT_TYPES = {
   REFLECTION_CREATED: 'REFLECTION_CREATED',
   GOAL_PROGRESS_CHANGED: 'GOAL_PROGRESS_CHANGED',
   PRACTICE_SCHEDULED: 'PRACTICE_SCHEDULED',
+  READING_ENTRY_COMPLETED: 'READING_ENTRY_COMPLETED',
+  STUDY_CONCLUDED: 'STUDY_CONCLUDED',
+  DAILY_VERSE_SELECTED: 'DAILY_VERSE_SELECTED',
 } as const;
 
 export interface PracticeCompletedPayload {
@@ -32,4 +35,23 @@ export interface GoalProgressChangedPayload {
 export interface PracticeScheduledPayload {
   practiceType: string;
   proposedDate: string;
+}
+
+/** Nenhum destes payloads carrega texto do usuário — só ids, contagens e referências bíblicas. */
+export interface ReadingEntryCompletedPayload {
+  planId: string;
+  entryId: string;
+  completedCount: number;
+  total: number;
+}
+
+export interface StudyConcludedPayload {
+  studyId: string;
+  reference: string;
+}
+
+export interface DailyVerseSelectedPayload {
+  date: string;
+  reference: string;
+  source: string;
 }

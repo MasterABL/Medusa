@@ -91,6 +91,39 @@ de rotina, não diagnóstico** — a tela não deve apresentá-la como condiçã
 - **Não implementado:** qualquer conteúdo religioso/teológico, sugestão prescritiva, compartilhamento (`visibility`
   só aceita `private`).
 
+## Guardian (runtime) — `src/domains/guardian/api.ts` e `runGuardianCycle`
+
+| Contrato | Estado | Devolve |
+|---|---|---|
+| `runGuardianCycle(ctx)` | Disponível (chamado manualmente; **não há agendador**) | `GuardianCycleReport` (novos, deduplicados, auto-corrigidos, aguardando aprovação, bloqueados, verificados, não verificados...) |
+| `getOpenFindings(repo)` | Disponível | findings com categoria, severidade, evidência, hipótese, impacto, confiança, status |
+| `getFindingDetail(repo, id)` | Disponível | finding + proposta + execuções + linha do tempo |
+| `getCycleTimeline(repo, cycleId)` | Disponível | eventos de um ciclo |
+| `getAutonomyAssessments(repo, remediations, now)` | Disponível | por ação: teto, confiança, cooldown, rota prevista e **motivo em texto** |
+| `previewDomainAutonomyChange` / `previewActionAutonomyChange` | Disponível | consequência antes de aplicar (vira automática / vira aprovação / continua / bloqueada / avisos) |
+| `explainPolicies(domain)` | Disponível | políticas em linguagem simples |
+| `publishFindingMessages(repo)` | Disponível | avisos no canal `guardian` (sem evidência bruta) |
+| `reconsiderFinding(repo, id, now)` | Disponível | reabre finding bloqueado/falho |
+
+Ciclo de proposta: `PROPOSED → PENDING_APPROVAL → APPROVED | REJECTED | EXPIRED`, `APPROVED → EXECUTING → SUCCEEDED | FAILED`.
+Aprovar/recusar: `GuardianLifecycle.resolveApproval` (a execução acontece no **próximo ciclo**, não na hora).
+**Não implementado:** loop contínuo, persistência real, coleta automática de evidência, auditores UX/Visual reais (só contrato), tela de aprovação.
+
+## Espiritual — inteligência (adição)
+
+| Contrato | Estado | Devolve |
+|---|---|---|
+| `getReadingStates(repo, now)` | Disponível | por plano: status, posição, hoje, próximo, o que ficou, dias desde a última leitura, **mensagem sem culpa** |
+| `getPracticeContinuities(repo, now)` | Disponível | ritmo por prática + mensagem de convite |
+| `getPurposeContinuities(repo, now)` | Disponível | ligações e continuidade por propósito |
+| `getStudySummaries(repo)` | Disponível | estudos **sem** conteúdo do usuário |
+| `getTodayView(repo, now)` | Disponível | ≤ 3 itens compactos para o Hoje |
+| `suggestPracticeSchedule` / `suggestReadingSchedule` | Disponível | sugestão para a Agenda (a Agenda decide o horário) |
+| `pickDailyVerse(repo, ...)` | Disponível | versículo do dia (referência; texto só se houver provedor) |
+| `buildAIContext(repo, {consent,...})` + `SpiritualAssistant` | Contrato + assistente por **template** | a IA real é futura |
+
+**Futuro:** provedor de texto bíblico, IA contextual real, consentimento persistido, criptografia em repouso.
+
 ## Compartilhado
 
 - **Hoje:** `getTodayContextSnapshot()` agrega insights recentes, mensagens proativas endereçadas a `hoje` e

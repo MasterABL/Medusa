@@ -27,6 +27,11 @@ export function registerAutonomyRule(rule: AutonomyPolicyRule): void {
   rules.set(ruleKey(rule.domain, rule.actionType), rule);
 }
 
+/** Remove uma regra (usado para pré-visualizar mudanças de autonomia sem deixar rastro). */
+export function unregisterAutonomyRule(domain: DomainId, actionType: string): void {
+  rules.delete(ruleKey(domain, actionType));
+}
+
 export function getAutonomyRule(domain: DomainId, actionType: string): AutonomyPolicyRule | undefined {
   return rules.get(ruleKey(domain, actionType));
 }

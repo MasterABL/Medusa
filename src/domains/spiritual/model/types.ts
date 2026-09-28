@@ -11,13 +11,17 @@
  * completo — minimização por desenho, não por convenção informal.
  */
 
-export type SpiritualPracticeType = 'oracao' | 'leitura' | 'meditacao' | 'gratidao' | 'jejum' | 'outro';
+import type { SpiritualTraditionPrefs } from './purpose';
+
+export type SpiritualPracticeType = 'oracao' | 'leitura' | 'estudo' | 'contemplacao' | 'silencio' | 'meditacao' | 'gratidao' | 'jejum' | 'outro';
 
 export interface SpiritualProfile {
   id: string;
   /** Áreas de foco definidas pelo próprio usuário — texto livre, nunca prescrito pelo sistema. */
   focusAreas: string[];
   preferredPracticeTypes: SpiritualPracticeType[];
+  /** Tradição/linguagem que personalizam a experiência — nunca uma autoridade que o sistema assume. */
+  tradition?: SpiritualTraditionPrefs;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +33,10 @@ export interface SpiritualPractice {
   completedAt: string;
   durationMinutes?: number;
   relatedGoalId?: string;
+  /** Definição de prática (intenção/frequência) a que esta ocorrência pertence. */
+  definitionId?: string;
+  /** Intenção de oração associada — o CONTEÚDO fica em PrayerIntention (privado). */
+  intentionId?: string;
 }
 
 /** Hoje só existe 'private' — nenhum mecanismo de compartilhamento foi implementado (seção 26). */
@@ -57,6 +65,7 @@ export interface SpiritualGoal {
   currentPracticeCount: number;
   milestones: SpiritualGoalMilestone[];
   targetDate?: string;
+  purposeId?: string;
   createdAt: string;
   updatedAt: string;
 }

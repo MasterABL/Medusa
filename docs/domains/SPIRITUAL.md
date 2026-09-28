@@ -48,3 +48,42 @@ documentado, não erro. `hojeResolver` devolve "Meta X avançou — N/M prática
 ## Persistência
 
 `SpiritualRepository` + `createInMemorySpiritualRepository()`.
+
+
+---
+
+# Espiritual: propósito + Bíblia + prática + continuidade + estudo
+
+Testes: `spiritual-intelligence.ts` (89), `integration-round2.ts` (cenários 3 e 4), `shared-consistency.ts`.
+
+**Limites:** não assume tradição nem autoridade espiritual. Tradição/língua/tradução preferida só **personalizam** (`SpiritualProfile.tradition`). O domínio nunca gera texto de escritura; texto bíblico só existe se um `BibleTextProvider` o devolver.
+
+| Peça | Arquivo | O que é |
+|---|---|---|
+| Referência bíblica | `model/bible.ts` | 66 livros / 1189 capítulos (validado em teste); cânone `open` para outras tradições; parse/format/ordenação |
+| Plano de leitura | `services/readingPlanEngine.ts` | posição, o que vem depois, o que ficou, dias desde a última leitura; **retomar move a âncora sem apagar histórico**; pausa congela |
+| Estudo | `services/studyEngine.ts` | texto × explicação de IA × reflexão pessoal com origem declarada e validada; conclusão + próxima exploração; perguntas por **template** (não IA) |
+| Práticas | `services/practiceEngine.ts` | oração, leitura, estudo, contemplação, silêncio; intenção, frequência, duração, contexto, status; continuidade sem "streak" |
+| Propósito | `services/purposeEngine.ts`, `suggestionEngine.ts` | liga práticas/estudos/planos/metas; continuidade em vez de pontos; propósito pausado suprime sugestões |
+| Versículo do dia | `services/dailyVerse.ts` | referência escolhida de forma determinística; sem candidato → `null`; plano de hoje tem prioridade; texto só do provedor |
+| IA contextual | `services/aiContext.ts` | contexto **autorizado por consentimento**; resposta estruturada que se declara não-autoridade; assistente por template |
+| Privacidade | `services/privacy.ts` | leitura de conteúdo privado sempre registrada; coleta de itens privados só para auditoria |
+| Agenda | `adapters/agendaSuggestions.ts` | oração→bloco de horário · leitura→compromisso · estudo→sessão · contemplação/silêncio→prática; prioridade espiritual |
+| Hoje | `adapters/hojeIntelligence.ts` | até 3 itens; só metadado; mensagens proativas com cooldown |
+
+## Linguagem
+
+Nenhuma mensagem usa culpa (`GUILT_WORDS` é testada contra todas as mensagens de continuidade). Em vez de "você falhou 4 dias": "Você ficou alguns dias sem orar. Quer retomar hoje?".
+
+## Privacidade (reforçada)
+
+- Reflexões, orações, intenções de prática e itens privados de estudo **não têm flag de consentimento** — não dá nem para pedir.
+- `assertContextIsPrivacySafe` recusa contexto que contenha trecho de item privado (mesma heurística que o Guardian usa nos canais de saída — `shared/privateText.ts`).
+- Cenário provado: eventos, mensagens proativas e contexto de IA de uma sessão completa foram auditados pelo Guardian sem achar a reflexão; controle positivo mostra que um vazamento em log seria pego.
+- Heurísticas de resposta de IA (voz divina, citação longa sem referência) são **heurísticas**, não moderação teológica.
+
+## Classificação honesta
+
+- **PROVADO:** tudo acima com teste real, incl. plano atrasado→retomada, separação texto/IA/reflexão, versículo sem fabricação, contexto de IA sem privados, Agenda/Hoje só com metadado.
+- **PARCIAL:** repositório em memória; `SpiritualRoutine` (rodada anterior) coexiste com `PracticeDefinition` (sobreposição conhecida, não removida); Agenda cai em `external` (a Agenda não tem `spiritual`); o Hoje da fundação só vê o que for publicado explicitamente.
+- **NÃO IMPLEMENTADO:** texto bíblico (nenhum provedor real — existe um corpus em outro repositório, `biblia_texto`, que um adapter futuro pode envolver), IA/LLM real, consentimento persistido, criptografia em repouso, UI, cânones prontos além dos 66 livros.
