@@ -260,10 +260,29 @@ export function WeekView({
                     if (topPercent < 0 || topPercent > 100) return null;
 
                     const colInfo = conflictColumns.get(item.id) || { colIndex: 0, colCount: 1 };
-                    const gapPercent = colInfo.colCount > 1 ? 2 : 0;
-                    const columnWidthPercent =
-                      (100 - gapPercent * (colInfo.colCount - 1)) / colInfo.colCount;
-                    const leftPercent = colInfo.colIndex * (columnWidthPercent + gapPercent);
+                    const isConcurrent = colInfo.colCount > 1;
+
+                    // Composição inteligente para eventos concorrentes na visualização semanal:
+                    // Colunas paralelas não oclusivas para garantir que nenhum evento cubra o outro.
+                    // 2 concorrentes: 49% cada (largura de ~48px-68px), legibilidade de títulos curtos/médios sem sobreposição.
+                    // 3 concorrentes: 32% cada (largura de ~31px-45px), títulos curtos legíveis; longos expandem no hover.
+                    // Ao passar o mouse ou focar, qualquer card se eleva e expande suavemente para 98% da coluna.
+                    let leftPercent = 0;
+                    let widthPercent = 100;
+
+                    if (colInfo.colCount === 2) {
+                      widthPercent = 49;
+                      leftPercent = colInfo.colIndex === 0 ? 0 : 51;
+                    } else if (colInfo.colCount === 3) {
+                      widthPercent = 32;
+                      leftPercent = colInfo.colIndex * 34;
+                    } else if (colInfo.colCount > 3) {
+                      const gap = 1;
+                      widthPercent = (100 - gap * (colInfo.colCount - 1)) / colInfo.colCount;
+                      leftPercent = colInfo.colIndex * (widthPercent + gap);
+                    }
+
+                    const zIndex = isSelected ? 40 : 10 + colInfo.colIndex;
 
                     return (
                       <div
@@ -272,7 +291,7 @@ export function WeekView({
                           top: `${topPercent}%`,
                           height: `${heightPercent}%`,
                         }}
-                        className="absolute left-0.5 right-0.5 transition-all duration-160"
+                        className="absolute left-0.5 right-0.5 transition-all duration-160 pointer-events-none"
                       >
                         <div
                           style={{
@@ -280,8 +299,14 @@ export function WeekView({
                             top: 0,
                             bottom: 0,
                             left: `${leftPercent}%`,
-                            width: `${columnWidthPercent}%`,
+                            width: `${widthPercent}%`,
+                            zIndex,
                           }}
+                          className={`pointer-events-auto transition-all duration-160 ${
+                            isConcurrent
+                              ? 'hover:z-30 hover:!w-[98%] hover:!left-[1%] focus-within:z-30 focus-within:!w-[98%] focus-within:!left-[1%] hover:shadow-calm'
+                              : ''
+                          }`}
                         >
                           <EventBlock
                             item={item}
@@ -291,6 +316,7 @@ export function WeekView({
                             onClick={() => onSelectItem(item)}
                             onDoubleClick={() => onDoubleClickItem?.(item)}
                             compact
+                            isNarrow={isConcurrent}
                             style={{ width: '100%', height: '100%' }}
                           />
                         </div>

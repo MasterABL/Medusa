@@ -22,6 +22,54 @@ interface EventBlockProps {
   onDoubleClick?: () => void;
   style?: React.CSSProperties;
   compact?: boolean;
+  isNarrow?: boolean;
+}
+
+// Inteligência de título para visualização compacta / estreita:
+// Remove ruído de prefixos redundantes para evidenciar o núcleo da atividade
+// e evitar que títulos de eventos virem ruído cortado em colunas com sobreposição.
+function formatAdaptiveTitle(title: string, compact?: boolean, isNarrow?: boolean, isShort?: boolean): string {
+  if (!title) return '';
+  if (!compact && !isNarrow && !isShort) return title;
+
+  let clean = title.trim();
+
+  // Limpeza de prefixos categóricos comuns que consomem largura preciosa
+  if (clean.startsWith('Estudo: ')) clean = clean.slice(8);
+  else if (clean.startsWith('Estudo — ')) clean = clean.slice(9);
+  else if (clean.startsWith('Revisão — ')) clean = clean.replace('Revisão — ', 'Rev. ');
+  else if (clean.startsWith('Trabalho — ')) clean = clean.replace('Trabalho — ', '');
+  else if (clean.startsWith('Seminário de Pesquisa Acadêmica e Extensão Universitária')) {
+    clean = 'Seminário Pesquisa';
+  } else if (clean.startsWith('Trabalho de Direito Constitucional')) {
+    clean = 'Dir. Constitucional';
+  } else if (clean.startsWith('Mentoria de Redação e Argumentação ENEM')) {
+    clean = 'Mentoria Redação';
+  } else if (clean.startsWith('Plantão de Dúvidas ENEM')) {
+    clean = 'Plantão Dúvidas';
+  } else if (clean.startsWith('Alinhamento Arquitetural Medusa')) {
+    clean = 'Alinhamento Medusa';
+  } else if (clean.startsWith('Sessão de Leitura & Síntese')) {
+    clean = 'Leitura & Síntese';
+  }
+
+  return clean;
+}
+
+function formatAdaptiveTime(startTime?: string, endTime?: string, compact?: boolean, isNarrow?: boolean, isShort?: boolean): string {
+  if (!startTime) return '';
+  if (compact || isNarrow || isShort) {
+    if (endTime) {
+      const sH = startTime.split(':')[0];
+      const eH = endTime.split(':')[0];
+      if (startTime.endsWith(':00') && endTime.endsWith(':00')) {
+        return `${Number(sH)}h–${Number(eH)}h`;
+      }
+      return `${startTime}–${endTime}`;
+    }
+    return startTime;
+  }
+  return `${startTime}${endTime ? ` — ${endTime}` : ''}`;
 }
 
 export function EventBlock({
@@ -33,6 +81,7 @@ export function EventBlock({
   onDoubleClick,
   style,
   compact = false,
+  isNarrow = false,
 }: EventBlockProps) {
   const { theme } = useShell();
   const colorStyle = getPastelThemeStyle(item.colorId, theme);
@@ -51,19 +100,6 @@ export function EventBlock({
         return 'person';
       default:
         return 'event';
-    }
-  };
-
-  const getKindLabel = () => {
-    switch (item.kind) {
-      case 'time_block':
-        return item.isFlexible ? 'Bloco Flexível' : 'Bloco de Foco';
-      case 'routine':
-        return 'Rotina';
-      case 'deadline':
-        return 'Prazo Final';
-      default:
-        return 'Compromisso';
     }
   };
 
@@ -92,7 +128,7 @@ export function EventBlock({
       }`}
       title={`${item.title} (${item.startTime || 'Dia todo'}${item.endTime ? ` — ${item.endTime}` : ''})`}
       className={`absolute inset-0 w-full h-full z-10 text-left rounded-xl border transition-all duration-160 select-none overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-        isShort ? 'p-1 sm:p-1.5' : compact ? 'p-1.5 sm:p-2' : 'p-2 sm:p-2.5'
+        isShort || isNarrow ? 'p-1 sm:p-1.5' : compact ? 'p-1.5 sm:p-2' : 'p-2 sm:p-2.5'
       } ${
         isSelected
           ? 'ring-2 ring-medusa-primary shadow-calm scale-[1.008] z-30'
@@ -106,103 +142,103 @@ export function EventBlock({
       />
 
       <div className="flex flex-col h-full justify-between pl-1 min-w-0">
-        {/* Topo do Bloco: Título, Horário e Ícone */}
-        <div className="flex items-start justify-between gap-1 overflow-hidden min-w-0">
-          <div className="flex flex-col min-w-0 flex-1">
-            {/* Horário no topo em compact para hierarquia imediata */}
-            {compact && item.startTime && (
+        {/* Topo do Bloco: Horário, Alerta e Título */}
+        <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+          {/* Linha de Horário e Status */}
+          {compact && item.startTime && (
+            <div className="flex items-center justify-between gap-1 pb-0.5 min-w-0">
               <span
-                className={`font-mono tabular-nums leading-none tracking-tight block pb-0.5 ${
-                  isShort ? 'text-[8.5px] sm:text-[9px] opacity-70' : 'text-[9px] sm:text-[9.5px] opacity-75'
+                className={`font-mono tabular-nums leading-none tracking-tight block ${
+                  isNarrow || isShort
+                    ? 'text-[8.5px] sm:text-[9px] opacity-80'
+                    : 'text-[9px] sm:text-[9.5px] opacity-80'
                 }`}
               >
-                {item.startTime}{item.endTime ? ` — ${item.endTime}` : ''}
+                {formatAdaptiveTime(item.startTime, item.endTime, compact, isNarrow, isShort)}
               </span>
-            )}
 
-            <div className="flex items-center gap-1 min-w-0">
-              <span
-                className={`font-semibold tracking-tight ${
-                  isShort
-                    ? 'text-[10px] sm:text-[10.5px] leading-tight truncate'
-                    : compact
-                    ? 'text-[11px] sm:text-[11.5px] leading-tight line-clamp-2'
-                    : 'text-[12px] sm:text-[13px] leading-snug truncate max-w-full block'
-                }`}
-                style={{ color: colorStyle.text }}
-              >
-                {item.title}
-              </span>
-              {item.isFlexible && (
+              {/* Tag de conflito discreta no topo direito */}
+              {conflict && (
                 <span
-                  title="Bloco flexível"
-                  className="material-symbols-outlined text-[11px] text-text-muted opacity-70 flex-shrink-0"
+                  className="flex items-center gap-0.5 text-[8.5px] font-mono font-bold text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-400/30 px-1 py-0.2 rounded shadow-subtle flex-shrink-0 animate-pulse"
+                  title={`Conflito: ${conflict.durationLabel}`}
                 >
-                  swap_vert
-                </span>
-              )}
-              {item.kind === 'routine' && (
-                <span
-                  title="Rotina recorrente"
-                  className="material-symbols-outlined text-[11px] text-text-muted opacity-70 flex-shrink-0"
-                >
-                  repeat
+                  <span className="material-symbols-outlined !text-[10px] leading-none" style={{ fontSize: '10px' }}>
+                    warning
+                  </span>
+                  {!isNarrow && <span className="text-[8px] leading-none">{conflict.durationLabel}</span>}
                 </span>
               )}
             </div>
+          )}
 
-            {/* Horário & Duração quando NÃO compact */}
+          {/* Título do Evento */}
+          <div className="flex items-start justify-between gap-1 min-w-0">
+            <span
+              className={`font-semibold tracking-tight transition-colors break-words ${
+                isShort
+                  ? 'text-[10px] sm:text-[10.5px] leading-tight truncate'
+                  : isNarrow
+                  ? 'text-[10px] sm:text-[10.5px] leading-snug line-clamp-2 max-w-full'
+                  : compact
+                  ? 'text-[10.5px] sm:text-[11px] leading-snug line-clamp-2 max-w-full'
+                  : 'text-[12px] sm:text-[13px] leading-snug truncate max-w-full block'
+              }`}
+              style={{ color: colorStyle.text }}
+            >
+              {formatAdaptiveTitle(item.title, compact, isNarrow, isShort)}
+            </span>
+
+            {/* Ícone de Domínio APENAS quando NÃO for compact (ex: Day View) */}
             {!compact && (
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] opacity-85 font-mono tracking-tight pt-0.5 tabular-nums">
-                {item.allDay ? (
-                  <span>Dia todo</span>
-                ) : (
-                  <>
-                    <span>
-                      {item.startTime} — {item.endTime}
-                    </span>
-                    {item.durationMinutes && (
-                      <span className="opacity-60">
-                        · {Math.floor(item.durationMinutes / 60) > 0 ? `${Math.floor(item.durationMinutes / 60)}h` : ''}
-                        {item.durationMinutes % 60 > 0 ? ` ${item.durationMinutes % 60}m` : ''}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
+              <span
+                className="material-symbols-outlined flex-shrink-0 opacity-70 text-[14px] sm:text-[16px]"
+                title={item.domain}
+              >
+                {getDomainIcon(item.domain)}
+              </span>
             )}
           </div>
 
-          <span
-            className={`material-symbols-outlined flex-shrink-0 opacity-70 ${
-              compact ? 'text-[12px] sm:text-[13px]' : 'text-[14px] sm:text-[16px]'
-            }`}
-            title={item.domain}
-          >
-            {getDomainIcon(item.domain)}
-          </span>
+          {/* Horário & Duração quando NÃO compact (Day View) */}
+          {!compact && (
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] opacity-85 font-mono tracking-tight pt-0.5 tabular-nums">
+              {item.allDay ? (
+                <span>Dia todo</span>
+              ) : (
+                <>
+                  <span>
+                    {item.startTime} — {item.endTime}
+                  </span>
+                  {item.durationMinutes && (
+                    <span className="opacity-60">
+                      · {Math.floor(item.durationMinutes / 60) > 0 ? `${Math.floor(item.durationMinutes / 60)}h` : ''}
+                      {item.durationMinutes % 60 > 0 ? ` ${item.durationMinutes % 60}m` : ''}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Rodapé do Bloco: Categoria e Alerta de Conflito */}
-        {(!compact || conflict || (item.durationMinutes && item.durationMinutes >= 75)) && (
+        {/* Rodapé do Bloco: Categoria e Alerta de Conflito APENAS para Day View (não compact) */}
+        {!compact && (
           <div className="flex items-center justify-between gap-1 mt-0.5 overflow-hidden flex-shrink-0">
-            {!compact && (
-              <span
-                className="text-[9px] sm:text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded-full border border-current/20 truncate"
-                style={{ backgroundColor: colorStyle.subtle }}
-              >
-                {category?.name || item.domain}
-              </span>
-            )}
+            <span
+              className="text-[9px] sm:text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded-full border border-current/20 truncate"
+              style={{ backgroundColor: colorStyle.subtle }}
+            >
+              {category?.name || item.domain}
+            </span>
 
-            {/* Destaque e Duração Real do Conflito */}
             {conflict && (
               <span
                 className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono font-semibold text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-400/30 px-1.5 py-0.5 rounded-full shadow-subtle flex-shrink-0 animate-pulse"
                 title={`Sobreposição de ${conflict.durationLabel} com outro compromisso`}
               >
                 <span className="material-symbols-outlined text-[11px]">warning</span>
-                <span className="truncate">{conflict.durationLabel}</span>
+                <span>{conflict.durationLabel}</span>
               </span>
             )}
           </div>

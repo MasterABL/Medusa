@@ -345,9 +345,15 @@ export function layoutConflictColumns(items: AgendaItem[]): Map<string, Conflict
       result.set(item.id, { colIndex: placedCol, colCount: 0 });
     }
 
-    const colCount = columnEnds.length;
     for (const item of cluster) {
-      result.get(item.id)!.colCount = colCount;
+      const rItem = getRange(item);
+      const overlappingWithItem = cluster.filter((other) => {
+        const rOther = getRange(other);
+        return rItem.start < rOther.end && rOther.start < rItem.end;
+      });
+      const maxColIndex = Math.max(...overlappingWithItem.map((o) => result.get(o.id)?.colIndex ?? 0));
+      const actualColCount = Math.max(1, maxColIndex + 1);
+      result.get(item.id)!.colCount = actualColCount;
     }
   }
 
