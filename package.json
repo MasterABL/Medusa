@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:foundation": "tsx scripts/foundation-tests/contract-tests.ts"
+    "test:foundation": "tsx scripts/foundation-tests/contract-tests.ts",
+    "test:domains": "tsx scripts/foundation-tests/domains/index.ts",
+    "test:all": "npm run test:foundation && npm run test:domains"
   },
   "dependencies": {
     "next": "14.2.24",

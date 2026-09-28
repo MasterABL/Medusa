@@ -38,4 +38,10 @@ export function registerDefaultContextPanels(): void {
     implemented: false,
   });
   registerContextPanel({ domain: 'body', id: 'context-panel-body', label: 'Contexto de Corpo', implemented: false });
+  registerContextPanel({
+    domain: 'spiritual',
+    id: 'context-panel-spiritual',
+    label: 'Contexto Espiritual',
+    implemented: false,
+  });
 }

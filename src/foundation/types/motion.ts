@@ -18,7 +18,8 @@ export type MotionMetaphor =
   | 'deslocamento' // Agenda: deslocamento / expansão / acomodação / fluxo temporal
   | 'fluxo' // Finanças: fluxo / distribuição / equilíbrio / acumulação
   | 'respiracao' // Corpo: respiração / cadência / movimento / recuperação
-  | 'contencao'; // Guardian: contenção / confirmação / proteção / confiança
+  | 'contencao' // Guardian: contenção / confirmação / proteção / confiança
+  | 'quietude'; // Espiritual: quietude / presença / recolhimento — nunca urgente, nunca chamativo
 
 export interface DomainMotionProfile {
   id: string;

@@ -27,10 +27,11 @@ import { educationDomain } from './education';
 import { guardianDomain } from './guardian';
 import { financeDomain } from './finance';
 import { bodyDomain } from './body';
+import { spiritualDomain } from './spiritual';
 
-export { hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain };
+export { hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain, spiritualDomain };
 
-const DOMAINS = [hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain];
+const DOMAINS = [hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain, spiritualDomain];
 
 // Seção 4 da missão — exemplos concretos, granularidade domain+actionType.
 const DEFAULT_AUTONOMY_RULES: AutonomyPolicyRule[] = [
@@ -98,6 +99,110 @@ const DEFAULT_AUTONOMY_RULES: AutonomyPolicyRule[] = [
     ceilingLevel: 'L3',
     notes: 'Realizar pagamento — aprovação obrigatória, nunca automático.',
   },
+  {
+    domain: 'finance',
+    actionType: 'TRANSFER_FUNDS',
+    baseRisk: 'alto',
+    reversible: false,
+    ceilingLevel: 'L3',
+    notes: 'Transferência entre contas — aprovação obrigatória, nunca automático (mesma classe de EXECUTE_PAYMENT).',
+  },
+  {
+    domain: 'finance',
+    actionType: 'CREATE_BUDGET',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Criar orçamento é planejamento, não movimenta dinheiro.',
+  },
+  {
+    domain: 'finance',
+    actionType: 'CREATE_FINANCIAL_REMINDER',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Lembrete não tem efeito financeiro real — só comunicação.',
+  },
+  {
+    domain: 'finance',
+    actionType: 'LINK_RECURRING_COMMITMENT',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Associar uma transação a um compromisso recorrente já conhecido é metadado, não movimenta dinheiro.',
+  },
+  {
+    domain: 'finance',
+    actionType: 'UPDATE_GOAL',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Atualizar contribuição/meta é registro, não execução financeira.',
+  },
+  {
+    domain: 'finance',
+    actionType: 'CREATE_PROJECTION',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Cálculo puro sobre dado já conhecido — nenhum efeito colateral real.',
+  },
+  {
+    domain: 'body',
+    actionType: 'CREATE_BODY_PLAN',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Gerar uma proposta de plano é planejamento — nada é executado sozinho a partir disso.',
+  },
+  {
+    domain: 'body',
+    actionType: 'SCHEDULE_WORKOUT',
+    baseRisk: 'moderado',
+    reversible: true,
+    ceilingLevel: 'L2',
+    notes: 'Sessão de treino completa é um compromisso maior que uma caminhada leve — supervisão.',
+  },
+  {
+    domain: 'body',
+    actionType: 'MOVE_BODY_SESSION',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Mover uma sessão já agendada dentro de uma janela livre.',
+  },
+  {
+    domain: 'body',
+    actionType: 'PAUSE_BODY_PLAN',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Pausar é sempre reversível e de baixo impacto.',
+  },
+  {
+    domain: 'body',
+    actionType: 'RESUME_BODY_PLAN',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Retomar um plano pausado — mesmo risco de pausar.',
+  },
+  {
+    domain: 'spiritual',
+    actionType: 'SCHEDULE_PRACTICE',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Agendar uma prática já escolhida pelo usuário numa janela livre.',
+  },
+  {
+    domain: 'spiritual',
+    actionType: 'UPDATE_GOAL_PROGRESS',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    notes: 'Atualizar progresso de meta espiritual a partir de uma prática concluída — registro, não decisão sensível.',
+  },
 ];
 
 const DEFAULT_SOUND_PROFILES: DomainSoundProfile[] = [
@@ -118,6 +223,11 @@ const DEFAULT_SOUND_PROFILES: DomainSoundProfile[] = [
     id: 'sound-guardian',
     domain: 'guardian',
     keys: ['approval-request', 'permission-change', 'trust-change', 'security-alert'],
+  },
+  {
+    id: 'sound-spiritual',
+    domain: 'spiritual',
+    keys: ['practice-complete', 'reflection-saved', 'goal-progress', 'practice-scheduled'],
   },
 ];
 
@@ -156,6 +266,13 @@ const DEFAULT_MOTION_PROFILES: DomainMotionProfile[] = [
     metaphor: 'contencao',
     primitives: ['fadeRise'],
     rationale: 'Governança comunica confirmação/proteção — contida, nunca festiva.',
+  },
+  {
+    id: 'motion-spiritual',
+    domain: 'spiritual',
+    metaphor: 'quietude',
+    primitives: ['fadeRise'],
+    rationale: 'Espiritual pede presença/recolhimento — nunca urgente, nunca chamativo, sem pulse ou destaque.',
   },
 ];
 
