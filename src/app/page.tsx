@@ -7,6 +7,7 @@ import { EducationContainer } from '@/components/education/EducationContainer';
 import { AgendaContainer } from '@/components/agenda/AgendaContainer';
 import { HojeContainer } from '@/components/hoje/HojeContainer';
 import { RoutePending } from '@/components/shell/RoutePending';
+import { EspiritualContainer } from '@/components/domains/espiritual/EspiritualContainer';
 import { GuardianContainer } from '@/components/domains/guardian/GuardianContainer';
 import { CorpoContainer } from '@/components/domains/corpo/CorpoContainer';
 import { FinancasContainer } from '@/components/domains/financas/FinancasContainer';
@@ -28,6 +29,10 @@ export default function HomePage() {
 
   if (activeRoute === 'hoje') {
     return <HojeContainer />;
+  }
+
+  if (activeRoute === 'espiritual') {
+    return <EspiritualContainer />;
   }
 
   if (activeRoute === 'guardian') {

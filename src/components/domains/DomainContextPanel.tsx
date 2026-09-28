@@ -4,12 +4,14 @@ import React from 'react';
 import { FinancasContextPanel } from './financas/FinancasContextPanel';
 import { CorpoContextPanel } from './corpo/CorpoContextPanel';
 import { GuardianContextPanel } from './guardian/GuardianContextPanel';
+import { EspiritualContextPanel } from './espiritual/EspiritualContextPanel';
 
 /** Título do painel por domínio — também é o que diz ao Shell que a rota tem painel próprio. */
 export const DOMAIN_PANEL_TITLE: Record<string, string> = {
   financas: 'Contexto financeiro',
   corpo: 'Contexto do corpo',
   guardian: 'Investigação',
+  espiritual: 'Contexto espiritual',
 };
 
 export function DomainContextPanel({ route }: { route: string }) {
@@ -20,6 +22,8 @@ export function DomainContextPanel({ route }: { route: string }) {
       return <CorpoContextPanel />;
     case 'guardian':
       return <GuardianContextPanel />;
+    case 'espiritual':
+      return <EspiritualContextPanel />;
     default:
       return null;
   }

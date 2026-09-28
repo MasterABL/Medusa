@@ -1,0 +1,51 @@
+/* Espiritual — presença, propósito, Bíblia, prática. Assinatura: silêncio visual, halo que respira devagar, propósito em itálico. Nada urgente. */
+.esp-root { max-width: 900px; }
+.esp-intro { justify-content: center; gap: 24px; min-height: 72vh; position: relative; }
+.esp-halo { position: absolute; top: 4%; right: 4%; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgb(var(--color-support-rgb) / 0.35), rgb(var(--color-primary-rgb) / 0.12) 55%, transparent 70%); animation: espBreathe 9s ease-in-out infinite; pointer-events: none; }
+@keyframes espBreathe { 0%, 100% { transform: scale(0.85); opacity: 0.7; } 50% { transform: scale(1.1); opacity: 1; } }
+.esp-step { display: flex; flex-direction: column; gap: 16px; max-width: 620px; position: relative; }
+.esp-fade { animation: dmFade 900ms var(--ease-smooth) both; }
+.esp-question { font-size: clamp(28px, 5cqi + 8px, 44px); line-height: 1.1; font-weight: 600; letter-spacing: -0.025em; margin: 0; color: rgb(var(--color-text-primary-rgb)); text-wrap: balance; }
+.esp-purpose-input { font-style: italic; font-size: 17px; line-height: 1.5; resize: vertical; }
+.esp-purpose-mini { margin: 0; font-style: italic; font-size: 17px; line-height: 1.4; color: rgb(var(--color-text-primary-rgb)); max-width: 620px; position: relative; width: fit-content; }
+.esp-purpose-mini .dm-eyebrow { display: block; font-style: normal; margin-bottom: 4px; }
+.esp-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.esp-row { display: flex; gap: 28px; flex-wrap: wrap; }
+.esp-practice-form { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+.cor-option .dm-faint { font-weight: 400; }
+.esp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@container dm (max-width: 520px) { .esp-plans { grid-template-columns: 1fr; } }
+.esp-plan { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 16px; border-radius: 12px; cursor: pointer; font: inherit; color: inherit; background: rgb(var(--color-surface-rgb)); border: 1px solid rgb(var(--color-border-strong-rgb)); transition: border-color 220ms var(--ease-smooth), background-color 220ms; }
+.esp-plan:hover { border-color: rgb(var(--color-primary-rgb)); background: rgb(var(--color-primary-rgb) / 0.1); }
+.esp-plan:focus-visible { outline: 2px solid rgb(var(--color-focus-ring-rgb)); outline-offset: 2px; }
+
+/* Home */
+.esp-head { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.esp-focus-label { margin-top: 12px; }
+.esp-purpose { margin: 0; font-style: italic; font-weight: 500; font-size: clamp(24px, 3.6cqi + 10px, 38px); line-height: 1.22; letter-spacing: -0.02em; color: rgb(var(--color-text-primary-rgb)); text-wrap: balance; width: fit-content; max-width: 100%; }
+.esp-head-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.esp-edit { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+.esp-now { padding: 4px 0; display: flex; flex-direction: column; gap: 10px; }
+.esp-now-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.esp-now-list li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: rgb(var(--color-support-rgb) / 0.16); font-size: 14px; line-height: 1.45; }
+html.dark .esp-now-list li { background: rgb(var(--color-support-rgb) / 0.08); }
+.esp-now-list .material-symbols-outlined { font-size: 20px; color: var(--dm-accent-text); flex-shrink: 0; }
+.esp-card { display: flex; flex-direction: column; gap: 12px; border-radius: 16px; }
+.esp-ref { font-size: clamp(26px, 3.4cqi + 8px, 36px); font-weight: 600; letter-spacing: -0.02em; margin: 4px 0 0; line-height: 1.1; color: rgb(var(--color-text-primary-rgb)); }
+.esp-textnote { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.45; background: rgb(var(--color-surface-secondary-rgb) / 0.55); color: rgb(var(--color-text-secondary-rgb)); }
+.esp-textnote .material-symbols-outlined { font-size: 18px; flex-shrink: 0; }
+.esp-practices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.esp-practices li { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding-top: 12px; border-top: 1px solid rgb(var(--color-border-rgb) / 0.6); }
+.esp-practices li:first-child { border-top: 0; padding-top: 0; }
+.esp-practice-form { max-width: none; }
+.esp-study { display: flex; flex-direction: column; gap: 18px; padding-top: 14px; }
+.esp-stage { display: flex; flex-direction: column; gap: 8px; }
+.esp-qs { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; display: flex; flex-direction: column; gap: 4px; color: rgb(var(--color-text-primary-rgb)); }
+.esp-refl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.esp-refl-list li { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.esp-refl-text { margin: 0; font-size: 14px; line-height: 1.55; font-style: italic; width: 100%; white-space: pre-wrap; }
+.esp-quote { margin: 0; font-style: italic; font-size: 15px; line-height: 1.45; color: rgb(var(--color-text-primary-rgb)); }
+.esp-consent { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.esp-consent label { display: flex; gap: 8px; align-items: center; min-height: 28px; cursor: pointer; }
+.esp-ai { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 8px; background: rgb(var(--color-surface-secondary-rgb) / 0.55); }
+@media (prefers-reduced-motion: reduce) { .esp-halo { animation: none !important; } .esp-fade { animation: none !important; } }
