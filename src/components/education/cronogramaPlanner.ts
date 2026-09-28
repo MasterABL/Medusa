@@ -172,6 +172,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Em quais turnos suas obrigações fixas (trabalho ou aulas) estão concentradas?',
     detalhe: 'Identifica o espaço livre principal na sua grade semanal (selecione múltiplos se aplicável).',
     type: 'multi',
+    allowCustom: true,
+    customPlaceholder: 'Outro turno ou combinação de horários...',
     opcoes: [
       { texto: 'Período matutino (07h às 13h)', subtexto: 'Tardes e noites disponíveis' },
       { texto: 'Período vespertino (13h às 19h)', subtexto: 'Manhãs e noites disponíveis' },

@@ -67,11 +67,15 @@ export function EventBlock({
     }
   };
 
+  const isShort = compact && Boolean(item.durationMinutes && item.durationMinutes <= 35);
+
   return (
     <button
       type="button"
       id={`agenda-item-${item.id}`}
       data-agenda-item="true"
+      data-event-id={item.id}
+      data-color-id={item.colorId}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       style={{
@@ -88,7 +92,7 @@ export function EventBlock({
       }`}
       title={`${item.title} (${item.startTime || 'Dia todo'}${item.endTime ? ` — ${item.endTime}` : ''})`}
       className={`absolute inset-0 w-full h-full z-10 text-left rounded-xl border transition-all duration-160 select-none overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-        compact ? 'p-1.5 sm:p-2' : 'p-2 sm:p-2.5'
+        isShort ? 'p-1 sm:p-1.5' : compact ? 'p-1.5 sm:p-2' : 'p-2 sm:p-2.5'
       } ${
         isSelected
           ? 'ring-2 ring-medusa-primary shadow-calm scale-[1.008] z-30'
@@ -107,7 +111,11 @@ export function EventBlock({
           <div className="flex flex-col min-w-0 flex-1">
             {/* Horário no topo em compact para hierarquia imediata */}
             {compact && item.startTime && (
-              <span className="font-mono text-[9px] sm:text-[9.5px] opacity-75 tabular-nums leading-none tracking-tight block pb-0.5">
+              <span
+                className={`font-mono tabular-nums leading-none tracking-tight block pb-0.5 ${
+                  isShort ? 'text-[8.5px] sm:text-[9px] opacity-70' : 'text-[9px] sm:text-[9.5px] opacity-75'
+                }`}
+              >
                 {item.startTime}{item.endTime ? ` — ${item.endTime}` : ''}
               </span>
             )}
@@ -115,7 +123,9 @@ export function EventBlock({
             <div className="flex items-center gap-1 min-w-0">
               <span
                 className={`font-semibold tracking-tight ${
-                  compact
+                  isShort
+                    ? 'text-[10px] sm:text-[10.5px] leading-tight truncate'
+                    : compact
                     ? 'text-[11px] sm:text-[11.5px] leading-tight line-clamp-2'
                     : 'text-[12px] sm:text-[13px] leading-snug truncate max-w-full block'
                 }`}

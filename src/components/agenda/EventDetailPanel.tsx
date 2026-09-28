@@ -473,7 +473,7 @@ export function EventDetailPanel({
       {/* Ações de Edição, Duplicação e Exclusão (Contidas e Acessíveis) */}
       <div className="sticky -bottom-5 sm:-bottom-6 -mx-5 sm:-mx-6 -mb-5 sm:-mb-6 p-4 sm:p-5 bg-surface/95 backdrop-blur-md border-t border-border/70 rounded-b-2xl flex flex-col gap-2 z-20 shadow-subtle">
         {confirmDelete ? (
-          <div id="delete-confirm-box" className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in">
+          <div id="delete-confirm-box" className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in w-full max-w-full overflow-hidden">
             <p className="text-[12px] font-semibold text-rose-800 dark:text-rose-200 text-center">
               Excluir compromisso
             </p>
