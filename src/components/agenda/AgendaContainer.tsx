@@ -94,12 +94,19 @@ export function AgendaContainer() {
   );
 
   const handleSaveItem = useCallback(
-    (itemData: Parameters<typeof createOrUpdateItem>[0]) => {
-      createOrUpdateItem(itemData);
+    (itemData: Parameters<typeof createOrUpdateItem>[0], scope?: 'this' | 'following' | 'series') => {
+      createOrUpdateItem(itemData, scope);
       triggerIslandNotification({
         title: itemData.id ? 'Evento atualizado' : 'Evento criado',
-        desc: 'Sincronizado na Agenda',
-        badge: 'Agenda',
+        desc:
+          scope === 'this'
+            ? 'Alteração aplicada somente a este evento'
+            : scope === 'following'
+            ? 'Alteração aplicada a este e futuros eventos'
+            : scope === 'series'
+            ? 'Alteração aplicada a toda a série'
+            : 'Sincronizado na Agenda',
+        badge: scope ? 'Recorrência' : 'Agenda',
         state: 'success',
         durationMs: 1600,
       });

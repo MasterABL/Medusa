@@ -86,7 +86,10 @@ export function EventBlock({
       }, Categoria ${category?.name || 'Geral'}${
         conflict ? `, Conflito de horário: ${conflict.durationLabel}` : ''
       }`}
-      className={`absolute inset-0 w-full h-full z-10 text-left rounded-xl border p-2 sm:p-2.5 transition-all duration-160 select-none overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+      title={`${item.title} (${item.startTime || 'Dia todo'}${item.endTime ? ` — ${item.endTime}` : ''})`}
+      className={`absolute inset-0 w-full h-full z-10 text-left rounded-xl border transition-all duration-160 select-none overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+        compact ? 'p-1.5 sm:p-2' : 'p-2 sm:p-2.5'
+      } ${
         isSelected
           ? 'ring-2 ring-medusa-primary shadow-calm scale-[1.008] z-30'
           : 'shadow-subtle hover:shadow-calm hover:scale-[1.003] hover:z-20'
@@ -99,20 +102,31 @@ export function EventBlock({
       />
 
       <div className="flex flex-col h-full justify-between pl-1 min-w-0">
-        {/* Topo do Bloco: Título e Ícone de Domínio */}
-        <div className="flex items-start justify-between gap-1.5 overflow-hidden">
+        {/* Topo do Bloco: Título, Horário e Ícone */}
+        <div className="flex items-start justify-between gap-1 overflow-hidden min-w-0">
           <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            {/* Horário no topo em compact para hierarquia imediata */}
+            {compact && item.startTime && (
+              <span className="font-mono text-[9px] sm:text-[9.5px] opacity-75 tabular-nums leading-none tracking-tight block pb-0.5">
+                {item.startTime}{item.endTime ? ` — ${item.endTime}` : ''}
+              </span>
+            )}
+
+            <div className="flex items-center gap-1 min-w-0">
               <span
-                title={item.title}
-                className="font-semibold text-[12px] sm:text-[13px] leading-snug truncate max-w-full block"
+                className={`font-semibold tracking-tight ${
+                  compact
+                    ? 'text-[11px] sm:text-[11.5px] leading-tight line-clamp-2'
+                    : 'text-[12px] sm:text-[13px] leading-snug truncate max-w-full block'
+                }`}
+                style={{ color: colorStyle.text }}
               >
                 {item.title}
               </span>
               {item.isFlexible && (
                 <span
                   title="Bloco flexível"
-                  className="material-symbols-outlined text-[12px] text-text-muted opacity-70"
+                  className="material-symbols-outlined text-[11px] text-text-muted opacity-70 flex-shrink-0"
                 >
                   swap_vert
                 </span>
@@ -120,14 +134,14 @@ export function EventBlock({
               {item.kind === 'routine' && (
                 <span
                   title="Rotina recorrente"
-                  className="material-symbols-outlined text-[12px] text-text-muted opacity-70"
+                  className="material-symbols-outlined text-[11px] text-text-muted opacity-70 flex-shrink-0"
                 >
                   repeat
                 </span>
               )}
             </div>
 
-            {/* Horário & Duração */}
+            {/* Horário & Duração quando NÃO compact */}
             {!compact && (
               <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] opacity-85 font-mono tracking-tight pt-0.5 tabular-nums">
                 {item.allDay ? (
@@ -150,7 +164,9 @@ export function EventBlock({
           </div>
 
           <span
-            className="material-symbols-outlined text-[14px] sm:text-[16px] flex-shrink-0 opacity-80"
+            className={`material-symbols-outlined flex-shrink-0 opacity-70 ${
+              compact ? 'text-[12px] sm:text-[13px]' : 'text-[14px] sm:text-[16px]'
+            }`}
             title={item.domain}
           >
             {getDomainIcon(item.domain)}
@@ -158,25 +174,29 @@ export function EventBlock({
         </div>
 
         {/* Rodapé do Bloco: Categoria e Alerta de Conflito */}
-        <div className="flex items-center justify-between gap-1 mt-1 overflow-hidden">
-          <span
-            className="text-[9px] sm:text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded-full border border-current/20 truncate"
-            style={{ backgroundColor: colorStyle.subtle }}
-          >
-            {category?.name || item.domain}
-          </span>
+        {(!compact || conflict || (item.durationMinutes && item.durationMinutes >= 75)) && (
+          <div className="flex items-center justify-between gap-1 mt-0.5 overflow-hidden flex-shrink-0">
+            {!compact && (
+              <span
+                className="text-[9px] sm:text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded-full border border-current/20 truncate"
+                style={{ backgroundColor: colorStyle.subtle }}
+              >
+                {category?.name || item.domain}
+              </span>
+            )}
 
-          {/* Destaque e Duração Real do Conflito */}
-          {conflict && (
-            <span
-              className="flex items-center gap-1 text-[10px] font-mono font-semibold text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-400/30 px-1.5 py-0.5 rounded-full shadow-subtle flex-shrink-0 animate-pulse"
-              title={`Sobreposição de ${conflict.durationLabel} com outro compromisso`}
-            >
-              <span className="material-symbols-outlined text-[12px]">warning</span>
-              <span className="truncate">{conflict.durationLabel}</span>
-            </span>
-          )}
-        </div>
+            {/* Destaque e Duração Real do Conflito */}
+            {conflict && (
+              <span
+                className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono font-semibold text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-400/30 px-1.5 py-0.5 rounded-full shadow-subtle flex-shrink-0 animate-pulse"
+                title={`Sobreposição de ${conflict.durationLabel} com outro compromisso`}
+              >
+                <span className="material-symbols-outlined text-[11px]">warning</span>
+                <span className="truncate">{conflict.durationLabel}</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </button>
   );

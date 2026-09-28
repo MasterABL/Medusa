@@ -9,6 +9,7 @@
 # testing
 /coverage
 /qa-screenshots
+/qa-recordings
 
 # next.js
 /.next/

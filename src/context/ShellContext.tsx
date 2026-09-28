@@ -49,6 +49,9 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   const [activeRoute, setActiveRouteState] = useState<string>('hoje');
   const [islandNotification, setIslandNotification] = useState<IslandNotification | null>(null);
   const notificationTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const notificationQueueRef = React.useRef<IslandNotification[]>([]);
+  const currentNotificationPriorityRef = React.useRef<number>(0);
+  const currentNotificationStartTimeRef = React.useRef<number>(0);
   const [mounted, setMounted] = useState(false);
 
   // Inicialização e persistência de tema, rotas e do painel regional
@@ -201,20 +204,87 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
     setIsQuietManual((prev) => (forced !== undefined ? forced : !prev));
   }, []);
 
-  const triggerIslandNotification = useCallback((notification: IslandNotification) => {
-    if (notificationTimerRef.current) {
-      clearTimeout(notificationTimerRef.current);
-    }
-    setIslandNotification(notification);
-    if (notification.state) {
-      setIslandState(notification.state);
-    }
-    const duration = notification.durationMs || 1800;
-    notificationTimerRef.current = setTimeout(() => {
+  const getNotificationPriority = (notif: IslandNotification): number => {
+    if (notif.state === 'attention' || notif.state === 'error') return 3;
+    if (notif.state === 'success') return 2;
+    return 1;
+  };
+
+  const processNextInQueue = useCallback(() => {
+    if (notificationQueueRef.current.length === 0) {
       setIslandNotification(null);
       setIslandState('active');
+      currentNotificationPriorityRef.current = 0;
+      currentNotificationStartTimeRef.current = 0;
+      return;
+    }
+
+    const nextNotification = notificationQueueRef.current.shift()!;
+    currentNotificationPriorityRef.current = getNotificationPriority(nextNotification);
+    currentNotificationStartTimeRef.current = Date.now();
+    setIslandNotification(nextNotification);
+    if (nextNotification.state) {
+      setIslandState(nextNotification.state);
+    }
+
+    const duration = Math.max(1400, nextNotification.durationMs || 1800);
+    notificationTimerRef.current = setTimeout(() => {
+      processNextInQueue();
     }, duration);
   }, []);
+
+  const triggerIslandNotification = useCallback(
+    (notification: IslandNotification) => {
+      const newPriority = getNotificationPriority(notification);
+      const now = Date.now();
+      const elapsedTime = now - currentNotificationStartTimeRef.current;
+      const MIN_DISPLAY_TIME = 1000;
+
+      // Se não há notificação ativa ou a notificação anterior já durou o tempo mínimo
+      if (!currentNotificationStartTimeRef.current || elapsedTime >= MIN_DISPLAY_TIME) {
+        if (newPriority >= currentNotificationPriorityRef.current || !currentNotificationStartTimeRef.current) {
+          if (notificationTimerRef.current) {
+            clearTimeout(notificationTimerRef.current);
+          }
+          currentNotificationPriorityRef.current = newPriority;
+          currentNotificationStartTimeRef.current = now;
+          setIslandNotification(notification);
+          if (notification.state) {
+            setIslandState(notification.state);
+          }
+          const duration = Math.max(1400, notification.durationMs || 1800);
+          notificationTimerRef.current = setTimeout(() => {
+            processNextInQueue();
+          }, duration);
+          return;
+        }
+      }
+
+      // Se a nova notificação é de alta prioridade (ex: alerta/atenção) e a atual é de baixo contexto
+      if (newPriority > currentNotificationPriorityRef.current && currentNotificationPriorityRef.current === 1) {
+        if (notificationTimerRef.current) {
+          clearTimeout(notificationTimerRef.current);
+        }
+        currentNotificationPriorityRef.current = newPriority;
+        currentNotificationStartTimeRef.current = now;
+        setIslandNotification(notification);
+        if (notification.state) {
+          setIslandState(notification.state);
+        }
+        const duration = Math.max(1400, notification.durationMs || 1800);
+        notificationTimerRef.current = setTimeout(() => {
+          processNextInQueue();
+        }, duration);
+        return;
+      }
+
+      // Caso contrário, enfileira com limite para evitar acúmulo desnecessário
+      if (notificationQueueRef.current.length < 3) {
+        notificationQueueRef.current.push(notification);
+      }
+    },
+    [processNextInQueue]
+  );
 
   const setActiveRoute = useCallback((route: string) => {
     setActiveRouteState(route);

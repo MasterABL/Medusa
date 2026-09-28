@@ -77,6 +77,15 @@ export function EventDetailPanel({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    if (confirmDelete) {
+      const box = document.getElementById('delete-confirm-box');
+      if (box) {
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [confirmDelete]);
+
   if (!item) return null;
 
   const colorStyle = getPastelThemeStyle(item.colorId, theme);
@@ -115,7 +124,7 @@ export function EventDetailPanel({
     <aside
       id="agenda-detail-panel"
       aria-label="Detalhes do compromisso"
-      className="bg-surface rounded-2xl border border-border/80 p-5 sm:p-6 shadow-calm flex flex-col gap-5 relative transition-all duration-200 animate-in fade-in slide-in-from-right-2"
+      className="bg-surface rounded-2xl border border-border/80 p-5 sm:p-6 shadow-calm flex flex-col gap-5 relative transition-all duration-200 animate-in fade-in slide-in-from-right-2 max-h-[calc(100vh-5.5rem)] overflow-y-auto overflow-x-hidden sticky top-4"
     >
       {/* Topo: Categoria e Botão Fechar */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
@@ -461,16 +470,16 @@ export function EventDetailPanel({
         </button>
       )}
 
-      {/* Ações de Edição, Duplicação e Exclusão */}
-      <div className="pt-2 flex flex-col gap-2">
+      {/* Ações de Edição, Duplicação e Exclusão (Contidas e Acessíveis) */}
+      <div className="sticky -bottom-5 sm:-bottom-6 -mx-5 sm:-mx-6 -mb-5 sm:-mb-6 p-4 sm:p-5 bg-surface/95 backdrop-blur-md border-t border-border/70 rounded-b-2xl flex flex-col gap-2 z-20 shadow-subtle">
         {confirmDelete ? (
-          <div className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in">
-            <p className="text-[12px] font-medium text-rose-800 dark:text-rose-200 text-center">
+          <div id="delete-confirm-box" className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in">
+            <p className="text-[12px] font-semibold text-rose-800 dark:text-rose-200 text-center">
               Excluir compromisso
             </p>
 
-            {item.kind === 'routine' && onDeleteRecurring ? (
-              <div className="space-y-1.5">
+            {(item.kind === 'routine' || item.recurrence || item.id.includes('-virt-')) && onDeleteRecurring ? (
+              <div id="recurring-delete-scope-box" className="space-y-1.5">
                 {(
                   [
                     { value: 'this', label: 'Somente este evento' },
@@ -480,6 +489,7 @@ export function EventDetailPanel({
                 ).map((opt) => (
                   <label
                     key={opt.value}
+                    id={`delete-scope-option-${opt.value}`}
                     className="flex items-center gap-2 text-[12px] text-rose-800 dark:text-rose-200 cursor-pointer select-none"
                   >
                     <input
@@ -510,7 +520,7 @@ export function EventDetailPanel({
               <button
                 type="button"
                 onClick={() => {
-                  if (item.kind === 'routine' && onDeleteRecurring) {
+                  if ((item.kind === 'routine' || item.recurrence || item.id.includes('-virt-')) && onDeleteRecurring) {
                     onDeleteRecurring(item, deleteScope);
                   } else {
                     onDelete(item.id);
@@ -519,7 +529,7 @@ export function EventDetailPanel({
                 id="btn-confirm-delete"
                 className="btn-interactive px-3 py-1.5 rounded-lg text-[11px] font-mono font-medium bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
               >
-                {item.kind === 'routine' && onDeleteRecurring ? 'Excluir' : 'Sim, excluir'}
+                {(item.kind === 'routine' || item.recurrence || item.id.includes('-virt-')) && onDeleteRecurring ? 'Excluir' : 'Sim, excluir'}
               </button>
             </div>
           </div>

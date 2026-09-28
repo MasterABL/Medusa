@@ -78,7 +78,7 @@ export function WeekView({
     >
       <div className="min-w-[760px] flex flex-col">
         {/* Cabeçalho das 7 Colunas [SEG] [TER] [QUA] [QUI] [SEX] [SÁB] [DOM] */}
-        <div className="grid grid-cols-8 gap-1.5 border-b border-border/70 pb-3 mb-2">
+        <div role="tablist" aria-label="Dias da semana" className="grid grid-cols-8 gap-1.5 border-b border-border/70 pb-3 mb-2">
           {/* Espaçador da Coluna de Horas */}
           <div className="w-12 sm:w-14 text-[10px] font-mono text-text-muted uppercase text-right pr-2 self-center">
             Hora
@@ -95,6 +95,8 @@ export function WeekView({
               <button
                 key={dateStr}
                 type="button"
+                role="tab"
+                aria-label={`Ver dia ${dayName}`}
                 onClick={() => onSelectDayDate && onSelectDayDate(day)}
                 className={`btn-interactive flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all ${
                   isToday

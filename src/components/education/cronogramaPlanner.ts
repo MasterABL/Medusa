@@ -205,6 +205,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Você possui vínculo ativo com Faculdade, Graduação ou Cursinho presencial?',
     detalhe: 'Cruza a demanda acadêmica do Learning OS com o Cronograma ENEM.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro vínculo acadêmico (ex: pós-graduação, técnico)...',
     opcoes: [
       { texto: 'Não curso faculdade/cursinho atualmente', subtexto: 'Foco exclusivo na preparação', horasSemanaImpacto: 0 },
       { texto: 'Sim, graduação em período integral', subtexto: 'Alta demanda paralela de provas e trabalhos', horasSemanaImpacto: 25 },
@@ -220,6 +222,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Você mantém dedicação regular a estudos ou aulas de Inglês?',
     detalhe: 'Permite sincronizar blocos de idiomas na Agenda sem canibalizar o ENEM.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro idioma ou ritmo de dedicação...',
     opcoes: [
       { texto: 'Não estudo inglês no momento', subtexto: 'Foco apenas nas 5 questões do ENEM', horasSemanaImpacto: 0 },
       { texto: '1 a 2 horas semanais de manutenção', subtexto: 'Prática de vocabulário e leitura', horasSemanaImpacto: 2 },
@@ -235,6 +239,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Qual é a sua frequência semanal de treinos, exercícios físicos ou esportes?',
     detalhe: 'Saúde física e sono são componentes do domínio Corpo no Medusa.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro esporte ou frequência semanal...',
     opcoes: [
       { texto: 'Sedentário / Nenhuma atividade física regular', subtexto: 'Sem blocos de treino na timeline', horasSemanaImpacto: 0 },
       { texto: '1 a 2 vezes por semana', subtexto: 'Caminhadas ou treinos eventuais', horasSemanaImpacto: 2 },
@@ -269,6 +275,9 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     numero: 8,
     pergunta: 'Quantos dias da semana você pode dedicar com consistência aos estudos do ENEM?',
     detalhe: 'Consistência sustentável vence picos pontuais de estudo seguidos de burnout.',
+    type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra distribuição de dias na semana...',
     opcoes: [
       { texto: '3 a 4 dias na semana', subtexto: 'Ritmo dosado com dias de descanso intercalados' },
       { texto: '5 dias úteis (segunda a sexta)', subtexto: 'Jornada clássica com fins de semana livres' },
@@ -283,6 +292,9 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     numero: 9,
     pergunta: 'Quantas horas líquidas diárias você consegue cumprir com energia mental em dias úteis?',
     detalhe: 'Hora líquida significa estudo sem celular, sem pausas longas e com foco real.',
+    type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra carga horária líquida (ex: 2h30)...',
     opcoes: [
       { texto: '1 a 2 horas líquidas por dia', subtexto: 'Excelente para quem trabalha período integral' },
       { texto: '3 a 4 horas líquidas por dia', subtexto: 'Ritmo padrão altamente produtivo' },
@@ -296,7 +308,10 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     blocoTitulo: 'Disponibilidade Real',
     numero: 10,
     pergunta: 'Como você deseja utilizar os fins de semana no seu cronograma de estudos?',
-    detalhe: 'Fins de semana definem a viabilidade de simulados de 5 horas de prova.',
+    detalhe: 'Fins de semana definem a viabilidade de simulados de 5 horas de prova (selecione múltiplos se aplicável).',
+    type: 'multi',
+    allowCustom: true,
+    customPlaceholder: 'Outro arranjo para o fim de semana...',
     opcoes: [
       { texto: 'Fins de semana 100% livres para descanso', subtexto: 'Zero blocos de estudo no sábado e domingo' },
       { texto: 'Apenas a manhã de sábado (estudos leves)', subtexto: 'Revisão rápida de pendências' },
@@ -311,6 +326,9 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     numero: 11,
     pergunta: 'Até que horário você tolera encerrar sua jornada diária de estudos?',
     detalhe: 'Protege a qualidade do seu sono e o bio-estado monitorado pelo Guardian.',
+    type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro horário limite de encerramento (ex: 22h30)...',
     opcoes: [
       { texto: 'Até as 18:00 (prefiro noites livres)', subtexto: 'Encerramento precoce para lazer e descanso' },
       { texto: 'Até as 21:00 ou 22:00 (rotina padrão)', subtexto: 'Janela clássica para quem estuda à noite' },
@@ -324,8 +342,10 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     blocoTitulo: 'Disponibilidade Real',
     numero: 12,
     pergunta: 'Em qual faixa de horário seu cérebro atinge o pico absoluto de clareza cognitiva?',
-    detalhe: 'A Agenda alocará as matérias de maior peso ou dificuldade nesta janela de ouro.',
-    type: 'time',
+    detalhe: 'A Agenda alocará as matérias de maior peso ou dificuldade nesta janela de ouro (selecione múltiplos se aplicável).',
+    type: 'multi',
+    allowCustom: true,
+    customPlaceholder: 'Outro intervalo de horário de pico...',
     opcoes: [
       { texto: 'Manhã cedo (06:00 às 11:00)', subtexto: 'Mente fresca logo após acordar', horarioSugerido: '08:00' },
       { texto: 'Início da tarde (13:00 às 17:00)', subtexto: 'Ritmo contínuo durante o dia', horarioSugerido: '14:00' },
@@ -341,8 +361,10 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     blocoTitulo: 'Restrições & Energia',
     numero: 13,
     pergunta: 'Existe algum período do dia em que estudar é absolutamente inviável ou improdutivo?',
-    detalhe: 'Garante que nenhum bloco de alta exigência seja colocado em momento de baixa energia.',
-    type: 'single',
+    detalhe: 'Garante que nenhum bloco de alta exigência seja colocado em momento de baixa energia (selecione múltiplos se aplicável).',
+    type: 'multi',
+    allowCustom: true,
+    customPlaceholder: 'Outro período impróprio para estudos...',
     opcoes: [
       { texto: 'Nenhum horário é proibitivo', subtexto: 'Boa adaptabilidade a qualquer momento' },
       { texto: 'Início da tarde (sonolência pós-almoço)', subtexto: 'Queda drástica de energia entre 12h e 14h30' },
@@ -358,6 +380,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Como você prefere encaixar o estudo em relação ao trabalho ou faculdade?',
     detalhe: 'Define a ordem espacial dos blocos na sua timeline.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra preferência de encaixe temporal...',
     opcoes: [
       { texto: 'Estudar antes de iniciar as obrigações do dia', subtexto: 'Garante a prioridade máxima antes que surjam imprevistos' },
       { texto: 'Estudar logo após terminar o trabalho/aula', subtexto: 'Aproveita o embalo antes de relaxar em definitivo' },
@@ -373,6 +397,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Qual margem de segurança e preparação você precisa antes e depois de deslocamentos e compromissos?',
     detalhe: 'Buffer temporal antes e depois para descompressão, evitar correria e proteger a pontualidade.',
     type: 'range',
+    allowCustom: true,
+    customPlaceholder: 'Outro tempo de respiro/buffer (minutos)...',
     opcoes: [
       { texto: 'Sem intervalo (transição direta entre blocos)', subtexto: 'Mudança instantânea de contexto', bufferMinutos: 0 },
       { texto: '15 a 20 minutos de respiro mental', subtexto: 'Intervalo curto para água, postura e respiração', bufferMinutos: 15 },
@@ -388,8 +414,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     blocoTitulo: 'Metas & Prazos',
     numero: 16,
     pergunta: 'Quais provas, entregas ou prazos possuem data definida na sua rotina?',
-    detalhe: 'Identifica compromissos com data fixa, vestibulares e entregas prioritárias.',
-    type: 'custom',
+    detalhe: 'Identifica compromissos com data fixa, vestibulares e entregas prioritárias (selecione múltiplos se aplicável).',
+    type: 'multi',
     allowCustom: true,
     customPlaceholder: 'Outro prazo ou concurso...',
     opcoes: [
@@ -407,6 +433,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Qual é a faixa de nota de corte pretendida para o seu curso de interesse?',
     detalhe: 'Define o nível de rigor na alocação de Matemática e Redação.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro curso ou nota de corte pretendida...',
     opcoes: [
       { texto: 'Alta concorrência: nota > 780 pts (Medicina, Engenharias de topo)', subtexto: 'Exige pontuação de elite em todas as áreas', pesoExatas: 1.4, pesoNatureza: 1.4 },
       { texto: 'Média-alta: nota 700 a 780 pts (Direito, Computação, Odonto)', subtexto: 'Forte concorrência com foco em pesos estratégicos', pesoExatas: 1.2 },
@@ -422,6 +450,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Qual a periodicidade ideal para realização de simulados de prova completa?',
     detalhe: 'Simulados requerem janelas longas de 5h reservadas na Agenda.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra frequência de simulados...',
     opcoes: [
       { texto: 'Simulado completo a cada semana', subtexto: 'Treinamento intensivo de resistência física e tempo' },
       { texto: 'Simulado quinzenal intercalado', subtexto: 'Ritmo ideal de aferição com tempo de análise de erros' },
@@ -437,6 +467,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Qual é a sua urgência em relação à produção de redações semanais?',
     detalhe: 'A Redação é a única nota do ENEM que vai até 1000 sem a curvatura da TRI.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra meta ou urgência de redações...',
     opcoes: [
       { texto: 'Crítica: preciso de 2 redações corrigidas por semana', subtexto: 'Meta de nota 960+ com treino constante de repertório', pesoLinguagens: 1.5 },
       { texto: 'Padrão: 1 redação semanal obrigatória', subtexto: 'Constância sólida para alcançar nota 900+' },
@@ -454,6 +486,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Qual é a duração contínua mais eficiente para um bloco de estudo individual?',
     detalhe: 'Determina o tamanho padrão dos time_blocks criados na Agenda.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra duração contínua de bloco (minutos)...',
     opcoes: [
       { texto: 'Blocos ágeis de 25 a 30 minutos (estilo Pomodoro)', subtexto: 'Ideal para evitar perda de atenção', minutosSessao: 30 },
       { texto: 'Blocos médios de 45 a 50 minutos (foco escolar)', subtexto: 'Equilíbrio ideal entre teoria e exercícios', minutosSessao: 45 },
@@ -469,6 +503,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Qual é a sua dinâmica preferida para intervalos entre sessões?',
     detalhe: 'Ajuda a calibrar o tempo livre sugerido entre blocos adjacentes.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro padrão de pausas e intervalos...',
     opcoes: [
       { texto: 'Micro-pausas de 5 minutos a cada bloco curto', subtexto: 'Alongamento rápido sem sair do ambiente' },
       { texto: 'Pausa de 15 minutos a cada hora completa', subtexto: 'Descompressão com lanche ou café' },
@@ -484,6 +520,8 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     pergunta: 'Como você lida com interrupções e distrações no seu ambiente de estudo?',
     detalhe: 'Calibra o nível de proteção de foco solicitado ao shell.',
     type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro detalhe sobre seu ambiente de foco...',
     opcoes: [
       { texto: 'Retomo o foco imediatamente sem atrito', subtexto: 'Boa capacidade de retorno pós-notificação' },
       { texto: 'Levo de 5 a 10 minutos para voltar ao ritmo', subtexto: 'Custo de troca de contexto perceptível' },
@@ -499,8 +537,10 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     blocoTitulo: 'Prioridades & Tradeoffs',
     numero: 23,
     pergunta: 'Qual área do conhecimento exige o maior reforço e peso na sua rotina?',
-    detalhe: 'Esta área receberá automaticamente a maior fatia proporcional de tempo semanal.',
-    type: 'single',
+    detalhe: 'Esta área receberá automaticamente a maior fatia proporcional de tempo semanal (selecione múltiplos se aplicável).',
+    type: 'multi',
+    allowCustom: true,
+    customPlaceholder: 'Outra matéria ou tópico específico de reforço...',
     opcoes: [
       { texto: 'Matemática e suas Tecnologias', subtexto: 'Maior potencial de alavancagem de pontuação pela TRI', pesoExatas: 1.6 },
       { texto: 'Ciências da Natureza (Física, Química, Biologia)', subtexto: 'Muitos conteúdos conceituais e fórmulas', pesoNatureza: 1.6 },
@@ -516,6 +556,9 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     numero: 24,
     pergunta: 'Quando ocorrer um imprevisto inevitável em um dia, como o cronograma deve reagir?',
     detalhe: 'Regra de ouro da Agenda para reorganização temporal de blocos atrasados.',
+    type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra estratégia de compensação...',
     opcoes: [
       { texto: 'Reprogramar o bloco para o próximo dia livre da semana', subtexto: 'Mantém a carga horária original sem cortar conteúdo' },
       { texto: 'Encurtar as sessões mantendo o contato com todas as matérias', subtexto: 'Preserva a frequência mesmo com menos minutos' },
@@ -530,6 +573,9 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     numero: 25,
     pergunta: 'Se o tempo disponível for menor do que o necessário, qual é o seu critério de corte?',
     detalhe: 'Critério de desempate explícito quando a grade horária ficar superlotada.',
+    type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outro critério pessoal de corte/tradeoff...',
     opcoes: [
       { texto: 'Priorizar matérias de maior peso para o meu curso pretendido', subtexto: 'Foco pragmático na pontuação do SISU' },
       { texto: 'Priorizar matérias com as quais tenho maior dificuldade', subtexto: 'Fechamento urgente de lacunas conceituais' },
@@ -544,6 +590,9 @@ export const DIAGNOSTICO_QUESTOES_TEMPORAIS: DiagnosticoQuestaoTemporal[] = [
     numero: 26,
     pergunta: 'Qual é o seu nível de tolerância a ajustes automáticos e flexibilidade na agenda?',
     detalhe: 'Dita a autonomia do Temporal OS sobre reagendamentos.',
+    type: 'single',
+    allowCustom: true,
+    customPlaceholder: 'Outra observação sobre tolerância a ajustes...',
     opcoes: [
       { texto: 'Alta: prefiro uma agenda viva que se reacomoda ativamente', subtexto: 'Sugestões inteligentes aceitas com facilidade' },
       { texto: 'Moderada: prefiro estabilidade com sugestões para eu aceitar', subtexto: 'Controle manual guiado por alertas claros' },

@@ -192,6 +192,9 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
     try {
       localStorage.removeItem('medusa_cronograma_plan');
       localStorage.removeItem('medusa_cronograma_seen');
+      localStorage.removeItem('medusa_cronograma_diag_answers');
+      localStorage.removeItem('medusa_cronograma_diag_multi');
+      localStorage.removeItem('medusa_cronograma_diag_custom');
     } catch {}
     setIsCronogramaOverlayOpen(false);
     setEnemView('cronograma');

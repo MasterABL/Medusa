@@ -62,7 +62,8 @@ interface AgendaContextType {
   setCategoryModalOpen: (open: boolean) => void;
 
   // Operações de Itens
-  createOrUpdateItem: (itemData: Partial<AgendaItem>) => void;
+  createOrUpdateItem: (itemData: Partial<AgendaItem>, recurringScope?: 'this' | 'following' | 'series') => void;
+  updateRecurringItem: (item: AgendaItem, changes: Partial<AgendaItem>, scope: 'this' | 'following' | 'series') => void;
   deleteItem: (itemId: string) => void;
   deleteRecurringOccurrence: (item: AgendaItem, scope: 'this' | 'following' | 'series') => void;
 
@@ -161,19 +162,156 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
     setDrawerOpen(true);
   }, []);
 
+  // Edição com escopo de eventos recorrentes ('this' | 'following' | 'series')
+  const updateRecurringItem = useCallback(
+    (item: AgendaItem, changes: Partial<AgendaItem>, scope: 'this' | 'following' | 'series') => {
+      const baseId = item.id.includes('-virt-') ? item.id.split('-virt-')[0] : item.id;
+      const occurrenceDate = item.date;
+      const nowISO = new Date().toISOString();
+
+      if (scope === 'series') {
+        setItems((prev) =>
+          prev.map((it) => {
+            if (it.id === baseId || it.id === item.id) {
+              return {
+                ...it,
+                ...changes,
+                id: it.id, // Preserva o ID original canônico da série
+                colorId: changes.colorId || it.colorId,
+                updatedAt: nowISO,
+              } as AgendaItem;
+            }
+            return it;
+          })
+        );
+        playFeedback('ready');
+        return;
+      }
+
+      if (scope === 'this') {
+        // Marca exceção na série original e cria um evento avulso com os novos atributos
+        setItems((prev) => {
+          const target = prev.find((it) => it.id === baseId);
+          const updatedSeries = prev.map((it) => {
+            if (it.id === baseId) {
+              return {
+                ...it,
+                recurrenceExceptions: [...(it.recurrenceExceptions || []), occurrenceDate],
+                updatedAt: nowISO,
+              };
+            }
+            return it;
+          });
+
+          const singleItem: AgendaItem = {
+            id: `item-single-${Date.now()}`,
+            title: changes.title || target?.title || item.title,
+            kind: (changes.kind === 'routine' ? 'event' : changes.kind) || 'event',
+            domain: changes.domain || target?.domain || item.domain,
+            categoryId: changes.categoryId || target?.categoryId || item.categoryId,
+            colorId: changes.colorId || target?.colorId || item.colorId,
+            date: changes.date || occurrenceDate,
+            startTime: changes.startTime ?? target?.startTime ?? item.startTime,
+            endTime: changes.endTime ?? target?.endTime ?? item.endTime,
+            durationMinutes: changes.durationMinutes ?? target?.durationMinutes ?? item.durationMinutes,
+            allDay: changes.allDay ?? target?.allDay ?? item.allDay,
+            isFlexible: changes.isFlexible ?? target?.isFlexible ?? item.isFlexible,
+            recurrence: undefined,
+            location: changes.location ?? target?.location ?? item.location,
+            description: changes.description ?? target?.description ?? item.description,
+            source: target?.source || item.source,
+            status: target?.status || 'scheduled',
+            createdAt: nowISO,
+            updatedAt: nowISO,
+          };
+
+          return [singleItem, ...updatedSeries];
+        });
+        playFeedback('ready');
+        return;
+      }
+
+      if (scope === 'following') {
+        // Encerra a série anterior no dia anterior e inicia uma nova série a partir desta data
+        const untilDate = new Date(`${occurrenceDate}T00:00:00`);
+        untilDate.setDate(untilDate.getDate() - 1);
+        const untilStr = formatDateISO(untilDate);
+
+        setItems((prev) => {
+          const target = prev.find((it) => it.id === baseId);
+          const truncated = prev.map((it) => {
+            if (it.id === baseId) {
+              return {
+                ...it,
+                recurrence: {
+                  ...(it.recurrence || { frequency: 'weekly' }),
+                  until: untilStr,
+                },
+                updatedAt: nowISO,
+              };
+            }
+            return it;
+          });
+
+          const newSeriesItem: AgendaItem = {
+            id: `item-series-${Date.now()}`,
+            title: changes.title || target?.title || item.title,
+            kind: changes.kind || target?.kind || item.kind,
+            domain: changes.domain || target?.domain || item.domain,
+            categoryId: changes.categoryId || target?.categoryId || item.categoryId,
+            colorId: changes.colorId || target?.colorId || item.colorId,
+            date: changes.date || occurrenceDate,
+            startTime: changes.startTime ?? target?.startTime ?? item.startTime,
+            endTime: changes.endTime ?? target?.endTime ?? item.endTime,
+            durationMinutes: changes.durationMinutes ?? target?.durationMinutes ?? item.durationMinutes,
+            allDay: changes.allDay ?? target?.allDay ?? item.allDay,
+            isFlexible: changes.isFlexible ?? target?.isFlexible ?? item.isFlexible,
+            recurrence: changes.recurrence || target?.recurrence || { frequency: 'weekly' },
+            location: changes.location ?? target?.location ?? item.location,
+            description: changes.description ?? target?.description ?? item.description,
+            source: target?.source || item.source,
+            status: target?.status || 'scheduled',
+            createdAt: nowISO,
+            updatedAt: nowISO,
+          };
+
+          return [newSeriesItem, ...truncated];
+        });
+        playFeedback('ready');
+        return;
+      }
+    },
+    []
+  );
+
   // Criação ou Edição
   const createOrUpdateItem = useCallback(
-    (itemData: Partial<AgendaItem>) => {
+    (itemData: Partial<AgendaItem>, recurringScope?: 'this' | 'following' | 'series') => {
       const nowISO = new Date().toISOString();
 
       if (itemData.id) {
-        // Atualização
+        const baseId = itemData.id.includes('-virt-') ? itemData.id.split('-virt-')[0] : itemData.id;
+        const target = items.find((it) => it.id === baseId || it.id === itemData.id);
+
+        if (target && (target.recurrence || target.kind === 'routine' || itemData.id.includes('-virt-')) && recurringScope) {
+          const pseudoItem: AgendaItem = {
+            ...target,
+            id: itemData.id,
+            date: itemData.date || target.date,
+          };
+          updateRecurringItem(pseudoItem, itemData, recurringScope);
+          return;
+        }
+
+        // Atualização direta preservando ID e cor
         setItems((prev) =>
           prev.map((it) => {
-            if (it.id === itemData.id) {
+            if (it.id === itemData.id || it.id === baseId) {
               return {
                 ...it,
                 ...itemData,
+                id: it.id, // Preserva o ID real
+                colorId: itemData.colorId || it.colorId,
                 updatedAt: nowISO,
               } as AgendaItem;
             }
@@ -212,7 +350,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
         playFeedback('success');
       }
     },
-    [categories, currentDate]
+    [categories, currentDate, items, updateRecurringItem]
   );
 
   // Exclusão com suporte a Desfazer (Undo)
@@ -395,6 +533,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       setEditingItem,
       setCategoryModalOpen,
       createOrUpdateItem,
+      updateRecurringItem,
       deleteItem,
       deleteRecurringOccurrence,
       saveCategory,
@@ -426,6 +565,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       goToNextDate,
       openAddDrawerWithSlot,
       createOrUpdateItem,
+      updateRecurringItem,
       deleteItem,
       deleteRecurringOccurrence,
       saveCategory,
