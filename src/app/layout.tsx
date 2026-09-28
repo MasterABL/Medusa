@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import '@/components/domains/shared/domains.css';
 import { ShellProvider } from '@/context/ShellContext';
 import { AgendaProvider } from '@/context/AgendaContext';
 import { EducationPanelProvider } from '@/context/EducationPanelContext';

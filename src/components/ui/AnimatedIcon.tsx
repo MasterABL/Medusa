@@ -38,7 +38,9 @@ export type IconSemanticType =
   | 'arrow_back'
   | 'waves'
   | 'record_voice_over'
-  | 'verified';
+  | 'verified'
+  | 'shield'
+  | 'self_improvement';
 
 export type IconSemanticState =
   | 'idle'
@@ -97,6 +99,8 @@ const GLYPH_MAP: Record<IconSemanticType, string> = {
   waves: 'waves',
   record_voice_over: 'record_voice_over',
   verified: 'verified',
+  shield: 'shield',
+  self_improvement: 'self_improvement',
 };
 
 /**

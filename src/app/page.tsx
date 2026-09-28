@@ -7,8 +7,9 @@ import { EducationContainer } from '@/components/education/EducationContainer';
 import { AgendaContainer } from '@/components/agenda/AgendaContainer';
 import { HojeContainer } from '@/components/hoje/HojeContainer';
 import { RoutePending } from '@/components/shell/RoutePending';
+import { FinancasContainer } from '@/components/domains/financas/FinancasContainer';
 
-const PENDING_ROUTES = ['corpo', 'financas', 'progresso'];
+const PENDING_ROUTES = ['progresso'];
 
 export default function HomePage() {
   const { setMode, mode, theme, setIslandState, activeRoute } = useShell();
@@ -25,6 +26,10 @@ export default function HomePage() {
 
   if (activeRoute === 'hoje') {
     return <HojeContainer />;
+  }
+
+  if (activeRoute === 'financas') {
+    return <FinancasContainer />;
   }
 
   if (PENDING_ROUTES.includes(activeRoute)) {
