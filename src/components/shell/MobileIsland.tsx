@@ -5,8 +5,14 @@ import { useShell } from '@/context/ShellContext';
 import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
 
 export function MobileIsland() {
-  const { islandState, setIslandState, isQuiet } = useShell();
-  const fixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+  const { islandState, setIslandState, isQuiet, islandNotification } = useShell();
+  const baseFixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+  const fixture = islandNotification ? {
+    ...baseFixture,
+    tag: islandNotification.title || islandNotification.tag || baseFixture.tag,
+    desc: islandNotification.desc || islandNotification.description || baseFixture.desc,
+    timerBadge: islandNotification.badge || baseFixture.timerBadge,
+  } : baseFixture;
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isKeyboardActive, setIsKeyboardActive] = useState(false);

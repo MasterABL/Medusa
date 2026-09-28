@@ -19,6 +19,7 @@ interface EventBlockProps {
   conflict?: TimeConflict;
   isSelected?: boolean;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   style?: React.CSSProperties;
   compact?: boolean;
 }
@@ -29,6 +30,7 @@ export function EventBlock({
   conflict,
   isSelected,
   onClick,
+  onDoubleClick,
   style,
   compact = false,
 }: EventBlockProps) {
@@ -68,7 +70,10 @@ export function EventBlock({
   return (
     <button
       type="button"
+      id={`agenda-item-${item.id}`}
+      data-agenda-item="true"
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       style={{
         ...style,
         backgroundColor: colorStyle.bg,
@@ -81,7 +86,7 @@ export function EventBlock({
       }, Categoria ${category?.name || 'Geral'}${
         conflict ? `, Conflito de horário: ${conflict.durationLabel}` : ''
       }`}
-      className={`absolute z-10 text-left rounded-xl border p-2 sm:p-2.5 transition-all duration-160 select-none overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+      className={`absolute inset-0 w-full h-full z-10 text-left rounded-xl border p-2 sm:p-2.5 transition-all duration-160 select-none overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
         isSelected
           ? 'ring-2 ring-medusa-primary shadow-calm scale-[1.008] z-30'
           : 'shadow-subtle hover:shadow-calm hover:scale-[1.003] hover:z-20'
@@ -93,12 +98,15 @@ export function EventBlock({
         style={{ backgroundColor: colorStyle.accent }}
       />
 
-      <div className="flex flex-col h-full justify-between pl-1">
+      <div className="flex flex-col h-full justify-between pl-1 min-w-0">
         {/* Topo do Bloco: Título e Ícone de Domínio */}
         <div className="flex items-start justify-between gap-1.5 overflow-hidden">
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-semibold text-[12px] sm:text-[13px] leading-snug truncate">
+          <div className="flex flex-col min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span
+                title={item.title}
+                className="font-semibold text-[12px] sm:text-[13px] leading-snug truncate max-w-full block"
+              >
                 {item.title}
               </span>
               {item.isFlexible && (

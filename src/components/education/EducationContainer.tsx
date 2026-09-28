@@ -34,7 +34,17 @@ export function EducationContainer() {
   const { setCurrentTrackMirror, setIsSessionCompletedMirror, setSessionResultMirror, setRequestStartStudyMirror } = useEducationPanel();
 
   // Trilha ativa no Learning OS (Faculdade, Inglês, Vestibular)
-  const [currentTrack, setCurrentTrack] = useState<StudyTrack>('faculdade');
+  const [currentTrack, setCurrentTrack] = useState<StudyTrack>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('medusa_education_track') as StudyTrack | null;
+        if (saved && ['vestibular', 'ingles', 'faculdade'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'faculdade';
+  });
 
   // Máquina de estados canônica do fluxo de Educação / Study Mode
   const [sessionState, setSessionState] = useState<StudySessionState>('dashboard');

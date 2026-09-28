@@ -80,10 +80,40 @@ interface AgendaContextType {
 const AgendaContext = createContext<AgendaContextType | undefined>(undefined);
 
 export function AgendaProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<AgendaItem[]>(() => getInitialAgendaItems());
+  const [items, setItems] = useState<AgendaItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('medusa-agenda-items');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return getInitialAgendaItems();
+  });
   const [categories, setCategories] = useState<AgendaCategory[]>(INITIAL_CATEGORIES);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<AgendaViewMode>('dia');
+  const [viewMode, setViewModeState] = useState<AgendaViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('medusa-agenda-view-mode') as AgendaViewMode;
+        if (saved && ['dia', 'semana', 'mes', 'lista'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'dia';
+  });
+
+  const setViewMode = useCallback((mode: AgendaViewMode) => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem('medusa-agenda-view-mode', mode);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('medusa-agenda-items', JSON.stringify(items));
+    } catch {}
+  }, [items]);
+
   const [selectedDomainFilter, setSelectedDomainFilter] = useState<AgendaDomain | 'all'>('all');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isDrawerOpen, setDrawerOpen] = useState(false);

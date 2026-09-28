@@ -116,27 +116,45 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
   const [cronogramaOnboardingSeen, setCronogramaOnboardingSeen] = useState(false);
   const [cronogramaPlan, setCronogramaPlan] = useState<CronogramaPlan | null>(null);
 
-  // Hidratação segura a partir do localStorage (Fase 2: Cronograma persistente)
+  // Hidratação segura a partir do localStorage (Fase 2: Cronograma persistente e Rotas)
   useEffect(() => {
     try {
       const savedSeen = localStorage.getItem('medusa_cronograma_seen');
       const savedPlan = localStorage.getItem('medusa_cronograma_plan');
+      const savedTrack = localStorage.getItem('medusa_education_track') as StudyTrack | null;
+      const savedEnemView = localStorage.getItem('medusa_enem_view') as EnemView | null;
       if (savedSeen === 'true') {
         setCronogramaOnboardingSeen(true);
       }
       if (savedPlan) {
         setCronogramaPlan(JSON.parse(savedPlan));
       }
+      if (savedTrack && ['vestibular', 'ingles', 'faculdade'].includes(savedTrack)) {
+        setCurrentTrackMirror(savedTrack);
+      }
+      if (savedEnemView && ['visao-geral', 'cronograma'].includes(savedEnemView)) {
+        setEnemView(savedEnemView);
+      }
     } catch (e) {
-      console.warn('[EducationPanelContext] Não foi possível ler cronograma salvo:', e);
+      console.warn('[EducationPanelContext] Não foi possível ler estado salvo:', e);
     }
   }, []);
 
-  const setCurrentTrackMirrorCb = useCallback((track: StudyTrack) => setCurrentTrackMirror(track), []);
+  const setCurrentTrackMirrorCb = useCallback((track: StudyTrack) => {
+    setCurrentTrackMirror(track);
+    try {
+      localStorage.setItem('medusa_education_track', track);
+    } catch {}
+  }, []);
+
+  const handleSetEnemView = useCallback((view: EnemView) => {
+    setEnemView(view);
+    try {
+      localStorage.setItem('medusa_enem_view', view);
+    } catch {}
+  }, []);
+
   const setIsSessionCompletedMirrorCb = useCallback((value: boolean) => setIsSessionCompletedMirror(value), []);
-  // React trata valor de estado do tipo função como updater lazy — por isso `() => fn` aqui e em
-  // toda chamada de `setRequestStartStudyMirror`, nunca `fn` sozinho (armazenaria a referência
-  // errada / dispararia a função na hora, em vez de guardá-la para o clique real do usuário).
   const setRequestStartStudyMirrorCb = useCallback((fn: (() => void) | null) => {
     setRequestStartStudyMirror(() => fn);
   }, []);
@@ -175,7 +193,8 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
       localStorage.removeItem('medusa_cronograma_plan');
       localStorage.removeItem('medusa_cronograma_seen');
     } catch {}
-    setIsCronogramaOverlayOpen(true);
+    setIsCronogramaOverlayOpen(false);
+    setEnemView('cronograma');
   }, []);
 
   const isCronogramaConfigured = Boolean(cronogramaPlan);
@@ -192,7 +211,7 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
         requestStartStudy,
         setRequestStartStudyMirror: setRequestStartStudyMirrorCb,
         enemView,
-        setEnemView,
+        setEnemView: handleSetEnemView,
         faculdadeDisciplineCode,
         setFaculdadeDisciplineCode,
         facultyExtraDisciplines,

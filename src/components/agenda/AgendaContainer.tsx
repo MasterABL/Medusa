@@ -67,13 +67,7 @@ export function AgendaContainer() {
     openAddDrawerWithSlot,
   } = useAgenda();
 
-  const { setIslandState } = useShell();
-
-  // Pulso transiente e intencional do Dynamic Island (Fase 6)
-  const pulseIsland = useCallback((state: IslandState = 'context', durationMs: number = 380) => {
-    setIslandState(state);
-    window.setTimeout(() => setIslandState('idle'), durationMs);
-  }, [setIslandState]);
+  const { triggerIslandNotification } = useShell();
 
   // Auto-dismiss do Toast de Desfazer após 6 segundos
   useEffect(() => {
@@ -88,60 +82,102 @@ export function AgendaContainer() {
     (mode: typeof viewMode) => {
       if (mode === viewMode) return;
       setViewMode(mode);
-      pulseIsland('context', 320);
+      triggerIslandNotification({
+        title: `Visão ${mode.charAt(0).toUpperCase() + mode.slice(1)}`,
+        desc: 'Perspectiva temporal atualizada',
+        badge: 'Visão',
+        state: 'context',
+        durationMs: 800,
+      });
     },
-    [viewMode, setViewMode, pulseIsland]
+    [viewMode, setViewMode, triggerIslandNotification]
   );
 
   const handleSaveItem = useCallback(
     (itemData: Parameters<typeof createOrUpdateItem>[0]) => {
       createOrUpdateItem(itemData);
-      pulseIsland('success', 420);
+      triggerIslandNotification({
+        title: itemData.id ? 'Evento atualizado' : 'Evento criado',
+        desc: 'Sincronizado na Agenda',
+        badge: 'Agenda',
+        state: 'success',
+        durationMs: 1600,
+      });
       playFeedback('success');
     },
-    [createOrUpdateItem, pulseIsland]
+    [createOrUpdateItem, triggerIslandNotification]
   );
 
   const handleDeleteItem = useCallback(
     (itemId: string) => {
       deleteItem(itemId);
-      pulseIsland('attention', 420);
+      triggerIslandNotification({
+        title: 'Evento excluído',
+        desc: 'Pode ser desfeito em instantes',
+        badge: 'Excluído',
+        state: 'attention',
+        durationMs: 1800,
+      });
       playFeedback('delete');
     },
-    [deleteItem, pulseIsland]
+    [deleteItem, triggerIslandNotification]
   );
 
   const handleDeleteMultipleItems = useCallback(
     (itemIds: string[]) => {
       deleteMultipleItems(itemIds);
-      pulseIsland('attention', 450);
+      triggerIslandNotification({
+        title: `${itemIds.length} eventos excluídos`,
+        desc: 'Desfazer disponível no rodapé',
+        badge: 'Excluído',
+        state: 'attention',
+        durationMs: 2000,
+      });
       playFeedback('delete');
     },
-    [deleteMultipleItems, pulseIsland]
+    [deleteMultipleItems, triggerIslandNotification]
   );
 
   const handleDeleteRecurringOccurrence = useCallback(
     (item: AgendaItem, scope: 'this' | 'following' | 'series') => {
       deleteRecurringOccurrence(item, scope);
-      pulseIsland('attention', 420);
+      triggerIslandNotification({
+        title: scope === 'series' ? 'Série inteira excluída' : 'Ocorrência excluída',
+        desc: 'Desfazer disponível no rodapé',
+        badge: 'Recorrente',
+        state: 'attention',
+        durationMs: 1800,
+      });
       playFeedback('delete');
     },
-    [deleteRecurringOccurrence, pulseIsland]
+    [deleteRecurringOccurrence, triggerIslandNotification]
   );
 
   const handleUndo = useCallback(() => {
     undoLastDelete();
-    pulseIsland('success', 400);
+    triggerIslandNotification({
+      title: 'Evento restaurado',
+      desc: 'Retornado à sua linha do tempo',
+      badge: 'Restaurado',
+      state: 'success',
+      durationMs: 1600,
+    });
     playFeedback('ready');
-  }, [undoLastDelete, pulseIsland]);
+  }, [undoLastDelete, triggerIslandNotification]);
 
   const handleReschedule = useCallback(
     (itemId: string, date: string, startTime: string, endTime: string) => {
       rescheduleItem(itemId, date, startTime, endTime);
-      pulseIsland('success', 380);
+      triggerIslandNotification({
+        title: 'Horário ajustado',
+        desc: 'Sem conflitos na timeline',
+        badge: 'Reagendado',
+        state: 'success',
+        durationMs: 1500,
+      });
       playFeedback('action');
     },
-    [rescheduleItem, pulseIsland]
+    [rescheduleItem, triggerIslandNotification]
   );
 
   // Expansão virtual de rotinas recorrentes para o horizonte visual atual
@@ -219,10 +255,16 @@ export function AgendaContainer() {
         startTime: suggestion.start,
         endTime: suggestion.end,
       });
-      pulseIsland('success', 380);
+      triggerIslandNotification({
+        title: 'Horário reagendado',
+        desc: 'Encaixe inteligente aplicado',
+        badge: 'Smart Fit',
+        state: 'success',
+        durationMs: 1600,
+      });
       playFeedback('success');
     },
-    [createOrUpdateItem, pulseIsland]
+    [createOrUpdateItem, triggerIslandNotification]
   );
 
   return (
@@ -268,6 +310,7 @@ export function AgendaContainer() {
               categories={categories}
               selectedItemId={selectedItemId}
               onSelectItem={(it) => setSelectedItemId(it.id)}
+              onDoubleClickItem={handleOpenEdit}
               onSelectSlot={openAddDrawerWithSlot}
             />
           )}
@@ -279,6 +322,7 @@ export function AgendaContainer() {
               categories={categories}
               selectedItemId={selectedItemId}
               onSelectItem={(it) => setSelectedItemId(it.id)}
+              onDoubleClickItem={handleOpenEdit}
               onSelectSlot={openAddDrawerWithSlot}
               onSelectDayDate={(date) => setCurrentDate(date)}
             />

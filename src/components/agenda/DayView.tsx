@@ -30,6 +30,7 @@ interface DayViewProps {
   categories: AgendaCategory[];
   selectedItemId?: string | null;
   onSelectItem: (item: AgendaItem) => void;
+  onDoubleClickItem?: (item: AgendaItem) => void;
   onSelectSlot?: (startTime: string, endTime: string) => void;
 }
 
@@ -39,6 +40,7 @@ export function DayView({
   categories,
   selectedItemId,
   onSelectItem,
+  onDoubleClickItem,
   onSelectSlot,
 }: DayViewProps) {
   const { theme } = useShell();
@@ -110,6 +112,7 @@ export function DayView({
                   key={item.id}
                   type="button"
                   onClick={() => onSelectItem(item)}
+                  onDoubleClick={() => onDoubleClickItem?.(item)}
                   style={{
                     backgroundColor: colorStyle.bg,
                     borderColor: isSelected ? colorStyle.accent : colorStyle.border,
@@ -232,7 +235,7 @@ export function DayView({
                     top: `${topPercent}%`,
                     height: `${heightPercent}%`,
                   }}
-                  className="absolute left-14 sm:left-20 right-2 transition-all duration-200"
+                  className="absolute left-1 sm:left-2 right-1 sm:right-2 transition-all duration-200"
                 >
                   {/* Sub-região de coluna dentro da faixa de eventos (mesmo gutter
                       responsivo de sempre) — divide o espaço em 1..N colunas iguais. */}
@@ -251,6 +254,7 @@ export function DayView({
                       conflict={conflict}
                       isSelected={isSelected}
                       onClick={() => onSelectItem(item)}
+                      onDoubleClick={() => onDoubleClickItem?.(item)}
                       compact={isNarrowColumn}
                       style={{ width: '100%', height: '100%' }}
                     />

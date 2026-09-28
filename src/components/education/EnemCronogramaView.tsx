@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { CronogramaBlock } from './types';
 import { useEducationPanel } from '@/context/EducationPanelContext';
+import { useShell } from '@/context/ShellContext';
 import { getDisciplineColor, COLORED_DISCIPLINES } from './disciplineColor';
 import { CronogramaPlan, INTENSIDADE_LABEL } from './cronogramaPlanner';
 
@@ -54,6 +55,7 @@ const STATUS_LABEL: Record<CronogramaBlock['status'], string> = {
  * outra tela.
  */
 export function EnemCronogramaView({ blocks, onStartStudy, plan }: EnemCronogramaViewProps) {
+  const { setActiveRoute } = useShell();
   const [period, setPeriod] = useState<Period>('semana');
   const [disciplineFilter, setDisciplineFilter] = useState<string>('Todas');
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(
@@ -199,6 +201,29 @@ export function EnemCronogramaView({ blocks, onStartStudy, plan }: EnemCronogram
         >
           <span className="material-symbols-outlined text-[14px] text-medusa-primary">tune</span>
           Refazer Cronograma
+        </button>
+      </div>
+
+      {/* Banner de Sincronização com a Agenda (Fase 2 / Round 2) */}
+      <div
+        id="cronograma-applied-sync-banner"
+        data-sync-banner="true"
+        className="p-3 sm:p-3.5 rounded-xl bg-medusa-primary/10 border border-medusa-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px] animate-in fade-in duration-300"
+      >
+        <div className="flex items-center gap-2.5 text-text-primary">
+          <span className="material-symbols-outlined text-[18px] text-medusa-primary">event_available</span>
+          <span className="leading-snug">
+            <strong>Cronograma Aplicado:</strong> 7 blocos de estudo foram organizados e adicionados à sua Agenda.
+          </span>
+        </div>
+        <button
+          type="button"
+          id="btn-view-agenda-from-sync"
+          onClick={() => setActiveRoute('agenda')}
+          className="btn-interactive px-3.5 py-1.5 rounded-lg bg-medusa-primary text-[#1C2420] text-[11px] font-semibold hover:brightness-105 flex items-center gap-1.5 flex-shrink-0 shadow-subtle self-start sm:self-auto"
+        >
+          <span className="material-symbols-outlined text-[14px]">calendar_month</span>
+          <span>Ver na Agenda</span>
         </button>
       </div>
 

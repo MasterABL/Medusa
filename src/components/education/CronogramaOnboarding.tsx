@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { getDisciplineColor } from './disciplineColor';
 import { playFeedback } from '@/lib/audioFeedback';
+import { useShell } from '@/context/ShellContext';
 import {
   WEEKDAYS,
   WEEKDAY_LABEL,
@@ -74,11 +75,26 @@ const BLOCOS_ORDER: TemporalBlockCategory[] = [
 ];
 
 export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
+  const { setActiveRoute, triggerIslandNotification } = useShell();
   const [step, setStep] = useState<Step>('intro');
   const [activeBlocoIndex, setActiveBlocoIndex] = useState(0);
   const [diagnosticoRespostas, setDiagnosticoRespostas] = useState<Record<string, number>>({});
+  const [multiRespostas, setMultiRespostas] = useState<Record<string, number[]>>({});
+  const [customTexts, setCustomTexts] = useState<Record<string, string>>({});
   const [dominio, setDominio] = useState<Partial<Record<string, DomainLevel>>>({});
   const [plano, setPlano] = useState<CronogramaPlan | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [appliedBanner, setAppliedBanner] = useState(false);
+
+  // Referência para o container de rolagem real (100% zoom gate)
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Toda troca de bloco ou etapa força rolagem imediata para o topo (scrollTop = 0)
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [step, activeBlocoIndex]);
 
   const activeBloco = BLOCOS_ORDER[activeBlocoIndex];
   const questoesDoBloco = useMemo(() => {
@@ -88,13 +104,41 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
   const totalQuestoesRespondidas = Object.keys(diagnosticoRespostas).length;
   const totalQuestoes = DIAGNOSTICO_QUESTOES_TEMPORAIS.length;
   const isBlocoAtualCompleto = questoesDoBloco.every((q) => diagnosticoRespostas[q.id] !== undefined);
-  const isDiagnosticoTotalCompleto = totalQuestoesRespondidas === totalQuestoes;
 
   useEscapeKey(true, () => onFinish(gerarPlanoGenerico()));
 
-  const handleSelectOpcao = (questaoId: string, opcaoIndex: number) => {
-    setDiagnosticoRespostas((prev) => ({ ...prev, [questaoId]: opcaoIndex }));
+  const handleSelectOpcao = (questaoId: string, opcaoIndex: number, isMulti = false) => {
+    if (isMulti) {
+      setMultiRespostas((prev) => {
+        const current = prev[questaoId] || [];
+        const updated = current.includes(opcaoIndex)
+          ? current.filter((i) => i !== opcaoIndex)
+          : [...current, opcaoIndex];
+        return { ...prev, [questaoId]: updated };
+      });
+      // Mantém diagnosticoRespostas atualizado para cálculo do plano
+      setDiagnosticoRespostas((prev) => ({ ...prev, [questaoId]: opcaoIndex }));
+    } else {
+      setDiagnosticoRespostas((prev) => ({ ...prev, [questaoId]: opcaoIndex }));
+    }
     playFeedback('press');
+  };
+
+  const handleCustomTextChange = (questaoId: string, text: string) => {
+    setCustomTexts((prev) => ({ ...prev, [questaoId]: text }));
+    if (diagnosticoRespostas[questaoId] === undefined) {
+      setDiagnosticoRespostas((prev) => ({ ...prev, [questaoId]: 0 }));
+    }
+  };
+
+  const handleStartDiagnostic = () => {
+    setIsTransitioning(true);
+    playFeedback('checkpoint');
+    setTimeout(() => {
+      setStep('diagnostico');
+      setActiveBlocoIndex(0);
+      setIsTransitioning(false);
+    }, 450);
   };
 
   const handleNextBloco = () => {
@@ -119,7 +163,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
   const handlePreencherPerfilEquilibrado = () => {
     const presetRespostas: Record<string, number> = {};
     DIAGNOSTICO_QUESTOES_TEMPORAIS.forEach((q) => {
-      presetRespostas[q.id] = 1; // Seleciona opção intermediária realista
+      presetRespostas[q.id] = 1;
     });
     setDiagnosticoRespostas(presetRespostas);
 
@@ -139,14 +183,12 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
     playFeedback('processing');
 
     setTimeout(() => {
-      // Deduz dias disponíveis a partir da pergunta dt_08
       const r08 = diagnosticoRespostas['dt_08'] ?? 1;
       let diasDisponiveis: Weekday[] = ['seg', 'ter', 'qua', 'qui', 'sex'];
       if (r08 === 0) diasDisponiveis = ['seg', 'ter', 'qui', 'sex'];
       else if (r08 === 2) diasDisponiveis = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
       else if (r08 === 3) diasDisponiveis = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 
-      // Deduz horas por dia a partir da pergunta dt_09
       const r09 = diagnosticoRespostas['dt_09'] ?? 1;
       let horasPorDia = 3;
       if (r09 === 0) horasPorDia = 2;
@@ -154,8 +196,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
       else if (r09 === 2) horasPorDia = 5;
       else if (r09 === 3) horasPorDia = 6.5;
 
-      // Data aproximada do próximo ENEM (novembro)
-      const hoje = new Date();
+      const hoje = new Date(2026, 8, 28);
       const anoAlvo = hoje.getMonth() >= 10 ? hoje.getFullYear() + 1 : hoje.getFullYear();
       const dataProva = `${anoAlvo}-11-08`;
 
@@ -165,24 +206,43 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
         dataProva,
         dominio,
         diagnosticoRespostas,
-      });
+      }, hoje);
 
       setPlano(plan);
       setStep('resultado');
       playFeedback('celebration');
-    }, 1200);
+    }, 1000);
+  };
+
+  const handleApplyAndSync = (goToAgendaView: boolean) => {
+    if (!plano) return;
+    const diasReais: Weekday[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    onFinish(plano, diasReais);
+    setAppliedBanner(true);
+    playFeedback('success');
+
+    triggerIslandNotification({
+      title: 'Cronograma aplicado',
+      description: '7 blocos de estudo sincronizados na sua Agenda',
+      badge: 'Sincronizado',
+      durationMs: 2400,
+    });
+
+    if (goToAgendaView) {
+      setActiveRoute('agenda');
+    }
   };
 
   return (
     <div
       id="cronograma-onboarding"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Diagnóstico Temporal e Planejamento do Cronograma ENEM"
-      className="fixed inset-0 z-[70] bg-background/95 backdrop-blur-md flex flex-col modal-backdrop-enter"
+      className="w-full bg-surface border border-border/70 rounded-2xl shadow-calm flex flex-col overflow-hidden animate-in fade-in duration-300 min-h-[580px]"
     >
-      {/* Cabeçalho Superior: Stepper de Progresso + Botão Fechar */}
-      <header className="flex items-center justify-between px-5 sm:px-10 pt-5 sm:pt-6 pb-3 border-b border-border/60 flex-shrink-0 bg-surface/70">
+      {/* CABEÇALHO FIXO NO TOPO */}
+      <header
+        id="cronograma-fixed-header"
+        className="flex-shrink-0 flex items-center justify-between px-5 sm:px-10 pt-4 sm:pt-5 pb-3 border-b border-border/60 bg-surface/80 z-20"
+      >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-medusa-primary/20 border border-medusa-primary/40 flex items-center justify-center text-medusa-primary">
             <span className="material-symbols-outlined text-[18px]">calendar_month</span>
@@ -190,16 +250,20 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">
-                Temporal OS · Diagnóstico do Cronograma
+                Temporal OS · Cronograma ENEM
               </span>
-              <span className="text-text-muted/40">•</span>
-              <span className="text-[11px] font-mono text-medusa-primary font-semibold">
-                {totalQuestoesRespondidas} de {totalQuestoes} respondidas
-              </span>
+              {step === 'diagnostico' && (
+                <>
+                  <span className="text-text-muted/40">•</span>
+                  <span className="text-[11px] font-mono text-medusa-primary font-semibold">
+                    {totalQuestoesRespondidas} de {totalQuestoes} respondidas
+                  </span>
+                </>
+              )}
             </div>
-            <h1 className="text-sm sm:text-base font-bold text-text-primary tracking-tight">
+            <h1 id="cronograma-block-title" className="text-sm sm:text-base font-bold text-text-primary tracking-tight">
               {step === 'intro'
-                ? 'Configuração Personalizada do Cronograma'
+                ? 'Planejamento da Rotina de Estudos'
                 : step === 'diagnostico'
                 ? `Bloco ${activeBlocoIndex + 1} de 6: ${BLOCOS_INFO[activeBloco].titulo}`
                 : step === 'dominio'
@@ -224,53 +288,69 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
             </button>
           )}
 
-          <button
-            type="button"
-            id="btn-close-cronograma-onboarding"
-            onClick={() => onFinish(gerarPlanoGenerico())}
-            aria-label="Fechar e pular configuração"
-            title="Pular diagnóstico (Esc)"
-            className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
+          {step === 'intro' && (
+            <button
+              type="button"
+              onClick={() => onFinish(gerarPlanoGenerico())}
+              className="text-[11px] font-mono text-text-muted hover:text-text-primary px-3 py-1"
+            >
+              Pular diagnóstico
+            </button>
+          )}
         </div>
       </header>
 
       {/* Barra de Progresso Contínua */}
-      <div className="w-full bg-border/40 h-1 overflow-hidden">
+      <div className="w-full bg-border/40 h-1 overflow-hidden flex-shrink-0">
         <div
           className="bg-medusa-primary h-full transition-all duration-300"
           style={{
             width: `${
               step === 'intro'
-                ? 5
+                ? 10
                 : step === 'dominio'
                 ? 90
                 : step === 'resultado'
                 ? 100
-                : Math.max(5, (totalQuestoesRespondidas / totalQuestoes) * 85)
+                : Math.max(10, (totalQuestoesRespondidas / totalQuestoes) * 85)
             }%`,
           }}
         />
       </div>
 
-      {/* Conteúdo Central */}
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-8 py-6 overflow-y-auto">
-        <div key={`${step}-${activeBlocoIndex}`} className="study-stage-enter w-full max-w-2xl flex flex-col gap-6">
-          
-          {/* STEP 1: INTRO */}
+      {/* ÁREA DE CONTEÚDO REALMENTE SCROLLÁVEL A 100% ZOOM */}
+      <div
+        ref={scrollContainerRef}
+        id="cronograma-questions-scroll"
+        data-scroll-area="cronograma"
+        className="flex-1 min-h-0 max-h-[65vh] overflow-y-auto px-4 sm:px-8 py-6 flex flex-col items-center"
+      >
+        <div
+          key={`${step}-${activeBlocoIndex}`}
+          className={`w-full max-w-2xl flex flex-col gap-6 transition-all duration-500 ${
+            isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100 study-stage-enter'
+          }`}
+        >
+          {/* STEP 1: INTRO (Boas-vindas e Início de Jornada com Transição Suave) */}
           {step === 'intro' && (
-            <div className="text-center flex flex-col items-center gap-5 py-4">
-              <div className="w-16 h-16 rounded-2xl bg-medusa-primary/15 border border-medusa-primary/40 flex items-center justify-center shadow-subtle">
-                <span className="material-symbols-outlined text-[32px] text-medusa-primary">auto_awesome</span>
+            <div
+              id="cronograma-onboarding-welcome"
+              className="text-center flex flex-col items-center gap-6 py-6 sm:py-10"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-medusa-primary/15 border border-medusa-primary/40 flex items-center justify-center shadow-subtle animate-in fade-in zoom-in-95 duration-500">
+                <span className="material-symbols-outlined text-[32px] text-medusa-primary">school</span>
               </div>
-              <div className="space-y-2 max-w-lg">
-                <h2 className="text-2xl font-bold tracking-tight text-text-primary">
-                  Vamos desenhar o seu Cronograma de Estudos?
+
+              <div className="space-y-3 max-w-lg">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-medusa-primary font-semibold block">
+                  Educação · ENEM
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary leading-tight">
+                  Bem-vindo, Abimael.<br />
+                  Vamos começar a planejar sua rotina de estudos para o ENEM?
                 </h2>
-                <p className="text-[13px] text-text-secondary leading-relaxed">
-                  Para que a sua Agenda funcione como um <strong>Temporal OS</strong> e nunca gere blocos irreais ou conflitantes, preparamos um diagnóstico rápido em 6 blocos (26 perguntas) sobre a sua rotina real, trabalho, picos de foco e metas de aprovação.
+                <p className="text-[13px] sm:text-[14px] text-text-secondary leading-relaxed">
+                  Para que a sua Agenda funcione como um <strong>Temporal OS</strong> e entenda a sua rotina real, preparamos um diagnóstico em 6 blocos que investiga trabalho, deslocamento, prazos e picos de foco.
                 </p>
               </div>
 
@@ -293,20 +373,17 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                 ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-3">
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
                 <button
                   type="button"
                   id="btn-onboarding-start-diagnostic"
-                  onClick={() => {
-                    setStep('diagnostico');
-                    setActiveBlocoIndex(0);
-                    playFeedback('checkpoint');
-                  }}
-                  className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-7 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2"
+                  onClick={handleStartDiagnostic}
+                  className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] px-8 py-3 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <span>Iniciar Diagnóstico Temporal</span>
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  <span>Iniciar meu diagnóstico</span>
+                  <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => onFinish(gerarPlanoGenerico())}
@@ -318,14 +395,13 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
             </div>
           )}
 
-          {/* STEP 2: DIAGNÓSTICO (26 PERGUNTAS EM 6 BLOCOS) */}
+          {/* STEP 2: DIAGNÓSTICO (26 PERGUNTAS ESTRUTURADAS COM MULTISELECT E RESPOSTAS PERSONALIZADAS) */}
           {step === 'diagnostico' && (
-            <div className="flex flex-col gap-5 w-full">
-              {/* Barra de Tabs dos 6 Blocos */}
+            <div className="flex flex-col gap-5 w-full pb-8">
+              {/* Navegação Rápida entre os 6 Blocos */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-border/50">
                 {BLOCOS_ORDER.map((bKey, bIdx) => {
                   const isCurrent = bIdx === activeBlocoIndex;
-                  const isPassed = bIdx < activeBlocoIndex;
                   const questoes = DIAGNOSTICO_QUESTOES_TEMPORAIS.filter((q) => q.bloco === bKey);
                   const respondidas = questoes.filter((q) => diagnosticoRespostas[q.id] !== undefined).length;
                   const allDone = respondidas === questoes.length;
@@ -362,22 +438,30 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
               <div className="flex flex-col gap-4">
                 {questoesDoBloco.map((q) => {
                   const respostaSelecionada = diagnosticoRespostas[q.id];
+                  const isMulti = q.type === 'multi';
+                  const multiSelected = multiRespostas[q.id] || [];
+                  const isAnswered = isMulti ? multiSelected.length > 0 : respostaSelecionada !== undefined;
 
                   return (
                     <div
                       key={q.id}
-                      className="p-4 rounded-xl bg-surface border border-border/70 flex flex-col gap-2.5 shadow-subtle"
+                      className="p-4 sm:p-5 rounded-xl bg-surface border border-border/70 flex flex-col gap-3 shadow-subtle text-left"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-0.5">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-medusa-primary font-semibold">
-                            Questão {q.numero} de 26 · {BLOCOS_INFO[q.bloco].titulo}
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-medusa-primary font-semibold flex items-center gap-1.5">
+                            <span>Questão {q.numero} de 26 · {BLOCOS_INFO[q.bloco].titulo}</span>
+                            {isMulti && (
+                              <span className="bg-medusa-primary/15 text-[#18534B] dark:text-[#71DBD2] px-1.5 py-0.2 rounded text-[9px]">
+                                Múltipla escolha
+                              </span>
+                            )}
                           </span>
-                          <h3 className="text-[13px] sm:text-[14px] font-semibold text-text-primary leading-snug">
+                          <h3 className="text-[13px] sm:text-[14.5px] font-semibold text-text-primary leading-snug">
                             {q.pergunta}
                           </h3>
                         </div>
-                        {respostaSelecionada !== undefined && (
+                        {isAnswered && (
                           <span className="w-5 h-5 rounded-full bg-medusa-support/20 text-medusa-support flex items-center justify-center flex-shrink-0 mt-0.5">
                             <span className="material-symbols-outlined text-[14px]">check</span>
                           </span>
@@ -391,23 +475,39 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                       {/* Opções de Resposta */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                         {q.opcoes.map((opcao, oi) => {
-                          const isSelected = respostaSelecionada === oi;
+                          const isSelected = isMulti
+                            ? multiSelected.includes(oi)
+                            : respostaSelecionada === oi;
 
                           return (
                             <button
                               key={oi}
                               type="button"
                               id={`opcao-${q.id}-${oi}`}
-                              onClick={() => handleSelectOpcao(q.id, oi)}
-                              className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
+                              data-multiselect={isMulti ? "true" : undefined}
+                              onClick={() => handleSelectOpcao(q.id, oi, isMulti)}
+                              className={`p-2.5 sm:p-3 rounded-xl border text-left flex flex-col gap-0.5 transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
                                 isSelected
                                   ? 'bg-medusa-primary/10 border-medusa-primary text-text-primary shadow-subtle ring-1 ring-medusa-primary/40'
                                   : 'bg-surface-secondary/40 border-border/60 hover:bg-surface-secondary hover:border-border text-text-secondary'
                               }`}
                             >
-                              <span className="text-[12px] font-medium leading-tight">
-                                {opcao.texto}
-                              </span>
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[12px] font-medium leading-tight">
+                                  {opcao.texto}
+                                </span>
+                                {isMulti && (
+                                  <span
+                                    className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[10px] ${
+                                      isSelected
+                                        ? 'bg-medusa-primary text-[#1C2420] border-medusa-primary'
+                                        : 'border-border/80'
+                                    }`}
+                                  >
+                                    {isSelected && <span className="material-symbols-outlined text-[11px]">check</span>}
+                                  </span>
+                                )}
+                              </div>
                               {opcao.subtexto && (
                                 <span className="text-[10px] text-text-muted leading-tight">
                                   {opcao.subtexto}
@@ -417,40 +517,32 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                           );
                         })}
                       </div>
+
+                      {/* Campo de Resposta Personalizada / "Outro" quando permitido */}
+                      {q.allowCustom && (
+                        <div className="pt-1.5 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[15px] text-text-muted">edit_note</span>
+                          <input
+                            type="text"
+                            id={`custom-input-${q.id}`}
+                            data-custom-input="true"
+                            value={customTexts[q.id] || ''}
+                            onChange={(e) => handleCustomTextChange(q.id, e.target.value)}
+                            placeholder={q.customPlaceholder || 'Personalizar / Outro horário ou detalhe...'}
+                            className="flex-1 bg-surface-secondary/40 border border-border/60 rounded-lg px-2.5 py-1.5 text-[11.5px] text-text-primary focus:border-medusa-primary focus:outline-none placeholder:text-text-muted/60"
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Controles de Navegação Entre Blocos */}
-              <div className="flex items-center justify-between pt-3 border-t border-border/60">
-                <button
-                  type="button"
-                  onClick={handlePrevBloco}
-                  className="btn-interactive px-4 py-2 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary border border-border"
-                >
-                  {activeBlocoIndex === 0 ? 'Voltar ao Início' : 'Bloco Anterior'}
-                </button>
-
-                <button
-                  type="button"
-                  id="btn-onboarding-next-block"
-                  onClick={handleNextBloco}
-                  disabled={!isBlocoAtualCompleto}
-                  className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none px-6 py-2 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5"
-                >
-                  <span>
-                    {activeBlocoIndex < BLOCOS_ORDER.length - 1 ? 'Próximo Bloco' : 'Avançar para Disciplinas'}
-                  </span>
-                  <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-                </button>
               </div>
             </div>
           )}
 
           {/* STEP 3: AUTOAVALIAÇÃO DE DOMÍNIO */}
           {step === 'dominio' && (
-            <div className="flex flex-col gap-5 w-full">
+            <div className="flex flex-col gap-5 w-full pb-8">
               <div className="text-center space-y-1">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-medusa-primary font-semibold">
                   Autoavaliação das 7 Disciplinas
@@ -502,7 +594,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                 })}
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between pt-4 border-t border-border/60">
                 <button
                   type="button"
                   onClick={() => {
@@ -529,7 +621,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
 
           {/* STEP 4: REVELANDO */}
           {step === 'revelando' && (
-            <div id="onboarding-revelando" className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <div id="onboarding-revelando" className="flex flex-col items-center justify-center gap-4 py-20 text-center">
               <span className="w-16 h-16 rounded-2xl bg-medusa-primary/20 border border-medusa-primary/50 flex items-center justify-center living-pulse">
                 <span className="material-symbols-outlined text-[30px] text-medusa-primary">schedule</span>
               </span>
@@ -542,9 +634,9 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
             </div>
           )}
 
-          {/* STEP 5: RESULTADO */}
+          {/* STEP 5: RESULTADO E SINCRONIZAÇÃO */}
           {step === 'resultado' && plano && (
-            <div className="flex flex-col gap-5 w-full">
+            <div id="cronograma-calculation-result" className="flex flex-col gap-5 w-full pb-8">
               <div className="text-center space-y-1.5">
                 <span className="w-12 h-12 rounded-xl bg-medusa-support/20 border border-medusa-support/40 flex items-center justify-center mx-auto text-medusa-support">
                   <span className="material-symbols-outlined text-[24px]">verified</span>
@@ -558,7 +650,27 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                 </p>
               </div>
 
-              {/* Cards de Métricas Operacionais Calculadas */}
+              {appliedBanner && (
+                <div
+                  id="cronograma-applied-sync-banner"
+                  className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-400/40 text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-3 animate-in fade-in"
+                >
+                  <div className="flex items-center gap-2 text-[12px]">
+                    <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
+                    <span>Seu cronograma foi aplicado e 7 blocos foram adicionados à sua Agenda.</span>
+                  </div>
+                  <button
+                    type="button"
+                    id="btn-view-agenda-from-sync"
+                    onClick={() => setActiveRoute('agenda')}
+                    className="btn-interactive px-3 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-mono font-medium hover:bg-emerald-700"
+                  >
+                    Ver Agenda
+                  </button>
+                </div>
+              )}
+
+              {/* Métricas Operacionais */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-left">
                 <div className="p-3 rounded-xl bg-surface border border-border/60">
                   <span className="text-[9px] font-mono uppercase text-text-muted block">Pico Cognitivo</span>
@@ -590,7 +702,7 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
               </div>
 
               {/* Distribuição Semanal por Disciplina */}
-              <div className="p-4 rounded-xl bg-surface border border-border/70 space-y-2">
+              <div className="p-4 rounded-xl bg-surface border border-border/70 space-y-2 text-left">
                 <div className="flex items-center justify-between pb-1 border-b border-border/40">
                   <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-text-muted">
                     Distribuição da Carga Horária
@@ -622,25 +734,63 @@ export function CronogramaOnboarding({ onFinish }: CronogramaOnboardingProps) {
                 </div>
               </div>
 
-              {/* Botão de Finalização e Sincronização */}
-              <button
-                type="button"
-                id="btn-onboarding-ver-cronograma"
-                onClick={() => {
-                  const diasReais: Weekday[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-                  onFinish(plano, diasReais);
-                  playFeedback('success');
-                }}
-                className="btn-interactive w-full bg-medusa-primary hover:opacity-95 text-[#1C2420] py-3 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center justify-center gap-2"
-              >
-                <span>Concluir e Sincronizar com a Agenda</span>
-                <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
-              </button>
+              {/* Botões de Ação Final */}
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+                <button
+                  type="button"
+                  id="btn-onboarding-ver-cronograma"
+                  onClick={() => handleApplyAndSync(false)}
+                  className="btn-interactive flex-1 w-full bg-medusa-primary hover:opacity-95 text-[#1C2420] py-3 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[17px]">calendar_month</span>
+                  <span>Concluir e Ver no Cronograma</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyAndSync(false)}
+                  className="btn-interactive w-full sm:w-auto px-5 py-3 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary bg-surface border border-border"
+                >
+                  Ver no Cronograma do ENEM
+                </button>
+              </div>
             </div>
           )}
-
         </div>
-      </main>
+      </div>
+
+      {/* RODAPÉ FIXO PARA NAVEGAÇÃO DOS BLOCOS (100% ZOOM GATE) */}
+      {step === 'diagnostico' && (
+        <footer
+          id="cronograma-fixed-footer"
+          className="flex-shrink-0 bg-surface/90 border-t border-border/60 px-5 sm:px-10 py-3 z-20 flex items-center justify-between"
+        >
+          <button
+            type="button"
+            onClick={handlePrevBloco}
+            className="btn-interactive px-4 py-1.5 rounded-full text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary border border-border"
+          >
+            {activeBlocoIndex === 0 ? 'Voltar ao Início' : 'Bloco Anterior'}
+          </button>
+
+          <span className="text-[11px] font-mono text-text-muted">
+            Bloco {activeBlocoIndex + 1} de 6
+          </span>
+
+          <button
+            type="button"
+            id="btn-onboarding-next-block"
+            onClick={handleNextBloco}
+            disabled={!isBlocoAtualCompleto}
+            className="btn-interactive bg-medusa-primary hover:opacity-95 text-[#1C2420] disabled:opacity-40 disabled:pointer-events-none px-6 py-1.5 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5"
+          >
+            <span>
+              {activeBlocoIndex < BLOCOS_ORDER.length - 1 ? 'Próximo Bloco' : 'Avançar para Disciplinas'}
+            </span>
+            <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+          </button>
+        </footer>
+      )}
     </div>
   );
 }

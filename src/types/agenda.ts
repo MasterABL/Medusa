@@ -89,6 +89,12 @@ export interface FreeTimeSlot {
   end: string;
   durationMinutes: number;
   label: string;
+  // Temporal OS: distinção entre tempo teoricamente livre e janela realmente utilizável
+  usableStart?: string;
+  usableEnd?: string;
+  usableDurationMinutes?: number;
+  bufferMinutes?: number;
+  commuteNote?: string;
 }
 
 export type AgendaViewMode = 'dia' | 'semana' | 'mes' | 'lista';

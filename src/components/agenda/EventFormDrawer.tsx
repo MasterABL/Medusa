@@ -16,6 +16,8 @@ import {
 } from '@/types/agenda';
 import { calculateDurationMinutes } from './agendaHelpers';
 import { formatDateISO } from './agendaFixtures';
+import { MedusaTimePicker } from './MedusaTimePicker';
+import { PASTEL_PALETTE } from './palette';
 
 interface EventFormDrawerProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ export function EventFormDrawer({
   const [kind, setKind] = useState<AgendaItemKind>('event');
   const [domain, setDomain] = useState<AgendaDomain>('personal');
   const [categoryId, setCategoryId] = useState('');
+  const [colorId, setColorId] = useState('');
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -64,6 +67,7 @@ export function EventFormDrawer({
       setKind(initialItem.kind);
       setDomain(initialItem.domain);
       setCategoryId(initialItem.categoryId);
+      setColorId(initialItem.colorId || '');
       setDate(initialItem.date);
       setStartTime(initialItem.startTime || '09:00');
       setEndTime(initialItem.endTime || '10:00');
@@ -98,6 +102,7 @@ export function EventFormDrawer({
       setDescription('');
       if (categories.length > 0) {
         setCategoryId(categories[0].id);
+        setColorId(categories[0].colorId || 'amarelo_baunilha');
       }
     }
     setError(null);
@@ -109,6 +114,7 @@ export function EventFormDrawer({
     const matchingCat = categories.find((c) => c.domain === newDomain);
     if (matchingCat) {
       setCategoryId(matchingCat.id);
+      setColorId(matchingCat.colorId);
     }
   };
 
@@ -196,13 +202,16 @@ export function EventFormDrawer({
 
   return (
     <div
+      id="event-form-drawer"
       role="dialog"
       aria-modal="true"
       aria-labelledby="event-form-title"
-      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[2px] transition-opacity duration-200"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 animate-in fade-in"
     >
       <div
-        className="w-full max-w-lg bg-surface h-full shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-border/80 animate-in slide-in-from-right duration-250 ease-out"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg bg-surface h-full shadow-2xl flex flex-col justify-between overflow-y-auto border-l border-border/80 animate-in slide-in-from-right duration-400 ease-out"
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full justify-between">
           {/* Topo do Drawer */}
@@ -218,6 +227,7 @@ export function EventFormDrawer({
 
             <button
               type="button"
+              id="btn-close-event-drawer"
               onClick={onClose}
               aria-label="Fechar formulário"
               className="btn-interactive p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
@@ -325,6 +335,33 @@ export function EventFormDrawer({
               </div>
             </div>
 
+            {/* Seletor Explícito de Cor Pastel (24 cores) */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
+                Cor Visual (Paleta Pastel Medusa)
+              </label>
+              <div
+                id="event-color-swatches"
+                className="flex items-center gap-1.5 flex-wrap p-2.5 bg-surface-secondary/50 rounded-xl border border-border/60"
+              >
+                {PASTEL_PALETTE.map((p) => {
+                  const isSelected = colorId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setColorId(p.id)}
+                      title={p.name}
+                      style={{ backgroundColor: p.swatch }}
+                      className={`w-5 h-5 rounded-full transition-transform border border-black/10 dark:border-white/10 ${
+                        isSelected ? 'ring-2 ring-medusa-primary scale-125 z-10' : 'hover:scale-110'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Data & All-day Toggle */}
             <div className="space-y-3 border-t border-border/60 pt-4">
               <div className="flex items-center justify-between">
@@ -354,34 +391,20 @@ export function EventFormDrawer({
               />
             </div>
 
-            {/* Horários (se não for all-day nem deadline) */}
+            {/* Horários e Duração com MedusaTimePicker */}
             {!allDay && kind !== 'deadline' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="form-start-time" className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-                    Início
-                  </label>
-                  <input
-                    id="form-start-time"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-surface-secondary border border-border/80 rounded-xl px-3 py-2 text-[13px] text-text-primary focus:outline-none focus:ring-2 focus:ring-focus-ring tabular-nums"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="form-end-time" className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-                    Fim
-                  </label>
-                  <input
-                    id="form-end-time"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-surface-secondary border border-border/80 rounded-xl px-3 py-2 text-[13px] text-text-primary focus:outline-none focus:ring-2 focus:ring-focus-ring tabular-nums"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <span className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary">
+                  Horário e Duração
+                </span>
+                <MedusaTimePicker
+                  startTime={startTime}
+                  endTime={endTime}
+                  onChange={(s, e) => {
+                    setStartTime(s);
+                    setEndTime(e);
+                  }}
+                />
               </div>
             )}
 

@@ -197,11 +197,12 @@ export function EducationDashboard({
         */}
         <div key={currentTrack} className={`${trackContentMotionClass} flex flex-col gap-8`}>
         {/* ================= 2. CARTÃO DE PRÓXIMA AÇÃO OPERACIONAL (HERO DA TRILHA) ================= */}
+        {/* ================= 2. CARTÃO DE PRÓXIMA AÇÃO OPERACIONAL (HERO DA TRILHA) ================= */}
         <div
           id="education-next-action-card"
-          className={`bg-surface/80 backdrop-blur-xl rounded-2xl p-6 sm:p-7 border border-border/70 shadow-glass dark:shadow-glass-dark flex flex-col gap-6 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass-hover dark:hover:shadow-glass-hover-dark ${accent.hoverBorder}`}
+          className={`bg-surface/80 backdrop-blur-xl rounded-2xl p-3 sm:p-3.5 border border-border/70 shadow-glass dark:shadow-glass-dark flex flex-col gap-2 transition-all duration-220 hover:-translate-y-0.5 hover:shadow-glass-hover dark:hover:shadow-glass-hover-dark ${accent.hoverBorder}`}
         >
-          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div className="flex items-center justify-between border-b border-border/60 pb-1.5">
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${accent.solidBg} living-pulse`} />
               <h3 className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
@@ -218,65 +219,43 @@ export function EducationDashboard({
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-            <div className="flex items-start gap-4">
-              <div className={`w-10 h-10 rounded-xl ${accent.softBg} border ${accent.softBorder} flex items-center justify-center ${accent.text} flex-shrink-0 mt-0.5 shadow-subtle`}>
-                <span className={`material-symbols-outlined text-[22px] ${accent.text}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className={`w-8 h-8 rounded-xl ${accent.softBg} border ${accent.softBorder} flex items-center justify-center ${accent.text} flex-shrink-0 shadow-subtle`}>
+                <span className={`material-symbols-outlined text-[18px] ${accent.text}`}>
                   {currentTrack === 'ingles' ? 'record_voice_over' : currentTrack === 'faculdade' ? 'functions' : 'waves'}
                 </span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider ${accent.text} ${accent.softBg} px-2 py-0.5 rounded border ${accent.softBorder}`}>
+                  <span className={`text-[9px] font-mono font-semibold uppercase tracking-wider ${accent.text} ${accent.softBg} px-1.5 py-0.2 rounded border ${accent.softBorder}`}>
                     {isSessionCompleted ? 'Próximo Bloco' : 'Sessão Pronta'}
                   </span>
-                  <span className="text-[11px] font-mono text-text-muted">
+                  <span className="text-[10.5px] font-mono text-text-muted">
                     {isSessionCompleted ? '50 min estimados' : heroDuration}
                   </span>
                   <span className="text-text-muted/40">•</span>
-                  <span className="text-[11px] font-mono text-text-secondary">
+                  <span className="text-[10.5px] font-mono text-text-secondary truncate">
                     {heroDiscipline}
                   </span>
                 </div>
-                <h4 className="text-[16px] sm:text-[17px] font-semibold text-text-primary tracking-tight">
+                <h4 className="text-[14px] sm:text-[15px] font-semibold text-text-primary tracking-tight truncate">
                   {isSessionCompleted ? lesson.nextTopic : `${heroDiscipline} · ${heroTopic}`}
                 </h4>
-                <p className="text-[12px] text-text-secondary leading-relaxed max-w-xl">
-                  {isSessionCompleted
-                    ? lesson.nextTopicDescription
-                    : heroObjective}
-                </p>
-
-                {/* Roteiro da Sessão — só existe fixture por tópico para a disciplina primária
-                    (Física II); mostrar os pontos de Física II ao ver outra disciplina seria
-                    informação errada, não só genérica — por isso fica oculto nesse caso. */}
-                {isPrimaryFaculdadeDiscipline && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {trackDef.summaryPoints.slice(0, 4).map((point) => (
-                      <span
-                        key={point.id}
-                        className="text-[11px] text-text-secondary bg-surface-secondary/60 border border-border/50 rounded-full px-2.5 py-0.5"
-                      >
-                        {point.title}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2.5 flex-shrink-0 self-end sm:self-auto">
               {interruptedSession?.track === currentTrack ? (
                 <button
                   type="button"
                   id="btn-resume-interrupted-session"
                   onClick={onResumeInterruptedSession}
-                  className="btn-interactive bg-medusa-accent hover:opacity-95 text-[#4A3B00] px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+                  className="btn-interactive bg-medusa-accent hover:opacity-95 text-[#4A3B00] px-4 py-2 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
                 >
-                  <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                  <span className="material-symbols-outlined text-[16px]">play_circle</span>
                   <span>
-                    Continuar aula ·{' '}
-                    {Math.max(0, Math.round((lesson.actualDurationSeconds - interruptedSession.currentTimeSeconds) / 60))} min restantes
+                    Continuar aula ({Math.max(0, Math.round((lesson.actualDurationSeconds - interruptedSession.currentTimeSeconds) / 60))} min)
                   </span>
                 </button>
               ) : isPrimaryFaculdadeDiscipline ? (
@@ -284,21 +263,21 @@ export function EducationDashboard({
                   type="button"
                   id="btn-start-study-session"
                   onClick={() => onStartStudy(qaSimulateFailure)}
-                  className={`btn-interactive ${accent.solidBg} hover:opacity-95 ${accent.solidText} px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all shadow-subtle flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none`}
+                  className={`btn-interactive ${accent.solidBg} hover:opacity-95 ${accent.solidText} px-4 py-2 rounded-full text-[12px] font-semibold transition-all shadow-subtle flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none`}
                 >
-                  <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                  <span className="material-symbols-outlined text-[16px]">play_circle</span>
                   <span>
-                    {isSessionCompleted ? `Iniciar Nova Sessão de ${trackDef.name}` : `Continuar Sessão de ${trackDef.name}`}
+                    {isSessionCompleted ? `Nova Sessão de ${trackDef.name}` : `Iniciar Sessão`}
                   </span>
                 </button>
               ) : (
                 <span
                   id="btn-start-study-session-unavailable"
                   title="Sessão de estudo completa ainda não disponível para esta disciplina"
-                  className="text-[12px] font-mono text-text-muted bg-surface-secondary/60 border border-border/50 px-4 py-2.5 rounded-full flex items-center gap-2 cursor-not-allowed"
+                  className="text-[11px] font-mono text-text-muted bg-surface-secondary/60 border border-border/50 px-3 py-1.5 rounded-full flex items-center gap-1.5 cursor-not-allowed"
                 >
-                  <span className="material-symbols-outlined text-[16px]">hourglass_empty</span>
-                  Sessão ainda não disponível
+                  <span className="material-symbols-outlined text-[14px]">hourglass_empty</span>
+                  Indisponível
                 </span>
               )}
             </div>
@@ -307,12 +286,12 @@ export function EducationDashboard({
           {/* Métricas da Trilha — Progresso Real (Local State). "Tempo Nominal do Ciclo" foi
               removido (Refinamento Visual §6.1): era "28h 00m" fixo, idêntico nas 3 trilhas,
               não ajudava nenhuma decisão — puro ruído decorativo. */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-border/60">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-border/60">
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono uppercase text-text-muted">
+              <span className="text-[9.5px] font-mono uppercase text-text-muted">
                 Progresso Curricular
               </span>
-              <div className="text-base font-bold text-text-primary tabular-nums">
+              <div className="text-[13px] font-bold text-text-primary tabular-nums">
                 {completedCount}/{trackItems.length} módulos
               </div>
               <p className="text-[11px] text-[#1B502C] dark:text-medusa-support font-medium">

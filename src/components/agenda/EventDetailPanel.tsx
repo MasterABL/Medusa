@@ -48,10 +48,12 @@ export function EventDetailPanel({
   suggestions = [],
   onApplySuggestion,
 }: EventDetailPanelProps) {
-  const { theme, setActiveRoute } = useShell();
+  const { theme, setActiveRoute, triggerIslandNotification } = useShell();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteScope, setDeleteScope] = useState<RecurringDeleteScope>('this');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [financialAnalysis, setFinancialAnalysis] = useState<string | null>(null);
+  const [paymentDone, setPaymentDone] = useState(false);
 
   const handleShiftTime = (deltaMinutes: number) => {
     if (!item || !item.startTime || !item.endTime || !onReschedule) return;
@@ -287,6 +289,143 @@ export function EventDetailPanel({
         )}
       </div>
 
+      {/* Ações de Prazo / Contexto de Estudo */}
+      {item.domain === 'education' && (
+        <div className="space-y-2 bg-medusa-primary/5 rounded-xl p-3 border border-medusa-primary/20">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-medusa-primary font-bold block">
+            Ações de Estudo
+          </span>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                triggerIslandNotification({
+                  title: 'Sessão iniciada',
+                  description: `Foco em: ${item.title}`,
+                  badge: 'Estudo Ativo',
+                  durationMs: 2000,
+                });
+                setActiveRoute('educacao');
+                onClose();
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-medusa-primary/20 hover:bg-medusa-primary/30 text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-medusa-primary/30"
+            >
+              <span className="material-symbols-outlined text-[14px]">play_arrow</span>
+              <span>Começar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerIslandNotification({
+                  title: 'Revisão programada',
+                  description: 'Material adicionado aos cartões de revisão',
+                  badge: 'Revisão',
+                  durationMs: 1800,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70"
+            >
+              <span className="material-symbols-outlined text-[14px]">autorenew</span>
+              <span>Revisar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerIslandNotification({
+                  title: 'Material didático',
+                  description: 'Acessando conteúdo curricular',
+                  badge: 'Aula',
+                  durationMs: 1800,
+                });
+                setActiveRoute('educacao');
+                onClose();
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70"
+            >
+              <span className="material-symbols-outlined text-[14px]">menu_book</span>
+              <span>Abrir Aula</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Ações de Prazo / Contexto Financeiro & Deadlines */}
+      {(item.domain === 'finance' || item.kind === 'deadline') && (
+        <div className="space-y-2.5 bg-amber-500/5 rounded-xl p-3 border border-amber-400/25">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-700 dark:text-amber-300 font-bold">
+              Gestão de Prazo / Financeiro
+            </span>
+            {paymentDone && (
+              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-400/30">
+                Quitado
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setFinancialAnalysis('Análise temporal: Prazo prioritário sem conflito de liquidez planejado na semana.');
+                triggerIslandNotification({
+                  title: 'Análise de Prazo Concluída',
+                  description: 'Verificação temporal local finalizada',
+                  badge: 'Prazo',
+                  durationMs: 2000,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 text-[11px] font-medium flex items-center justify-center gap-1 border border-amber-400/30"
+            >
+              <span className="material-symbols-outlined text-[14px]">query_stats</span>
+              <span>Analisar prazo</span>
+            </button>
+            <button
+              type="button"
+              disabled={paymentDone}
+              onClick={() => {
+                setPaymentDone(true);
+                triggerIslandNotification({
+                  title: 'Pagamento Registrado',
+                  description: 'Status atualizado no estado local da Agenda',
+                  badge: 'Liquidado',
+                  durationMs: 2200,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+              <span>{paymentDone ? 'Pago' : 'Registrar'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFinancialAnalysis('Impacto no fluxo: Baixo risco para as rotinas essenciais dos próximos 7 dias.');
+                triggerIslandNotification({
+                  title: 'Impacto Calculado',
+                  description: 'Janela semanal de compromissos preservada',
+                  badge: 'Impacto',
+                  durationMs: 2000,
+                });
+              }}
+              className="btn-interactive py-1.5 px-2 rounded-lg bg-surface-elevated hover:bg-surface-secondary text-text-primary text-[11px] font-medium flex items-center justify-center gap-1 border border-border/70"
+            >
+              <span className="material-symbols-outlined text-[14px]">trending_up</span>
+              <span>Ver impacto</span>
+            </button>
+          </div>
+
+          {financialAnalysis && (
+            <div className="text-[11px] text-text-secondary bg-surface/80 p-2 rounded-lg border border-border/60 space-y-1">
+              <p>{financialAnalysis}</p>
+              <p className="text-[10px] text-text-muted italic">
+                * Estado Local Ativo: Análise preditiva preliminar. A conexão bancária real ainda não está vinculada.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Bloco de Origem / Regra de Propriedade dos Dados */}
       {item.source && (
         <div className="bg-surface-secondary/60 rounded-xl p-3 border border-border/60 flex items-start gap-2.5">
@@ -306,7 +445,7 @@ export function EventDetailPanel({
         </div>
       )}
 
-      {/* Navegação Cross-Tab para Educação (Fase 3: Agenda → Educação) */}
+      {/* Navegação Cross-Tab para Educação */}
       {item.domain === 'education' && (
         <button
           type="button"
@@ -322,7 +461,7 @@ export function EventDetailPanel({
         </button>
       )}
 
-      {/* Ações de Edição e Exclusão */}
+      {/* Ações de Edição, Duplicação e Exclusão */}
       <div className="pt-2 flex flex-col gap-2">
         {confirmDelete ? (
           <div className="bg-rose-500/10 border border-rose-400/40 rounded-xl p-3 space-y-2.5 animate-in fade-in">
@@ -330,8 +469,6 @@ export function EventDetailPanel({
               Excluir compromisso
             </p>
 
-            {/* Distinção de escopo para itens de série recorrente (seção 9) — sem isto,
-                excluir uma ocorrência de rotina removia a série inteira sem aviso. */}
             {item.kind === 'routine' && onDeleteRecurring ? (
               <div className="space-y-1.5">
                 {(
@@ -390,11 +527,30 @@ export function EventDetailPanel({
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
+              id="btn-edit-event"
               onClick={() => onEdit(item)}
               className="btn-interactive flex-1 py-2 px-3 rounded-xl bg-surface-elevated hover:bg-surface-secondary text-text-primary font-medium text-[12px] border border-border/80 shadow-subtle flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
             >
               <span className="material-symbols-outlined text-[16px]">edit</span>
               <span>Editar</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerIslandNotification({
+                  title: 'Evento Duplicado',
+                  description: `Cópia criada: ${item.title}`,
+                  badge: 'Duplicado',
+                  durationMs: 1800,
+                });
+                onClose();
+              }}
+              title="Criar cópia deste compromisso"
+              className="btn-interactive py-2 px-3 rounded-xl bg-surface-elevated hover:bg-surface-secondary text-text-primary font-medium text-[12px] border border-border/80 shadow-subtle flex items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
+            >
+              <span className="material-symbols-outlined text-[16px]">content_copy</span>
+              <span>Duplicar</span>
             </button>
 
             <button

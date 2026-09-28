@@ -129,11 +129,9 @@ export function ContextPanel() {
   const { geometry, setContextOpen, breakpoint, activeRoute } = useShell();
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
 
-  // No mobile/tablet, o Context Panel vira um bottom sheet próprio (ver seção 24 do produto) —
-  // nunca a sidebar/painel de desktop comprimida. Continua fora da árvore quando fechado (mesmo
-  // princípio de "0% render quando invisível" do desktop), só que a reabertura é uma folha, não
-  // uma coluna fixa lateral (que não cabe em 360–412px de largura).
-  if (breakpoint !== 'desktop') {
+  // No mobile estreito (<768px), o Context Panel funciona como bottom sheet para não espremer a viewport.
+  // Em Desktop e Tablet / Tela Dividida (>=768px), funciona como coluna lateral real integrada à geometria.
+  if (breakpoint === 'mobile') {
     return (
       <>
         <button

@@ -369,6 +369,7 @@ export function calculateFreeTimeSlots(
   const timed = items
     .filter((it) => !it.allDay && it.kind !== 'deadline' && it.startTime && it.endTime)
     .map((it) => ({
+      item: it,
       start: parseTimeToMinutes(it.startTime!),
       end: parseTimeToMinutes(it.endTime!),
     }))
@@ -376,47 +377,90 @@ export function calculateFreeTimeSlots(
     .sort((a, b) => a.start - b.start);
 
   // Unir intervalos sobrepostos para encontrar buracos reais
-  const merged: { start: number; end: number }[] = [];
+  const merged: { start: number; end: number; beforeItem?: AgendaItem; afterItem?: AgendaItem }[] = [];
   for (const interval of timed) {
     const clampedStart = Math.max(startLimit, interval.start);
     const clampedEnd = Math.min(endLimit, interval.end);
 
     if (merged.length === 0) {
-      merged.push({ start: clampedStart, end: clampedEnd });
+      merged.push({ start: clampedStart, end: clampedEnd, afterItem: interval.item });
     } else {
       const last = merged[merged.length - 1];
       if (clampedStart <= last.end) {
         last.end = Math.max(last.end, clampedEnd);
+        last.afterItem = interval.item;
       } else {
-        merged.push({ start: clampedStart, end: clampedEnd });
+        merged.push({ start: clampedStart, end: clampedEnd, beforeItem: last.afterItem, afterItem: interval.item });
       }
     }
   }
 
   const freeSlots: FreeTimeSlot[] = [];
   let currentCursor = startLimit;
+  let prevItem: AgendaItem | undefined = undefined;
 
-  for (const interval of merged) {
+  for (let i = 0; i < merged.length; i++) {
+    const interval = merged[i];
+    const nextItem = interval.afterItem;
     const gap = interval.start - currentCursor;
+
     if (gap >= 30) {
+      // Temporal OS Smart Scheduling:
+      // Identifica buffer de deslocamento e preparação pré/pós compromisso
+      const needsPreBuffer = nextItem && (nextItem.domain === 'work' || nextItem.domain === 'external' || !!nextItem.location);
+      const needsPostBuffer = prevItem && (prevItem.domain === 'work' || prevItem.domain === 'external' || !!prevItem.location);
+
+      const bufferPre = needsPreBuffer ? (gap >= 60 ? 20 : 15) : (gap >= 90 ? 10 : 0);
+      const bufferPost = needsPostBuffer ? (gap >= 60 ? 15 : 10) : 0;
+      const totalBuffer = Math.min(gap - 20, bufferPre + bufferPost);
+
+      const usableStartMin = currentCursor + bufferPost;
+      const usableEndMin = interval.start - bufferPre;
+      const usableDuration = Math.max(0, usableEndMin - usableStartMin);
+
+      let commuteNote: string | undefined;
+      if (needsPreBuffer && needsPostBuffer) {
+        commuteNote = `Reserva ${totalBuffer} min de deslocamento/preparação entre compromissos`;
+      } else if (needsPreBuffer) {
+        commuteNote = `Reserva ${bufferPre} min de trajeto antes de ${nextItem?.title || 'compromisso'}`;
+      } else if (needsPostBuffer) {
+        commuteNote = `Reserva ${bufferPost} min de descompressão após ${prevItem?.title || 'compromisso'}`;
+      }
+
+      const label = usableDuration >= 30
+        ? `${formatDuration(usableDuration)} utilizáveis (${formatDuration(gap)} teoricamente livres)`
+        : `${formatDuration(gap)} livres (janela curta útil: ${formatDuration(usableDuration)})`;
+
       freeSlots.push({
         start: formatMinutesToTime(currentCursor),
         end: formatMinutesToTime(interval.start),
         durationMinutes: gap,
-        label: `${formatDuration(gap)} livres`,
+        usableStart: formatMinutesToTime(usableStartMin),
+        usableEnd: formatMinutesToTime(usableEndMin),
+        usableDurationMinutes: usableDuration,
+        bufferMinutes: totalBuffer,
+        commuteNote,
+        label,
       });
     }
     currentCursor = Math.max(currentCursor, interval.end);
+    prevItem = interval.afterItem;
   }
 
   // Intervalo final até o fim da jornada
   const finalGap = endLimit - currentCursor;
   if (finalGap >= 30) {
+    const postBuffer = prevItem && (prevItem.domain === 'work' || prevItem.domain === 'external') ? 15 : 0;
+    const usableDuration = Math.max(0, finalGap - postBuffer);
     freeSlots.push({
       start: formatMinutesToTime(currentCursor),
       end: formatMinutesToTime(endLimit),
       durationMinutes: finalGap,
-      label: `${formatDuration(finalGap)} livres`,
+      usableStart: formatMinutesToTime(currentCursor + postBuffer),
+      usableEnd: formatMinutesToTime(endLimit),
+      usableDurationMinutes: usableDuration,
+      bufferMinutes: postBuffer,
+      label: `${formatDuration(usableDuration)} utilizáveis (${formatDuration(finalGap)} livres)`,
     });
   }
 

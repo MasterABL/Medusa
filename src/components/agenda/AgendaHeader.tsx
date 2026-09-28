@@ -136,6 +136,7 @@ export function AgendaHeader({
               return (
                 <button
                   key={v.id}
+                  id={`btn-view-${v.id}`}
                   type="button"
                   role="tab"
                   aria-selected={isActive}
