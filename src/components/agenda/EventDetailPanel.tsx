@@ -32,6 +32,7 @@ interface EventDetailPanelProps {
   onDelete: (itemId: string) => void;
   onDeleteRecurring?: (item: AgendaItem, scope: RecurringDeleteScope) => void;
   onReschedule?: (itemId: string, date: string, startTime: string, endTime: string) => void;
+  onDuplicate?: (item: AgendaItem) => void;
   suggestions?: ConflictSuggestion[];
   onApplySuggestion?: (item: AgendaItem, suggestion: ConflictSuggestion) => void;
 }
@@ -45,6 +46,7 @@ export function EventDetailPanel({
   onDelete,
   onDeleteRecurring,
   onReschedule,
+  onDuplicate,
   suggestions = [],
   onApplySuggestion,
 }: EventDetailPanelProps) {
@@ -547,14 +549,17 @@ export function EventDetailPanel({
 
             <button
               type="button"
+              id="btn-duplicate-event"
               onClick={() => {
+                if (onDuplicate) {
+                  onDuplicate(item);
+                }
                 triggerIslandNotification({
                   title: 'Evento Duplicado',
                   description: `Cópia criada: ${item.title}`,
                   badge: 'Duplicado',
                   durationMs: 1800,
                 });
-                onClose();
               }}
               title="Criar cópia deste compromisso"
               className="btn-interactive py-2 px-3 rounded-xl bg-surface-elevated hover:bg-surface-secondary text-text-primary font-medium text-[12px] border border-border/80 shadow-subtle flex items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
@@ -565,6 +570,7 @@ export function EventDetailPanel({
 
             <button
               type="button"
+              id="btn-delete-event"
               onClick={() => setConfirmDelete(true)}
               className="btn-interactive py-2 px-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-[12px] font-medium border border-rose-400/30 flex items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
             >

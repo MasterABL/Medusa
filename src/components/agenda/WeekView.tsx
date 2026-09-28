@@ -27,6 +27,7 @@ import { formatDateISO } from './agendaFixtures';
 import { EventBlock } from './EventBlock';
 import { FreeTimeSlot } from './FreeTimeSlot';
 import { getPastelThemeStyle } from './palette';
+import { playFeedback } from '@/lib/audioFeedback';
 
 interface WeekViewProps {
   currentDate: Date;
@@ -35,6 +36,8 @@ interface WeekViewProps {
   selectedItemId?: string | null;
   onSelectItem: (item: AgendaItem) => void;
   onDoubleClickItem?: (item: AgendaItem) => void;
+  onContextMenu?: (item: AgendaItem) => void;
+  onRescheduleItem?: (itemId: string, newDate: string, newStartTime: string, newEndTime: string) => void;
   onSelectSlot?: (startTime: string, endTime: string) => void;
   onSelectDayDate?: (date: Date) => void;
 }
@@ -46,10 +49,12 @@ export function WeekView({
   selectedItemId,
   onSelectItem,
   onDoubleClickItem,
+  onContextMenu,
+  onRescheduleItem,
   onSelectSlot,
   onSelectDayDate,
 }: WeekViewProps) {
-  const { theme } = useShell();
+  const { theme, triggerIslandNotification } = useShell();
   const weekDays = getWeekDays(currentDate);
 
   const START_HOUR = 7;
@@ -57,6 +62,136 @@ export function WeekView({
   const TOTAL_HOURS = END_HOUR - START_HOUR;
   const TOTAL_MINUTES = TOTAL_HOURS * 60;
   const hours = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i);
+
+  // Estado de Arrastar e Soltar (Drag & Drop)
+  const [dragState, setDragState] = React.useState<{
+    item: AgendaItem;
+    colIndex: number;
+    date: string;
+    startTime: string;
+    endTime: string;
+    duration: number;
+    clampedMin: number;
+    hasConflict: boolean;
+    conflictTitle?: string;
+  } | null>(null);
+
+  const dragRef = React.useRef<{
+    item: AgendaItem;
+    startX: number;
+    startY: number;
+    duration: number;
+    isDragging: boolean;
+  } | null>(null);
+
+  const handlePointerDown = React.useCallback(
+    (e: React.PointerEvent, item: AgendaItem) => {
+      // Ignora botão direito ou itens sem horário definido
+      if (e.button !== 0 || item.allDay || !item.startTime || !item.endTime) return;
+      const startMin = parseTimeToMinutes(item.startTime);
+      const endMin = parseTimeToMinutes(item.endTime);
+      const duration = item.durationMinutes || (endMin - startMin);
+
+      dragRef.current = {
+        item,
+        startX: e.clientX,
+        startY: e.clientY,
+        duration,
+        isDragging: false,
+      };
+
+      const handlePointerMove = (moveEv: PointerEvent) => {
+        if (!dragRef.current) return;
+        const dist = Math.hypot(moveEv.clientX - dragRef.current.startX, moveEv.clientY - dragRef.current.startY);
+        if (dist <= 6 && !dragRef.current.isDragging) return;
+
+        dragRef.current.isDragging = true;
+
+        const colsEl = document.getElementById('week-view-columns');
+        if (!colsEl) return;
+        const rect = colsEl.getBoundingClientRect();
+        const colWidth = rect.width / 7;
+        const colIdx = Math.min(6, Math.max(0, Math.floor((moveEv.clientX - rect.left) / colWidth)));
+        const targetDate = formatDateISO(weekDays[colIdx]);
+
+        const relY = Math.min(rect.height, Math.max(0, moveEv.clientY - rect.top));
+        const minuteFromStart = (relY / rect.height) * TOTAL_MINUTES;
+        const snappedMin = Math.round(minuteFromStart / 15) * 15;
+        const maxStart = TOTAL_MINUTES - dragRef.current.duration;
+        const clampedMin = Math.max(0, Math.min(maxStart, snappedMin));
+
+        const startHourMin = START_HOUR * 60 + clampedMin;
+        const endHourMin = startHourMin + dragRef.current.duration;
+        const targetStartTime = `${String(Math.floor(startHourMin / 60)).padStart(2, '0')}:${String(startHourMin % 60).padStart(2, '0')}`;
+        const targetEndTime = `${String(Math.floor(endHourMin / 60)).padStart(2, '0')}:${String(endHourMin % 60).padStart(2, '0')}`;
+
+        // Verifica conflitos no dia de destino
+        const dayItems = items.filter(
+          (it) => it.date === targetDate && it.id !== item.id && !it.id.startsWith(item.id) && it.startTime && it.endTime
+        );
+        const overlap = dayItems.find(
+          (it) => it.startTime! < targetEndTime && targetStartTime < it.endTime!
+        );
+
+        setDragState({
+          item,
+          colIndex: colIdx,
+          date: targetDate,
+          startTime: targetStartTime,
+          endTime: targetEndTime,
+          duration: dragRef.current.duration,
+          clampedMin,
+          hasConflict: Boolean(overlap),
+          conflictTitle: overlap?.title,
+        });
+      };
+
+      const handlePointerUp = (upEv: PointerEvent) => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+
+        if (dragRef.current?.isDragging && onRescheduleItem) {
+          const colsEl = document.getElementById('week-view-columns');
+          if (colsEl) {
+            const rect = colsEl.getBoundingClientRect();
+            const colWidth = rect.width / 7;
+            const colIdx = Math.min(6, Math.max(0, Math.floor((upEv.clientX - rect.left) / colWidth)));
+            const targetDate = formatDateISO(weekDays[colIdx]);
+
+            const relY = Math.min(rect.height, Math.max(0, upEv.clientY - rect.top));
+            const minuteFromStart = (relY / rect.height) * TOTAL_MINUTES;
+            const snappedMin = Math.round(minuteFromStart / 15) * 15;
+            const maxStart = TOTAL_MINUTES - dragRef.current.duration;
+            const clampedMin = Math.max(0, Math.min(maxStart, snappedMin));
+
+            const startHourMin = START_HOUR * 60 + clampedMin;
+            const endHourMin = startHourMin + dragRef.current.duration;
+            const targetStartTime = `${String(Math.floor(startHourMin / 60)).padStart(2, '0')}:${String(startHourMin % 60).padStart(2, '0')}`;
+            const targetEndTime = `${String(Math.floor(endHourMin / 60)).padStart(2, '0')}:${String(endHourMin % 60).padStart(2, '0')}`;
+
+            onRescheduleItem(dragRef.current.item.id, targetDate, targetStartTime, targetEndTime);
+            const dayName = WEEK_DAY_NAMES[weekDays[colIdx].getDay()].full;
+            triggerIslandNotification({
+              title: 'Evento Movido',
+              desc: `${dayName} · ${targetStartTime}–${targetEndTime}`,
+              badge: 'Agenda',
+              state: 'success',
+              durationMs: 2000,
+            });
+            playFeedback('ready');
+          }
+        }
+        dragRef.current = null;
+        setDragState(null);
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
+    },
+    [items, onRescheduleItem, triggerIslandNotification, weekDays, TOTAL_MINUTES, START_HOUR]
+  );
 
   // Verifica se há itens All-Day / Deadline em algum dia da semana
   const allDayByDay = weekDays.map((day) => {
@@ -242,6 +377,43 @@ export function WeekView({
                     );
                   })}
 
+                  {/* Indicador Fantasma de Arrastar (Ghost Candidate) */}
+                  {dragState && dragState.colIndex === colIdx && (
+                    <div
+                      id="week-drag-ghost"
+                      style={{
+                        top: `${(dragState.clampedMin / TOTAL_MINUTES) * 100}%`,
+                        height: `${Math.max(3.8, (dragState.duration / TOTAL_MINUTES) * 100)}%`,
+                        minHeight: '34px',
+                      }}
+                      className={`absolute left-0.5 right-0.5 z-40 rounded-xl border-2 border-dashed p-1.5 flex flex-col justify-between shadow-calm pointer-events-none transition-all duration-75 animate-in fade-in ${
+                        dragState.hasConflict
+                          ? 'bg-rose-500/25 border-rose-500 text-rose-900 dark:text-rose-100 ring-2 ring-rose-400/40'
+                          : 'bg-medusa-primary/25 border-medusa-primary text-text-primary ring-2 ring-medusa-primary/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 leading-none">
+                        <span className="text-[10px] font-mono font-bold tracking-tight">
+                          {WEEK_DAY_NAMES[weekDays[colIdx].getDay()].full} · {dragState.startTime}–{dragState.endTime}
+                        </span>
+                        {dragState.hasConflict && (
+                          <span className="flex items-center gap-0.5 px-1 py-0.2 rounded bg-rose-600 text-white text-[8px] font-mono font-semibold">
+                            <span className="material-symbols-outlined !text-[9px]">warning</span>
+                            Conflito
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-semibold truncate leading-tight">
+                        {dragState.item.title}
+                      </span>
+                      {dragState.hasConflict && dragState.conflictTitle && (
+                        <span className="text-[8.5px] font-mono text-rose-700 dark:text-rose-300 truncate">
+                          Sobrepõe: {dragState.conflictTitle}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Eventos Posicionados */}
                   {timedItems.map((item) => {
                     const startMin = parseTimeToMinutes(item.startTime!);
@@ -261,12 +433,10 @@ export function WeekView({
 
                     const colInfo = conflictColumns.get(item.id) || { colIndex: 0, colCount: 1 };
                     const isConcurrent = colInfo.colCount > 1;
+                    const isShort = duration <= 60;
+                    const expandUpward = topPercent > 82;
+                    const isBeingDragged = dragState?.item.id === item.id;
 
-                    // Composição inteligente para eventos concorrentes na visualização semanal:
-                    // Colunas paralelas não oclusivas para garantir que nenhum evento cubra o outro.
-                    // 2 concorrentes: 49% cada (largura de ~48px-68px), legibilidade de títulos curtos/médios sem sobreposição.
-                    // 3 concorrentes: 32% cada (largura de ~31px-45px), títulos curtos legíveis; longos expandem no hover.
-                    // Ao passar o mouse ou focar, qualquer card se eleva e expande suavemente para 98% da coluna.
                     let leftPercent = 0;
                     let widthPercent = 100;
 
@@ -282,7 +452,7 @@ export function WeekView({
                       leftPercent = colInfo.colIndex * (widthPercent + gap);
                     }
 
-                    const zIndex = isSelected ? 40 : 10 + colInfo.colIndex;
+                    const zIndex = isSelected ? 40 : isBeingDragged ? 5 : 10 + colInfo.colIndex;
 
                     return (
                       <div
@@ -296,15 +466,19 @@ export function WeekView({
                         <div
                           style={{
                             position: 'absolute',
-                            top: 0,
-                            bottom: 0,
+                            ...(expandUpward ? { bottom: 0 } : { top: 0 }),
                             left: `${leftPercent}%`,
                             width: `${widthPercent}%`,
+                            height: '100%',
                             zIndex,
                           }}
-                          className={`pointer-events-auto transition-all duration-160 ${
+                          className={`pointer-events-auto transition-all duration-160 group ${
                             isConcurrent
-                              ? 'hover:z-30 hover:!w-[98%] hover:!left-[1%] focus-within:z-30 focus-within:!w-[98%] focus-within:!left-[1%] hover:shadow-calm'
+                              ? 'hover:z-35 hover:!w-[98%] hover:!left-[1%] focus-within:z-35 focus-within:!w-[98%] focus-within:!left-[1%] hover:shadow-calm'
+                              : ''
+                          } ${
+                            isShort
+                              ? 'hover:z-35 hover:!h-auto hover:!min-h-[68px] sm:hover:!min-h-[74px] focus-within:z-35 focus-within:!h-auto focus-within:!min-h-[68px] hover:shadow-calm'
                               : ''
                           }`}
                         >
@@ -313,8 +487,11 @@ export function WeekView({
                             category={cat}
                             conflict={conflict}
                             isSelected={isSelected}
+                            isDragging={isBeingDragged}
                             onClick={() => onSelectItem(item)}
                             onDoubleClick={() => onDoubleClickItem?.(item)}
+                            onContextMenu={() => (onContextMenu ? onContextMenu(item) : onSelectItem(item))}
+                            onPointerDown={(e) => handlePointerDown(e, item)}
                             compact
                             isNarrow={isConcurrent}
                             style={{ width: '100%', height: '100%' }}

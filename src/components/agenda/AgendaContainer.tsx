@@ -56,6 +56,7 @@ export function AgendaContainer() {
     deleteItem,
     deleteRecurringOccurrence,
     deleteMultipleItems,
+    duplicateItem,
     undoLastDelete,
     clearUndoToast,
     rescheduleItem,
@@ -318,6 +319,8 @@ export function AgendaContainer() {
               selectedItemId={selectedItemId}
               onSelectItem={(it) => setSelectedItemId(it.id)}
               onDoubleClickItem={handleOpenEdit}
+              onContextMenu={(it) => setSelectedItemId(it.id)}
+              onRescheduleItem={handleReschedule}
               onSelectSlot={openAddDrawerWithSlot}
             />
           )}
@@ -330,6 +333,8 @@ export function AgendaContainer() {
               selectedItemId={selectedItemId}
               onSelectItem={(it) => setSelectedItemId(it.id)}
               onDoubleClickItem={handleOpenEdit}
+              onContextMenu={(it) => setSelectedItemId(it.id)}
+              onRescheduleItem={handleReschedule}
               onSelectSlot={openAddDrawerWithSlot}
               onSelectDayDate={(date) => setCurrentDate(date)}
             />
@@ -374,6 +379,7 @@ export function AgendaContainer() {
               onDelete={handleDeleteItem}
               onDeleteRecurring={handleDeleteRecurringOccurrence}
               onReschedule={handleReschedule}
+              onDuplicate={duplicateItem}
               suggestions={conflictSuggestions}
               onApplySuggestion={handleApplySuggestion}
             />

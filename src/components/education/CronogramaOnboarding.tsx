@@ -116,7 +116,11 @@ export function CronogramaOnboarding({ onFinish, onClose }: CronogramaOnboarding
       }
       const savedStep = localStorage.getItem(STORAGE_KEY_STEP) as Step | null;
       if (savedStep && ['intro', 'diagnostico', 'dominio', 'resultado'].includes(savedStep)) {
-        setStep(savedStep);
+        if (savedStep === 'resultado') {
+          setStep('intro');
+        } else {
+          setStep(savedStep);
+        }
       }
       const savedBloco = localStorage.getItem(STORAGE_KEY_BLOCO);
       if (savedBloco !== null) {
@@ -128,7 +132,16 @@ export function CronogramaOnboarding({ onFinish, onClose }: CronogramaOnboarding
     } catch (e) {
       console.warn('[CronogramaOnboarding] Erro ao carregar rascunho:', e);
     }
-  }, []);
+
+    // O Shell acompanha a entrada na experiência imersiva de planejamento temporal
+    triggerIslandNotification({
+      title: 'Planejador Temporal Medusa',
+      description: 'Diagnóstico pedagógico e estratégico para o ENEM',
+      badge: 'Cronograma',
+      state: 'active',
+      durationMs: 2200,
+    });
+  }, [triggerIslandNotification]);
 
   // Persiste rascunho de respostas e opções
   useEffect(() => {
@@ -332,15 +345,15 @@ export function CronogramaOnboarding({ onFinish, onClose }: CronogramaOnboarding
   const content = (
     <div
       id="cronograma-onboarding"
-      className="fixed inset-0 z-[100] bg-[#0C100E]/95 dark:bg-[#080B0A]/98 backdrop-blur-2xl text-text-primary flex flex-col overflow-hidden animate-in fade-in duration-300 w-screen h-screen"
+      className="fixed inset-0 z-[100] bg-[#F8FAF9] dark:bg-[#0E1311] text-text-primary flex flex-col overflow-hidden animate-in fade-in zoom-in-[0.99] duration-300 w-screen h-screen"
     >
-      {/* Luz ambiente de fundo */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[360px] bg-gradient-to-b from-medusa-primary/15 via-medusa-primary/5 to-transparent blur-3xl pointer-events-none rounded-full" />
+      {/* Luz ambiente de fundo sutil */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[360px] bg-gradient-to-b from-medusa-primary/10 via-medusa-primary/5 to-transparent blur-3xl pointer-events-none rounded-full" />
 
       {/* CABEÇALHO FIXO NO TOPO */}
       <header
         id="cronograma-fixed-header"
-        className="flex-shrink-0 flex items-center justify-between px-5 sm:px-10 pt-4 sm:pt-5 pb-3 border-b border-border/50 bg-[#0C100E]/80 backdrop-blur-md z-20"
+        className="flex-shrink-0 flex items-center justify-between px-5 sm:px-10 pt-4 sm:pt-5 pb-3 border-b border-border/60 bg-[#F8FAF9]/85 dark:bg-[#0E1311]/90 backdrop-blur-md z-20"
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-medusa-primary/20 border border-medusa-primary/40 flex items-center justify-center text-medusa-primary shadow-subtle">
@@ -452,7 +465,7 @@ export function CronogramaOnboarding({ onFinish, onClose }: CronogramaOnboarding
                 <div className="w-20 h-20 rounded-3xl bg-medusa-primary/20 border border-medusa-primary/40 flex items-center justify-center shadow-lg shadow-medusa-primary/10 animate-in fade-in zoom-in-95 duration-500">
                   <span className="material-symbols-outlined text-[40px] text-medusa-primary">school</span>
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#1C2420] border border-medusa-primary/60 flex items-center justify-center text-medusa-primary">
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface border border-medusa-primary/60 flex items-center justify-center text-medusa-primary shadow-subtle">
                   <span className="material-symbols-outlined text-[13px]">bolt</span>
                 </div>
               </div>
@@ -626,7 +639,7 @@ export function CronogramaOnboarding({ onFinish, onClose }: CronogramaOnboarding
                               className={`p-3 rounded-xl border text-left flex flex-col gap-0.5 transition-all focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none ${
                                 isSelected
                                   ? 'bg-medusa-primary/15 border-medusa-primary text-text-primary shadow-subtle ring-1 ring-medusa-primary/40'
-                                  : 'bg-surface-secondary/40 border-border/60 hover:bg-surface-secondary hover:border-border text-text-secondary'
+                                  : 'bg-surface-elevated/80 border-border/70 hover:bg-surface-secondary/70 hover:border-border text-text-secondary hover:text-text-primary'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-1">

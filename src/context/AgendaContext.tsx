@@ -43,6 +43,7 @@ interface AgendaContextType {
   undoLastDelete: () => void;
   clearUndoToast: () => void;
   deleteMultipleItems: (itemIds: string[]) => void;
+  duplicateItem: (item: AgendaItem) => void;
 
   // Reagendamento / Drag & Drop
   rescheduleItem: (itemId: string, newDate: string, newStartTime: string, newEndTime: string) => void;
@@ -122,26 +123,39 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
   const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
   const [activeSlotTime, setActiveSlotTime] = useState<{ start: string; end: string } | null>(null);
   const [lastDeletedItems, setLastDeletedItems] = useState<AgendaItem[] | null>(null);
+  const [undoSnapshot, setUndoSnapshot] = useState<AgendaItem[] | null>(null);
 
   // Expiração do Toast de Desfazer (7 segundos)
   useEffect(() => {
     if (!lastDeletedItems || lastDeletedItems.length === 0) return;
     const timer = setTimeout(() => {
       setLastDeletedItems(null);
+      setUndoSnapshot(null);
     }, 7000);
     return () => clearTimeout(timer);
   }, [lastDeletedItems]);
 
   const clearUndoToast = useCallback(() => {
     setLastDeletedItems(null);
+    setUndoSnapshot(null);
   }, []);
 
   const undoLastDelete = useCallback(() => {
+    if (undoSnapshot) {
+      setItems(undoSnapshot);
+      try {
+        localStorage.setItem('medusa-agenda-items', JSON.stringify(undoSnapshot));
+      } catch {}
+      setUndoSnapshot(null);
+      setLastDeletedItems(null);
+      playFeedback('action');
+      return;
+    }
     if (!lastDeletedItems || lastDeletedItems.length === 0) return;
     setItems((prev) => [...lastDeletedItems, ...prev]);
     setLastDeletedItems(null);
     playFeedback('action');
-  }, [lastDeletedItems]);
+  }, [undoSnapshot, lastDeletedItems]);
 
   // Navegação
   const goToToday = useCallback(() => {
@@ -359,6 +373,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       const baseId = itemId.includes('-virt-') ? itemId.split('-virt-')[0] : itemId;
       const target = items.find((it) => it.id === baseId);
       if (target) {
+        setUndoSnapshot(items);
         setLastDeletedItems([target]);
       }
       setItems((prev) => prev.filter((it) => it.id !== baseId));
@@ -376,6 +391,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       const baseIds = new Set(itemIds.map((id) => (id.includes('-virt-') ? id.split('-virt-')[0] : id)));
       const deleted = items.filter((it) => baseIds.has(it.id));
       if (deleted.length > 0) {
+        setUndoSnapshot(items);
         setLastDeletedItems(deleted);
       }
       setItems((prev) => prev.filter((it) => !baseIds.has(it.id)));
@@ -385,6 +401,26 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [items, selectedItemId]
+  );
+
+  // Duplicação de Evento
+  const duplicateItem = useCallback(
+    (item: AgendaItem) => {
+      const nowISO = new Date().toISOString();
+      const baseId = item.id.includes('-virt-') ? item.id.split('-virt-')[0] : item.id;
+      const target = items.find((it) => it.id === baseId) || item;
+      const newItem: AgendaItem = {
+        ...target,
+        id: `item-dup-${Date.now()}`,
+        title: `${target.title} (Cópia)`,
+        createdAt: nowISO,
+        updatedAt: nowISO,
+      };
+      setItems((prev) => [newItem, ...prev]);
+      playFeedback('success');
+      setSelectedItemId(newItem.id);
+    },
+    [items]
   );
 
   // Reagendamento direto / Drag & Drop
@@ -446,18 +482,25 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  // Exclusão recorrente com escopo
+  // Exclusão recorrente com escopo e suporte a Desfazer (Undo)
   const deleteRecurringOccurrence = useCallback(
     (item: AgendaItem, scope: 'this' | 'following' | 'series') => {
       const baseId = item.id.includes('-virt-') ? item.id.split('-virt-')[0] : item.id;
+      setUndoSnapshot(items);
 
       if (scope === 'series') {
         const target = items.find((it) => it.id === baseId);
-        if (target) setLastDeletedItems([target]);
+        setLastDeletedItems([target || item]);
         setItems((prev) => prev.filter((it) => it.id !== baseId));
         playFeedback('delete');
         setSelectedItemId(null);
         return;
+      }
+
+      if (scope === 'this') {
+        setLastDeletedItems([{ ...item, title: `${item.title} (${item.date})` }]);
+      } else {
+        setLastDeletedItems([{ ...item, title: `${item.title} (a partir de ${item.date})` }]);
       }
 
       const nowISO = new Date().toISOString();
@@ -523,6 +566,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       undoLastDelete,
       clearUndoToast,
       deleteMultipleItems,
+      duplicateItem,
       rescheduleItem,
       reconcileEducationBlocks,
       setCurrentDate,
@@ -558,6 +602,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       undoLastDelete,
       clearUndoToast,
       deleteMultipleItems,
+      duplicateItem,
       rescheduleItem,
       reconcileEducationBlocks,
       goToToday,

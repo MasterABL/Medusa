@@ -20,6 +20,9 @@ interface EventBlockProps {
   isSelected?: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  isDragging?: boolean;
   style?: React.CSSProperties;
   compact?: boolean;
   isNarrow?: boolean;
@@ -79,6 +82,9 @@ export function EventBlock({
   isSelected,
   onClick,
   onDoubleClick,
+  onContextMenu,
+  onPointerDown,
+  isDragging = false,
   style,
   compact = false,
   isNarrow = false,
@@ -103,7 +109,7 @@ export function EventBlock({
     }
   };
 
-  const isShort = compact && Boolean(item.durationMinutes && item.durationMinutes <= 35);
+  const isShort = compact && Boolean(item.durationMinutes && item.durationMinutes <= 45);
 
   return (
     <button
@@ -114,6 +120,16 @@ export function EventBlock({
       data-color-id={item.colorId}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onContextMenu) {
+          onContextMenu(e);
+        } else if (onClick) {
+          onClick();
+        }
+      }}
+      onPointerDown={onPointerDown}
       style={{
         ...style,
         backgroundColor: colorStyle.bg,
@@ -128,6 +144,10 @@ export function EventBlock({
       }`}
       title={`${item.title} (${item.startTime || 'Dia todo'}${item.endTime ? ` — ${item.endTime}` : ''})`}
       className={`absolute inset-0 w-full h-full z-10 text-left rounded-xl border transition-all duration-160 select-none overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+        isDragging
+          ? 'opacity-30 border-dashed border-2 ring-1 ring-medusa-primary pointer-events-none'
+          : ''
+      } ${
         isShort || isNarrow ? 'p-1 sm:p-1.5' : compact ? 'p-1.5 sm:p-2' : 'p-2 sm:p-2.5'
       } ${
         isSelected
@@ -143,18 +163,25 @@ export function EventBlock({
 
       <div className="flex flex-col h-full justify-between pl-1 min-w-0">
         {/* Topo do Bloco: Horário, Alerta e Título */}
-        <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+        <div className="flex flex-col min-w-0 flex-1 overflow-hidden group-hover:overflow-visible">
           {/* Linha de Horário e Status */}
           {compact && item.startTime && (
             <div className="flex items-center justify-between gap-1 pb-0.5 min-w-0">
               <span
                 className={`font-mono tabular-nums leading-none tracking-tight block ${
                   isNarrow || isShort
-                    ? 'text-[8.5px] sm:text-[9px] opacity-80'
+                    ? 'text-[8.5px] sm:text-[9px] opacity-80 group-hover:opacity-100 group-hover:font-semibold'
                     : 'text-[9px] sm:text-[9.5px] opacity-80'
                 }`}
               >
-                {formatAdaptiveTime(item.startTime, item.endTime, compact, isNarrow, isShort)}
+                <span className={isShort ? 'group-hover:hidden' : ''}>
+                  {formatAdaptiveTime(item.startTime, item.endTime, compact, isNarrow, isShort)}
+                </span>
+                {isShort && (
+                  <span className="hidden group-hover:inline">
+                    {item.startTime}–{item.endTime || ''}
+                  </span>
+                )}
               </span>
 
               {/* Tag de conflito discreta no topo direito */}
@@ -177,16 +204,23 @@ export function EventBlock({
             <span
               className={`font-semibold tracking-tight transition-colors break-words ${
                 isShort
-                  ? 'text-[10px] sm:text-[10.5px] leading-tight truncate'
+                  ? 'text-[10px] sm:text-[10.5px] leading-tight truncate group-hover:whitespace-normal group-hover:line-clamp-none'
                   : isNarrow
-                  ? 'text-[10px] sm:text-[10.5px] leading-snug line-clamp-2 max-w-full'
+                  ? 'text-[10px] sm:text-[10.5px] leading-snug line-clamp-2 max-w-full group-hover:line-clamp-none'
                   : compact
-                  ? 'text-[10.5px] sm:text-[11px] leading-snug line-clamp-2 max-w-full'
+                  ? 'text-[10.5px] sm:text-[11px] leading-snug line-clamp-2 max-w-full group-hover:line-clamp-none'
                   : 'text-[12px] sm:text-[13px] leading-snug truncate max-w-full block'
               }`}
               style={{ color: colorStyle.text }}
             >
-              {formatAdaptiveTitle(item.title, compact, isNarrow, isShort)}
+              <span className={isShort || isNarrow ? 'group-hover:hidden' : ''}>
+                {formatAdaptiveTitle(item.title, compact, isNarrow, isShort)}
+              </span>
+              {(isShort || isNarrow) && (
+                <span className="hidden group-hover:inline">
+                  {item.title}
+                </span>
+              )}
             </span>
 
             {/* Ícone de Domínio APENAS quando NÃO for compact (ex: Day View) */}
@@ -199,6 +233,16 @@ export function EventBlock({
               </span>
             )}
           </div>
+
+          {/* Badge de categoria revelado na expansão de evento curto */}
+          {compact && (
+            <div className="hidden group-hover:flex items-center gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: colorStyle.accent }} />
+              <span className="text-[8.5px] sm:text-[9px] font-mono uppercase tracking-wider truncate opacity-75">
+                {category?.name || item.domain}
+              </span>
+            </div>
+          )}
 
           {/* Horário & Duração quando NÃO compact (Day View) */}
           {!compact && (

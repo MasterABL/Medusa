@@ -195,6 +195,8 @@ export function EducationPanelProvider({ children }: { children: React.ReactNode
       localStorage.removeItem('medusa_cronograma_diag_answers');
       localStorage.removeItem('medusa_cronograma_diag_multi');
       localStorage.removeItem('medusa_cronograma_diag_custom');
+      localStorage.removeItem('medusa_cronograma_diag_step');
+      localStorage.removeItem('medusa_cronograma_diag_bloco');
     } catch {}
     setIsCronogramaOverlayOpen(false);
     setEnemView('cronograma');
