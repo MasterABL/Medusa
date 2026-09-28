@@ -36,6 +36,23 @@ function deriveState(sampleSize: number, rate: number | null): TrustState {
   return 'aprendendo';
 }
 
+function buildProfile(domain: DomainId, actionType: string, evidence: TrustEvidenceEntry[]): ActionTrustProfile {
+  const sampleSize = evidence.length;
+  const rate = recentAcceptanceRate(evidence);
+  return {
+    domain,
+    actionType,
+    state: deriveState(sampleSize, rate),
+    sampleSize,
+    acceptedCount: evidence.filter((e) => e.outcome === 'accepted').length,
+    rejectedCount: evidence.filter((e) => e.outcome === 'rejected').length,
+    correctedCount: evidence.filter((e) => e.outcome === 'corrected').length,
+    recentAcceptanceRate: rate,
+    evidence,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export interface RecordOutcomeInput {
   domain: DomainId;
   actionType: string;
@@ -58,22 +75,7 @@ export function recordOutcome(input: RecordOutcomeInput): ActionTrustProfile {
     },
   ];
 
-  const sampleSize = evidence.length;
-  const rate = recentAcceptanceRate(evidence);
-
-  const profile: ActionTrustProfile = {
-    domain: input.domain,
-    actionType: input.actionType,
-    state: deriveState(sampleSize, rate),
-    sampleSize,
-    acceptedCount: evidence.filter((e) => e.outcome === 'accepted').length,
-    rejectedCount: evidence.filter((e) => e.outcome === 'rejected').length,
-    correctedCount: evidence.filter((e) => e.outcome === 'corrected').length,
-    recentAcceptanceRate: rate,
-    evidence,
-    updatedAt: new Date().toISOString(),
-  };
-
+  const profile = buildProfile(input.domain, input.actionType, evidence);
   profiles.set(k, profile);
   return profile;
 }
@@ -89,4 +91,22 @@ export function listTrustProfiles(): ActionTrustProfile[] {
 /** Só para testes de contrato. */
 export function __resetTrustForTests(): void {
   profiles.clear();
+}
+
+/**
+ * Expiração de confiança: evidência mais velha que `ttlMs` deixa de contar. Sem
+ * isto, uma aprovação de meses atrás sustentaria autonomia para sempre. Devolve
+ * quantas entradas foram descartadas (0 = nada mudou).
+ */
+export function expireStaleEvidence(now: Date, ttlMs: number): number {
+  let dropped = 0;
+  for (const [k, profile] of Array.from(profiles.entries())) {
+    const kept = profile.evidence.filter((e) => now.getTime() - new Date(e.occurredAt).getTime() <= ttlMs);
+    const removed = profile.evidence.length - kept.length;
+    if (removed === 0) continue;
+    dropped += removed;
+    if (kept.length === 0) profiles.delete(k);
+    else profiles.set(k, buildProfile(profile.domain, profile.actionType, kept));
+  }
+  return dropped;
 }

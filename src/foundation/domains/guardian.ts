@@ -54,7 +54,7 @@ export const guardianDomain: DomainDefinition = {
     },
   ],
   eventTypes: ['ACTION_EVALUATED', 'APPROVAL_REQUEST_CREATED', 'TRUST_STATE_CHANGED'],
-  actionTypes: [],
+  actionTypes: ['REMOVE_DUPLICATE_RECORDS', 'NORMALIZE_RECORD_FIELD', 'REDACT_EXPOSED_SECRET', 'ROTATE_SECRET'],
   motionIdentityId: 'motion-guardian',
   soundProfileId: 'sound-guardian',
   contextPanelId: 'context-panel-guardian',

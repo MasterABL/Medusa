@@ -17,6 +17,8 @@ import { getTrust } from './trust';
 import { createApprovalRequest } from './approval';
 import { record } from './auditLog';
 
+export const APPROVAL_TTL_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Avalia uma Action contra a política + o trust profile atual, gera o
  * ActionAuditLogEntry (sempre — mesmo quando a decisão é "executa sozinho") e,
@@ -42,6 +44,8 @@ export function evaluate(action: Action): GuardianEvaluation {
         domain: evaluatedAction.domain,
         reason: decision.reason,
         impact: evaluatedAction.intent,
+        // Toda aprovação tem prazo: pedido esquecido não pode ficar válido pra sempre (seção 20).
+        expiresAt: new Date(Date.now() + APPROVAL_TTL_MS).toISOString(),
       })
     : undefined;
 
@@ -67,3 +71,4 @@ export * as GuardianPolicy from './policy';
 export * as GuardianTrust from './trust';
 export * as GuardianApproval from './approval';
 export * as GuardianAuditLog from './auditLog';
+export * as GuardianExplanation from './explanation';
