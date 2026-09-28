@@ -7,6 +7,7 @@ import { EducationContainer } from '@/components/education/EducationContainer';
 import { AgendaContainer } from '@/components/agenda/AgendaContainer';
 import { HojeContainer } from '@/components/hoje/HojeContainer';
 import { RoutePending } from '@/components/shell/RoutePending';
+import { CorpoContainer } from '@/components/domains/corpo/CorpoContainer';
 import { FinancasContainer } from '@/components/domains/financas/FinancasContainer';
 
 const PENDING_ROUTES = ['progresso'];
@@ -26,6 +27,10 @@ export default function HomePage() {
 
   if (activeRoute === 'hoje') {
     return <HojeContainer />;
+  }
+
+  if (activeRoute === 'corpo') {
+    return <CorpoContainer />;
   }
 
   if (activeRoute === 'financas') {
