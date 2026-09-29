@@ -65,11 +65,13 @@ html.dark {
 }
 
 /* Sky variations */
-[data-ambient-time="dia"] .esp-sky-gradient {
+[data-ambient-time="dia"] .esp-sky-gradient,
+[data-ambient-time="manha"] .esp-sky-gradient {
   background: radial-gradient(circle at 50% 10%, var(--esp-dia-sky-1) 0%, var(--esp-dia-sky-2) 75%, transparent 100%);
 }
 
-[data-ambient-time="entardecer"] .esp-sky-gradient {
+[data-ambient-time="entardecer"] .esp-sky-gradient,
+[data-ambient-time="tarde"] .esp-sky-gradient {
   background: radial-gradient(circle at 60% 30%, var(--esp-sunset-sky-1) 0%, var(--esp-sunset-sky-2) 70%, transparent 100%);
 }
 
@@ -707,6 +709,520 @@ html.dark .esp-now-list li {
   border-radius: 12px;
   background: rgb(var(--color-surface-secondary-rgb) / 0.65);
   border: 1px solid rgb(var(--color-border-rgb) / 0.45);
+}
+
+/* =========================================================
+   ESPIRITUAL — AS 4 DIMENSÕES E SANTUÁRIO INTEGRAL
+   ========================================================= */
+
+.esp-atmosphere-wrapper {
+  position: relative;
+  min-height: 100%;
+}
+
+.esp-full-atmosphere {
+  position: absolute;
+  inset: -24px -24px -60px -24px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 24px;
+}
+
+.esp-content-overlay {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ambient Header & Time Pills */
+.esp-ambient-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  background: rgb(var(--color-surface-rgb) / 0.6);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.esp-ambient-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgb(var(--color-text-primary-rgb));
+}
+
+.esp-time-pills {
+  display: flex;
+  gap: 4px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.5);
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-border-rgb) / 0.3);
+}
+
+.esp-time-pill {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(var(--color-text-secondary-rgb));
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.esp-time-pill[data-selected="true"] {
+  background: var(--dm-accent-bg);
+  color: var(--dm-accent-text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Dimensão 1: Propósito & Trilha de Caminho */
+.esp-purpose-block {
+  border-left: 3px solid var(--dm-accent-border);
+}
+
+.esp-purpose-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.esp-purpose-quote {
+  font-family: var(--font-display, "Epilogue", serif);
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.5;
+  color: rgb(var(--color-text-primary-rgb));
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 2px solid rgb(var(--color-primary-rgb) / 0.4);
+}
+
+.esp-path-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.45);
+  border-radius: 12px;
+}
+
+.esp-path-milestone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgb(var(--color-text-secondary-rgb));
+}
+
+.esp-path-milestone.completed {
+  color: var(--dm-accent-text);
+  font-weight: 500;
+}
+
+.esp-path-milestone.current {
+  color: rgb(var(--color-text-primary-rgb));
+  font-weight: 600;
+}
+
+.esp-path-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--color-border-rgb));
+}
+
+.esp-path-milestone.completed .esp-path-dot {
+  background: var(--dm-accent-text);
+  box-shadow: 0 0 8px rgba(113, 219, 210, 0.5);
+}
+
+.esp-path-milestone.current .esp-path-dot {
+  background: #fff;
+  border: 2px solid var(--dm-accent-text);
+}
+
+.esp-path-line {
+  flex: 1;
+  height: 2px;
+  background: rgb(var(--color-border-rgb) / 0.4);
+}
+
+.esp-path-line.completed {
+  background: var(--dm-accent-text);
+}
+
+/* Dimensão 4: Oração Sincera */
+.esp-prayer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.esp-prayer-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.6);
+  color: rgb(var(--color-text-secondary-rgb));
+  transition: all 240ms ease;
+}
+
+.esp-prayer-icon-wrap[data-prayed="true"] {
+  background: var(--dm-accent-bg);
+  color: var(--dm-accent-text);
+}
+
+.esp-prayer-question {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary-rgb));
+  margin: 0;
+}
+
+.esp-prayer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Dimensão 2: Leitura Canônica & Bíblia Aberta */
+.esp-reading-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.esp-bible-nav-bar {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr auto;
+  gap: 14px;
+  align-items: flex-end;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.5);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.4);
+}
+
+@container dm (max-width: 680px) {
+  .esp-bible-nav-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.esp-open-scripture {
+  padding: 24px;
+  border-radius: 16px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.4);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.45);
+}
+
+.esp-passage-name {
+  font-family: var(--font-display, "Epilogue", serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: rgb(var(--color-text-primary-rgb));
+  margin: 0;
+}
+
+.esp-passage-theme {
+  font-size: 14px;
+  color: var(--dm-accent-text);
+  margin: 4px 0 16px;
+}
+
+.esp-verse-line {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgb(var(--color-text-primary-rgb));
+  margin: 0 0 10px;
+}
+
+.esp-verse-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dm-accent-text);
+  margin-right: 6px;
+}
+
+.esp-key-verse {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(113, 219, 210, 0.08);
+  border-left: 2px solid var(--dm-accent-text);
+}
+
+.esp-passage-footer {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* =========================================================
+   SUBEXPERIÊNCIA DE ESTUDO (Espiritual / Estudo)
+   ========================================================= */
+
+.esp-study-subexperience {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.esp-study-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgb(var(--color-border-rgb) / 0.4);
+}
+
+.esp-study-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.esp-study-header {
+  padding: 16px 0;
+}
+
+.esp-study-title {
+  font-family: var(--font-display, "Epilogue", serif);
+  font-size: clamp(28px, 4cqi + 12px, 40px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: rgb(var(--color-text-primary-rgb));
+  margin: 6px 0 4px;
+}
+
+.esp-study-theme {
+  font-size: 16px;
+  color: var(--dm-accent-text);
+  margin: 0 0 10px;
+}
+
+.esp-study-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.esp-demo-tag {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(255, 241, 140, 0.15);
+  color: #fff18c;
+  border: 1px solid rgba(255, 241, 140, 0.3);
+}
+
+.esp-study-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@container dm (max-width: 900px) {
+  .esp-study-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.esp-scripture-book {
+  padding: 24px;
+  border-radius: 18px;
+  background: rgb(var(--color-surface-rgb) / 0.85);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.6);
+  backdrop-filter: blur(12px);
+}
+
+.esp-book-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgb(var(--color-border-rgb) / 0.3);
+  color: var(--dm-accent-text);
+}
+
+.esp-scripture-verses {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.esp-exegetical-box {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(113, 219, 210, 0.06);
+  border: 1px solid rgba(113, 219, 210, 0.2);
+}
+
+.esp-cross-refs {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgb(var(--color-border-rgb) / 0.3);
+}
+
+.esp-ref-pill {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.6);
+  color: rgb(var(--color-text-secondary-rgb));
+  border: 1px solid rgb(var(--color-border-rgb) / 0.4);
+}
+
+/* Coluna de Inquérito Contemplativo (1, 2, 3) */
+.esp-study-inquiry-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.esp-inquiry-step {
+  padding: 20px;
+  border-radius: 16px;
+  background: rgb(var(--color-surface-rgb) / 0.75);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.esp-step-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.esp-step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--dm-accent-bg);
+  color: var(--dm-accent-text);
+  flex-shrink: 0;
+}
+
+.esp-step-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary-rgb));
+  margin: 0;
+}
+
+.esp-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.esp-note-item {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.4);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.35);
+}
+
+.esp-input-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.esp-concluded-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(173, 228, 181, 0.1);
+  border: 1px solid rgba(173, 228, 181, 0.3);
+}
+
+/* Espaço do Companheiro de Estudo IA */
+.esp-ai-companion-slot {
+  border-radius: 16px;
+  background: rgb(var(--color-surface-rgb) / 0.7);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.5);
+  overflow: hidden;
+}
+
+.esp-ai-header-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.esp-ai-body {
+  padding: 0 20px 20px;
+}
+
+.esp-ai-disclaimer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(113, 219, 210, 0.06);
+  border: 1px solid rgba(113, 219, 210, 0.2);
+}
+
+.esp-ai-q-box {
+  border-radius: 10px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.35);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.3);
+  overflow: hidden;
+}
+
+.esp-ai-q-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.esp-ai-ans {
+  padding: 12px 14px;
+  border-top: 1px solid rgb(var(--color-border-rgb) / 0.25);
+  background: rgb(var(--color-surface-rgb) / 0.4);
 }
 
 /* Reduced Motion */
