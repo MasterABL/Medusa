@@ -62,6 +62,12 @@ export function Header() {
         return 'Finanças';
       case 'progresso':
         return 'Progresso';
+      case 'gmail':
+        return 'Gmail';
+      case 'guardian':
+        return 'Guardian';
+      case 'espiritual':
+        return 'Espiritual';
       default:
         return 'Hoje';
     }

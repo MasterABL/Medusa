@@ -6,6 +6,7 @@ import { useAgenda } from '@/context/AgendaContext';
 import { AgendaContextSummary } from '@/components/agenda/AgendaContextSummary';
 import { TrackContextPanel } from '@/components/education/TrackContextPanel';
 import { TodayContextPanel } from '@/components/hoje/TodayContextPanel';
+import { DomainContextPanel, DOMAIN_PANEL_TITLE } from '@/components/domains/DomainContextPanel';
 
 /**
  * Corpo do painel — compartilhado entre o `<aside>` fixo do desktop e o bottom sheet de
@@ -32,7 +33,7 @@ function ContextPanelBody({ onRequestClose, closeIcon }: { onRequestClose: () =>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-medusa-primary living-pulse" />
               <span className="text-[10px] font-mono font-medium uppercase tracking-widest text-text-muted">
-                Painel Regional
+                {DOMAIN_PANEL_TITLE[activeRoute] ?? 'Painel Regional'}
               </span>
             </div>
             <button
@@ -50,7 +51,9 @@ function ContextPanelBody({ onRequestClose, closeIcon }: { onRequestClose: () =>
           {/* Corpo do painel: cada área tem seu próprio conteúdo contextual — Educação e Hoje
               têm painéis dedicados; as demais rotas (ainda sem painel próprio) mantêm o
               resumo operacional padrão. */}
-          {activeRoute === 'educacao' ? (
+          {DOMAIN_PANEL_TITLE[activeRoute] ? (
+            <DomainContextPanel route={activeRoute} />
+          ) : activeRoute === 'educacao' ? (
             <TrackContextPanel />
           ) : activeRoute === 'hoje' ? (
             <TodayContextPanel />
