@@ -20,6 +20,26 @@ export function FinancasContextPanel() {
   return (
     <>
       <div className="dm-ctx-block">
+        <p className="dm-ctx-label">Fluxo do mês</p>
+        <div className="fin-ctx-flow" aria-label="Resumo do fluxo financeiro">
+          <div className="fin-ctx-flow-item">
+            <span className="dm-faint text-[11px] block">Entrada</span>
+            <strong className="dm-num text-[13px]">{brl(view.income)}</strong>
+          </div>
+          <span className="fin-ctx-flow-arrow" aria-hidden="true">→</span>
+          <div className="fin-ctx-flow-item">
+            <span className="dm-faint text-[11px] block">Saída</span>
+            <strong className="dm-num text-[13px]">{brl(view.spent)}</strong>
+          </div>
+          <span className="fin-ctx-flow-arrow" aria-hidden="true">→</span>
+          <div className="fin-ctx-flow-item">
+            <span className="dm-faint text-[11px] block">Margem</span>
+            <strong className="dm-num text-[13px] text-emerald-600 dark:text-emerald-400">{brl(view.free)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="dm-ctx-block">
         <p className="dm-ctx-label">Próxima conta</p>
         {nextBill ? (
           <button type="button" className="dm-ctx-link" onClick={() => focusFinance({ kind: 'bill', id: nextBill.commitment.id })}>

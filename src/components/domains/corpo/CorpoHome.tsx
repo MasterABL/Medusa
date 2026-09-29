@@ -104,6 +104,9 @@ function DayAdjust({ view, onLight }: { view: CorpoView; onLight: (reason: strin
   );
 }
 
+import { ActivityMovementVisualizer } from './ActivityMovementVisualizer';
+import { WeeklyRhythmStream } from './WeeklyRhythmStream';
+
 export function CorpoHome({ onRedo }: { onRedo: () => void }) {
   const { version, agendaRequests } = useCorpoState();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,48 +138,75 @@ export function CorpoHome({ onRedo }: { onRedo: () => void }) {
         }
       />
 
-      <section className="cor-tiles dm-rise" aria-label="Estado atual">
-        <div className="dm-card cor-tile">
-          <p className="dm-eyebrow">Como estou</p>
-          <p className="cor-tile-value">{p.energyLevel ? `Energia ${label(p.energyLevel.value).toLowerCase()}` : 'Sem relato'}</p>
-          <p className="dm-faint text-[12px]">{p.energyLevel ? 'relatado por você no diagnóstico' : 'responda no diagnóstico'}</p>
-        </div>
-        <div className="dm-card cor-tile">
-          <p className="dm-eyebrow">Próxima atividade</p>
-          <p className="cor-tile-value">{view.isSessionDay ? 'Hoje' : view.nextOffset === 1 ? 'Amanhã' : WEEKDAY_SHORT[view.nextIdx]}</p>
-          <p className="dm-faint text-[12px]">{act.label} · {session.durationMinutes} min</p>
-        </div>
-        <div className="dm-card cor-tile">
-          <p className="dm-eyebrow">Recuperação</p>
-          <p className="cor-tile-value">{p.recoveryQuality ? label(p.recoveryQuality.value) : 'Sem relato'}</p>
-          <p className="dm-faint text-[12px]">{p.sleepQuality ? `sono ${label(p.sleepQuality.value).toLowerCase()} · ` : ''}relatado por você</p>
-        </div>
-        <div className="dm-card cor-tile">
-          <p className="dm-eyebrow">Ritmo semanal</p>
-          <p className="cor-tile-value">{view.plan.frequencyPerWeek}x por semana</p>
-          <p className="dm-faint text-[12px]">plano {view.plan.status === 'active' ? 'ativo' : view.plan.status === 'paused' ? 'em pausa' : 'em rascunho'}</p>
+      {/* Primeira dobra: Painel Vital Orgânico Integrado */}
+      <section className="cor-vital-deck dm-rise" aria-label="Estado vital do corpo">
+        <div className="cor-vital-grid">
+          <div className="cor-vital-cell">
+            <span className="cor-cell-curve" aria-hidden="true" />
+            <p className="dm-eyebrow">Energia Relatada</p>
+            <p className="cor-vital-value text-text-primary">
+              {p.energyLevel ? `Nível ${label(p.energyLevel.value).toLowerCase()}` : 'Sem relato'}
+            </p>
+            <p className="dm-faint text-[12px]">{p.energyLevel ? 'percepção declarada por você' : 'responda no diagnóstico'}</p>
+          </div>
+
+          <div className="cor-vital-cell">
+            <span className="cor-cell-curve" aria-hidden="true" />
+            <p className="dm-eyebrow">Próximo Movimento</p>
+            <p className="cor-vital-value text-text-primary">
+              {view.isSessionDay ? 'Hoje' : view.nextOffset === 1 ? 'Amanhã' : WEEKDAY_SHORT[view.nextIdx]}
+            </p>
+            <p className="dm-faint text-[12px]">{act.label} · {session.durationMinutes} min</p>
+          </div>
+
+          <div className="cor-vital-cell">
+            <span className="cor-cell-curve" aria-hidden="true" />
+            <p className="dm-eyebrow">Recuperação & Sono</p>
+            <p className="cor-vital-value text-text-primary">
+              {p.recoveryQuality ? label(p.recoveryQuality.value) : 'Equilibrada'}
+            </p>
+            <p className="dm-faint text-[12px]">{p.sleepQuality ? `sono ${label(p.sleepQuality.value).toLowerCase()}` : 'ritmo sustentável'}</p>
+          </div>
+
+          <div className="cor-vital-cell">
+            <span className="cor-cell-curve" aria-hidden="true" />
+            <p className="dm-eyebrow">Constância Semanal</p>
+            <p className="cor-vital-value text-text-primary">{view.plan.frequencyPerWeek}x na semana</p>
+            <p className="dm-faint text-[12px]">plano {view.plan.status === 'active' ? 'ativo' : 'em pausa'}</p>
+          </div>
         </div>
       </section>
 
       <PendingApprovals domain="body" version={version} execute={executeApprovedBodyAction} onChanged={() => corpoUi.set((s) => ({ version: s.version + 1 }))} />
 
-      <section className="dm-card dm-card-pad cor-session dm-rise" style={{ ['--i' as string]: 1 }} aria-label="Atividade sugerida">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+      {/* Visualizador de Movimento Vivo — Não é apenas texto, é dinâmica cinemática completa */}
+      <section className="cor-session-wrapper dm-rise" style={{ ['--i' as string]: 1 }} aria-label="Atividade sugerida">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div>
             <p className="dm-eyebrow">{view.isSessionDay ? 'Sugerida para hoje' : 'Próxima sessão'}</p>
             <h2 className="cor-session-title">{act.label}</h2>
           </div>
-          <span className="dm-chip" data-tone="primary"><span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: 14 }}>timer</span>{session.durationMinutes} min</span>
+          <span className="dm-chip" data-tone="primary">
+            <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: 14 }}>timer</span>
+            {session.durationMinutes} min
+          </span>
         </div>
-        <RhythmWave />
-        <ul className="cor-facts">
+
+        <ActivityMovementVisualizer
+          activity={act}
+          durationMinutes={session.durationMinutes}
+          intensity={session.intensity}
+        />
+
+        <ul className="cor-facts mt-4">
           <li><span className="dm-faint">Intensidade</span>{label(session.intensity)}</li>
-          <li><span className="dm-faint">Onde</span>{label(act.environment)}</li>
+          <li><span className="dm-faint">Ambiente</span>{label(act.environment)}</li>
           <li><span className="dm-faint">Equipamento</span>{act.equipment.length ? act.equipment.map(label).join(', ') : 'Nenhum'}</li>
-          {session.preferredWindowLabel && <li><span className="dm-faint">Janela preferida</span>{label(session.preferredWindowLabel)}</li>}
+          {session.preferredWindowLabel && <li><span className="dm-faint">Janela de preferência</span>{label(session.preferredWindowLabel)}</li>}
         </ul>
+
         {outcome ? (
-          <p className="fin-outcome" role="status">
+          <p className="fin-outcome mt-4" role="status">
             <span className="material-symbols-outlined" aria-hidden="true">{outcome.route === 'automatica' ? 'check_circle' : 'hourglass_top'}</span>
             <span>
               {outcome.route === 'automatica' ? (
@@ -187,37 +217,33 @@ export function CorpoHome({ onRedo }: { onRedo: () => void }) {
             </span>
           </p>
         ) : (
-          <div className="cor-actions">
+          <div className="cor-actions mt-4">
             <button type="button" className="dm-btn" data-variant="primary" onClick={() => setOutcome(proposeSessionToAgenda(view.nextDate))}>
               <span className="material-symbols-outlined" aria-hidden="true">event_available</span>
               Propor à Agenda
             </button>
-            <button type="button" className="dm-btn" onClick={() => setOutcome(proposeLightActivity(view.nextDate, 'versão leve escolhida por você'))}>Versão leve (15 min)</button>
+            <button type="button" className="dm-btn" onClick={() => setOutcome(proposeLightActivity(view.nextDate, 'versão leve escolhida por você'))}>
+              Versão leve (15 min)
+            </button>
           </div>
         )}
-        <Disclosure summary={<span className="dm-btn" data-variant="quiet" data-size="sm" style={{ paddingInline: 0 }}>Ajustar ao meu dia de hoje</span>} chevron={false}>
-          <DayAdjust view={view} onLight={(reason) => setOutcome(proposeLightActivity(view.nextDate, reason))} />
-        </Disclosure>
+
+        <div className="mt-2">
+          <Disclosure summary={<span className="dm-btn" data-variant="quiet" data-size="sm" style={{ paddingInline: 0 }}><span className="material-symbols-outlined text-[16px]" aria-hidden="true">tune</span>Ajustar ao meu dia de hoje</span>} chevron={false}>
+            <DayAdjust view={view} onLight={(reason) => setOutcome(proposeLightActivity(view.nextDate, reason))} />
+          </Disclosure>
+        </div>
       </section>
 
+      {/* Fluxo Semanal Orgânico e Conexão de Agenda */}
       <div className="fin-cols">
-        <section className="dm-card dm-card-pad dm-rise" style={{ ['--i' as string]: 2 }} aria-label="Sua semana">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="dm-h2">Distribuição e constância</h2>
-            <span className="dm-muted text-[13px]">{view.plan.frequencyPerWeek} sessões</span>
-          </div>
-          <div className="cor-weekgrid" role="list">
-            {WEEKDAY_SHORT.map((d, i) => {
-              const on = session.preferredDays.includes(i);
-              return (
-                <div key={d} role="listitem" className="cor-day" data-on={on} data-today={i === view.todayIdx} aria-label={`${WEEKDAY_LONG[i]}${on ? `: ${act.label}, ${session.durationMinutes} minutos` : ': descanso'}${i === view.todayIdx ? ' (hoje)' : ''}`}>
-                  <b>{d}</b>
-                  <span>{on ? `${session.durationMinutes} min` : 'folga'}</span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="dm-faint text-[12px] mt-3">Dias distribuídos pelo planejador para haver descanso entre sessões. O registro do que você concluiu ainda não existe — por isso não há “sequência” aqui.</p>
+        <section className="dm-card dm-card-pad cor-card-organic dm-rise" style={{ ['--i' as string]: 2 }} aria-label="Sua semana">
+          <WeeklyRhythmStream
+            preferredDays={session.preferredDays}
+            todayIdx={view.todayIdx}
+            activityLabel={act.label}
+            durationMinutes={session.durationMinutes}
+          />
         </section>
 
         <section className="dm-card dm-card-pad dm-rise" style={{ ['--i' as string]: 3 }} aria-label="Conectado à sua agenda">

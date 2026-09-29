@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import type { PracticeKind } from '@/domains/spiritual';
 import { PLAN_CATALOG, PRACTICE_KINDS, addPractice, choosePlan, getData, setPurpose } from './spiritualSession';
 import type { PlanKey } from './spiritualSession';
+import { AtmosphericSanctuary } from './AtmosphericSanctuary';
 
 type Step = 0 | 1 | 2;
 
@@ -25,6 +26,7 @@ export function EspiritualEntrada({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="dm-root esp-root esp-intro" data-domain="espiritual">
+      <AtmosphericSanctuary mode="proposito" compact />
       <div className="esp-halo" aria-hidden="true" />
 
       {step > 0 && saved && (

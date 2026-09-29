@@ -314,7 +314,6 @@ tema; a gramática de cor (§2) nunca muda de significado entre temas.
   animate-slideLeft`) — o painel abria sem transição nenhuma, sem backdrop, sem Esc, sem
   clique-fora; agora usa o mesmo padrão de overlay do resto do app. Tema claro e sépia
   recalibrados (claro menos "estourado"; sépia com identidade real de madeira clara/pergaminho —
-  o problema de verdade era falta de diferenciação do claro, não excesso de contraste).
 - **Round 6** — Owner Precedence (§0) formalizada; taxonomia de motion expandida pros 16 papéis
   pedidos; Cor como Contexto (§2.1) documentada. 2 bugs críticos reais corrigidos no Study Mode:
   o seletor de composição ficava preso/inoperável no modo Resumo (morava dentro da seção que
@@ -328,3 +327,5 @@ tema; a gramática de cor (§2) nunca muda de significado entre temas.
   disponibilidade; mini-diagnóstico de 3 questões ajusta a autoavaliação de domínio). Fundação
   real de integração Cronograma→Agenda (blocos de estudo entram na Agenda de verdade, mesmo
   Local State, category `cat-enem` já existente). Ver `docs`/PR para o relatório completo.
+- **Round Anti (Domain Personality System)** — Introdução da camada de personalidade visual por domínio (Finanças, Corpo, Guardian, Espiritual) preservando a família Medusa (Epilogue, 8px grid, off-white, radius 8-12, accessibility). Cada domínio ganha assinatura visual, ritmo de motion próprio e layout específico: Finanças (geométrico, fluxo river de dinheiro, balanço em eixos), Corpo (orgânico, visualizador cinético de movimento em 5 fases, ritmo semanal em onda), Guardian (console de inteligência operacional silenciosa, radar de 5 facetas, pipeline em 7 estágios), Espiritual (santuário atmosférico com céu reativo a dia/entardecer/noite e modos de presença). Ver `docs/DOMAIN_PERSONALITY.md` para a especificação completa.
+

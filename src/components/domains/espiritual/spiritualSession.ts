@@ -76,6 +76,7 @@ export interface SpiritualUserData {
   completions: Array<{ id: string; definitionId: string; kind: PracticeKind; at: string; minutes: number }>;
   reflections: Array<{ id: string; content: string; at: string }>;
   studies: StudyData[];
+  prayerHistory?: Array<{ date: string; prayed: boolean; at: string }>;
 }
 
 const EMPTY: SpiritualUserData = { v: 1, practices: [], readEntries: [], completions: [], reflections: [], studies: [] };
@@ -135,7 +136,10 @@ function rebuild(): SpiritualRepository {
   for (const c of data.completions) {
     recordPractice(r, { id: c.id, type: c.kind, label: PRACTICE_KINDS.find((k) => k.kind === c.kind)?.label ?? c.kind, completedAt: c.at, durationMinutes: c.minutes, definitionId: c.definitionId }, c.at);
   }
-  for (const f of data.reflections) createReflection(r, { id: f.id, content: f.content, createdAt: f.at, visibility: 'private' });
+  for (const f of data.reflections) {
+    const at = f.at ?? (f as any).createdAt ?? new Date().toISOString();
+    createReflection(r, { id: f.id, content: f.content, createdAt: at, visibility: 'private' });
+  }
   for (const s of data.studies) {
     saveNewStudy(r, StudyEngine.startStudy({ id: s.id, reference: s.ref, purposeId: data.purpose ? 'purpose_1' : undefined, createdAt: s.notes[0]?.at ?? now.toISOString() }));
     for (const n of s.notes) addItemToStudy(r, s.id, { id: n.id, kind: 'user_reflection', origin: 'user', content: n.text, createdAt: n.at, private: true });
@@ -234,6 +238,46 @@ export function concludeStudy(studyId: string, text: string): void {
 export function resetAll(): void {
   data = EMPTY;
   commit();
+}
+
+// ---- oração diária sem gamificação ----
+export function hasPrayedToday(): boolean {
+  load();
+  const todayStr = day(new Date().toISOString());
+  const entry = data.prayerHistory?.find((p) => p.date === todayStr);
+  if (entry) return entry.prayed;
+  return data.completions.some((c) => c.kind === 'oracao' && day(c.at) === todayStr);
+}
+
+export function setPrayedToday(prayed: boolean): void {
+  load();
+  const now = new Date();
+  const todayStr = day(now.toISOString());
+  const history = data.prayerHistory ? [...data.prayerHistory] : [];
+  const idx = history.findIndex((p) => p.date === todayStr);
+  if (idx >= 0) {
+    history[idx] = { date: todayStr, prayed, at: now.toISOString() };
+  } else {
+    history.unshift({ date: todayStr, prayed, at: now.toISOString() });
+  }
+  data = { ...data, prayerHistory: history };
+  if (prayed) {
+    if (!data.completions.some((c) => c.kind === 'oracao' && day(c.at) === todayStr)) {
+      data = {
+        ...data,
+        completions: [
+          ...data.completions,
+          { id: uid('prayer'), definitionId: 'prayer_daily', kind: 'oracao', at: now.toISOString(), minutes: 10 },
+        ],
+      };
+    }
+  }
+  commit();
+}
+
+export function getPrayerLog(): Array<{ date: string; prayed: boolean; at: string }> {
+  load();
+  return data.prayerHistory ? [...data.prayerHistory] : [];
 }
 
 // ---- leitura para as telas ----
