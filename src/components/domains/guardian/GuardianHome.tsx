@@ -23,25 +23,34 @@ function executeForDomain(action: Action): void {
 
 const MODE_TEXT = { real: 'observando', demo: 'sobre demonstração', sem_fonte: 'sem fonte conectada' } as const;
 
+import { GuardianTopologyRadar } from './GuardianTopologyRadar';
+import { GuardianPipelineTracker } from './GuardianPipelineTracker';
+
 export function GuardianHome({ onReplayIntro }: { onReplayIntro: () => void }) {
   const { version, running, cycles, lastReport } = useGuardianState();
   const { repo } = getGuardianSession();
+  const [filteredCategory, setFilteredCategory] = React.useState<string | null>(null);
 
   useEffect(() => {
     if (cycles === 0 && !running) void runCycle();
   }, [cycles, running]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findings = useMemo(() => GuardianDomainApi.getOpenFindings(repo), [version]);
+  const allFindings = useMemo(() => GuardianDomainApi.getOpenFindings(repo), [version]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const resolved = useMemo(() => repo.listFindings({ status: 'resolved' }), [version]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const events = useMemo(() => repo.listEvents().filter((e) => HUMAN_EVENTS.includes(e.type)).slice(-8).reverse(), [version]);
 
+  const findings = useMemo(() => {
+    if (!filteredCategory) return allFindings;
+    return allFindings.filter((f) => f.category === filteredCategory);
+  }, [allFindings, filteredCategory]);
+
   const awaiting = findings.filter((f) => f.status === 'awaiting_approval');
   const blocked = findings.filter((f) => f.status === 'blocked');
   const others = findings.filter((f) => f.status !== 'awaiting_approval' && f.status !== 'blocked');
-  const health = healthOf(findings);
+  const health = healthOf(allFindings);
 
   useEffect(() => {
     const sel = guardianUi.get().selectedId;
@@ -62,7 +71,7 @@ export function GuardianHome({ onReplayIntro }: { onReplayIntro: () => void }) {
         title={title}
         subtitle={
           <>
-            <strong>{health.verdict}</strong> {findings.length} achado{findings.length === 1 ? '' : 's'} aberto{findings.length === 1 ? '' : 's'}, {resolved.length} resolvido{resolved.length === 1 ? '' : 's'} e verificado{resolved.length === 1 ? '' : 's'} nesta sessão.
+            <strong>{health.verdict}</strong> {allFindings.length} achado{allFindings.length === 1 ? '' : 's'} aberto{allFindings.length === 1 ? '' : 's'}, {resolved.length} resolvido{resolved.length === 1 ? '' : 's'} e verificado{resolved.length === 1 ? '' : 's'} nesta sessão.
           </>
         }
         aside={
@@ -83,23 +92,46 @@ export function GuardianHome({ onReplayIntro }: { onReplayIntro: () => void }) {
         }
       />
 
-      <section className="gd-coverage dm-rise" aria-label="O que o Guardian observa">
-        {COVERAGE.map((c) => (
-          <span key={c.key} className="gd-cov" data-mode={c.mode} title={c.what}>
-            <span className="gd-cov-dot" aria-hidden="true" />
-            {c.name} <em>· {MODE_TEXT[c.mode]}</em>
-          </span>
-        ))}
-        <DemoBadge label="Dados e segurança: demonstração" hint="Ainda não há adapter para os dados reais: estas duas fontes leem uma coleção e um texto de exemplo. Detecção, aprovação, correção e verificação são reais." />
+      {/* 1. Radar de Topologia Operacional — 5 Frentes Conectadas */}
+      <section className="dm-rise" aria-label="Topologia do sistema">
+        <GuardianTopologyRadar
+          findings={allFindings}
+          running={running}
+          onFilterCategory={setFilteredCategory}
+        />
+        <div className="mt-2">
+          <DemoBadge label="Dados e segurança: demonstração" hint="Ainda não há adapter para os dados reais: estas duas fontes leem uma coleção e um texto de exemplo. Detecção, aprovação, correção e verificação são reais." />
+        </div>
       </section>
 
+      {/* 2. Ciclo em 7 Estágios: Observar → Detectar → Investigar → Propor → Autorizar → Corrigir → Verificar */}
+      <section className="dm-rise" style={{ ['--i' as string]: 1 }} aria-label="Cadeia de resolução">
+        <GuardianPipelineTracker
+          findings={allFindings}
+          resolvedCount={resolved.length}
+        />
+      </section>
+
+      {filteredCategory && (
+        <div className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/70 border border-border/60">
+          <span className="text-[13px] text-text-secondary">Filtrando por categoria selecionada na topologia</span>
+          <button type="button" className="dm-btn" data-size="sm" data-variant="quiet" onClick={() => setFilteredCategory(null)}>
+            Limpar filtro
+          </button>
+        </div>
+      )}
+
       {awaiting.length > 0 && (
-        <section className="gd-section dm-rise" style={{ ['--i' as string]: 1 }} aria-label="Precisa da sua decisão agora">
-          <h2 className="dm-h2">Precisa da sua decisão agora</h2>
+        <section className="gd-section dm-rise" style={{ ['--i' as string]: 2 }} aria-label="Precisa da sua decisão agora">
+          <div className="flex items-center justify-between">
+            <h2 className="dm-h2">Precisa da sua decisão agora</h2>
+            <span className="dm-chip" data-tone="accent">{awaiting.length} pendência{awaiting.length > 1 ? 's' : ''}</span>
+          </div>
           <p className="dm-muted text-[13px]">Nada aqui é aplicado sem você. Abra um achado para ver a evidência e o que muda.</p>
           <div className="gd-stack">{awaiting.map((f, i) => <FindingCard key={f.id} finding={f} defaultOpen={i === 0} />)}</div>
         </section>
       )}
+
 
       <PendingApprovals domain={['finance', 'body', 'spiritual', 'agenda', 'education', 'hoje']} version={version} heading="Pedidos de outros domínios aguardando você" execute={executeForDomain} onChanged={() => guardianUi.set((s) => ({ version: s.version + 1 }))} />
 

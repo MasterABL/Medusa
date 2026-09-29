@@ -57,14 +57,341 @@ html.dark .cor-option[data-selected='true'] { background: rgb(var(--color-primar
 @container dm (min-width: 760px) { .cor-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .cor-tile { padding: 16px; display: flex; flex-direction: column; gap: 4px; border-radius: 16px; }
 .cor-tile-value { font-size: clamp(17px, 2.4cqi + 6px, 21px); font-weight: 700; letter-spacing: -0.01em; margin: 0; line-height: 1.2; }
-.cor-session { display: flex; flex-direction: column; gap: 14px; border-radius: 16px; background: linear-gradient(160deg, rgb(var(--color-primary-rgb) / 0.13), rgb(var(--color-surface-rgb)) 55%); }
-.cor-session-title { font-size: clamp(22px, 3cqi + 8px, 28px); font-weight: 700; letter-spacing: -0.02em; margin: 2px 0 0; line-height: 1.15; }
-.cor-wave { width: 100%; height: 56px; }
-.cor-wave path { fill: none; stroke: rgb(var(--color-primary-rgb)); stroke-width: 2.5; stroke-linecap: round; vector-effect: non-scaling-stroke; stroke-dasharray: 900; stroke-dashoffset: 900; animation: corDraw 1600ms var(--ease-smooth) 200ms forwards, corDrift 7s ease-in-out 1800ms infinite alternate; }
-.cor-wave path[data-soft='true'] { stroke: rgb(var(--color-support-rgb)); opacity: 0.8; animation-delay: 400ms, 2000ms; }
-@keyframes corDraw { to { stroke-dashoffset: 0; } }
-@keyframes corDrift { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
-@media (prefers-reduced-motion: reduce) { .cor-wave path { stroke-dashoffset: 0 !important; } .cor-breath span { animation: none !important; transform: scale(0.8); } .cor-slide { animation: none !important; } }
+
+/* ==========================================================================
+   Corpo — Painel Vital Orgânico Integrado (Assinatura de Evolução + Rotina)
+   ========================================================================== */
+
+.cor-vital-deck {
+  background: linear-gradient(135deg, rgb(var(--color-surface-rgb)), rgb(var(--color-surface-secondary-rgb) / 0.5));
+  border: 1px solid rgb(var(--color-support-rgb) / 0.4);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.cor-vital-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@container dm (min-width: 760px) {
+  .cor-vital-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.cor-vital-cell {
+  position: relative;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-right: 1px solid rgb(var(--color-border-rgb) / 0.45);
+  border-bottom: 1px solid rgb(var(--color-border-rgb) / 0.45);
+}
+.cor-vital-cell:nth-child(2n) {
+  border-right: none;
+}
+@container dm (min-width: 760px) {
+  .cor-vital-cell { border-bottom: none; }
+  .cor-vital-cell:nth-child(2n) { border-right: 1px solid rgb(var(--color-border-rgb) / 0.45); }
+  .cor-vital-cell:last-child { border-right: none; }
+}
+
+.cor-cell-curve {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 3px;
+  border-radius: 0 0 6px 0;
+  background: linear-gradient(90deg, rgb(var(--color-support-rgb)), transparent);
+}
+
+.cor-vital-value {
+  font-size: clamp(18px, 2.5cqi + 6px, 22px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 2px 0 0;
+  line-height: 1.2;
+}
+
+/* Invólucro da Sessão Orgânica */
+.cor-session-wrapper {
+  background: linear-gradient(160deg, rgb(var(--color-surface-rgb)), rgb(var(--color-surface-secondary-rgb) / 0.4));
+  border: 1px solid rgb(var(--color-support-rgb) / 0.5);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.cor-card-organic {
+  border-radius: 20px !important;
+  border-color: rgb(var(--color-support-rgb) / 0.4) !important;
+}
+
+/* Visualizador de Movimento Cinético */
+.cor-movement-visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.cor-kinetic-card {
+  background: rgb(var(--color-surface-secondary-rgb) / 0.35);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.6);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+html.dark .cor-kinetic-card {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.cor-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--color-support-rgb));
+  animation: corLivePulse 2.4s ease-in-out infinite;
+}
+@keyframes corLivePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+.cor-kinetic-stage {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  margin: 12px 0;
+}
+
+.cor-kinetic-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.cor-wave-pulse {
+  animation: corWaveDrift 6s ease-in-out infinite alternate;
+}
+@keyframes corWaveDrift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
+
+.cor-crest-marker {
+  animation: corCrestPulse 2s ease-in-out infinite;
+}
+@keyframes corCrestPulse {
+  0%, 100% { r: 7; }
+  50% { r: 9; }
+}
+
+.cor-kinetic-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 16px 10px;
+}
+
+.cor-marker-tag {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.cor-m-warmup { text-align: left; }
+.cor-m-active { text-align: center; }
+.cor-m-cooldown { text-align: right; }
+
+/* Grid de 5 Dimensões: Movimento → Repetição → Duração → Descanso → Progressão */
+.cor-dimensions-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 12px;
+  border-top: 1px dashed rgb(var(--color-border-rgb) / 0.5);
+  padding-top: 14px;
+}
+@container dm (min-width: 640px) {
+  .cor-dimensions-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container dm (min-width: 900px) {
+  .cor-dimensions-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.cor-dim-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(var(--color-surface-rgb) / 0.8);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.4);
+}
+.cor-dim-cell .material-symbols-outlined {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Guia de Respiração & Consciência Corporal */
+.cor-breath-card {
+  background: rgb(var(--color-surface-rgb));
+  border: 1px solid rgb(var(--color-primary-rgb) / 0.35);
+  border-radius: 16px;
+  padding: 14px 18px;
+}
+
+.cor-breath-sphere {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.cor-breath-sphere span:first-child {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgb(var(--color-primary-rgb) / 0.25);
+  border: 2px solid rgb(var(--color-primary-rgb));
+  transition: transform 3.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cor-breath-sphere span:last-child {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: rgb(var(--color-support-rgb));
+  opacity: 0.6;
+}
+
+.cor-breath-inspire span:first-child { transform: scale(1.35); background: rgb(var(--color-primary-rgb) / 0.45); }
+.cor-breath-pause span:first-child { transform: scale(1.35); filter: drop-shadow(0 0 6px rgb(var(--color-primary-rgb) / 0.6)); }
+.cor-breath-expire span:first-child { transform: scale(0.85); background: rgb(var(--color-primary-rgb) / 0.15); }
+
+/* Fluxo Semanal Orgânico (Weekly Rhythm Stream) */
+.cor-stream-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.cor-stream-container {
+  overflow-x: auto;
+  padding: 8px 4px 12px;
+}
+
+.cor-stream-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 580px;
+}
+
+.cor-stream-node {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cor-node-pill {
+  width: 100%;
+  padding: 12px 10px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  text-align: center;
+  border: 1px solid rgb(var(--color-border-rgb) / 0.6);
+  background: rgb(var(--color-surface-secondary-rgb) / 0.5);
+  transition: transform 200ms var(--ease-smooth), border-color 200ms;
+}
+
+.cor-node-energy .cor-node-pill {
+  background: linear-gradient(180deg, rgb(var(--color-support-rgb) / 0.25), rgb(var(--color-surface-rgb)));
+  border-color: rgb(var(--color-support-rgb) / 0.7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.cor-node-rest .cor-node-pill {
+  background: rgb(var(--color-surface-rgb) / 0.5);
+  border-style: dashed;
+  border-color: rgb(var(--color-border-strong-rgb) / 0.5);
+  opacity: 0.85;
+}
+
+.cor-node-today .cor-node-pill {
+  outline: 2px solid rgb(var(--color-primary-rgb));
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+.cor-node-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cor-node-day {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(var(--color-text-secondary-rgb));
+}
+
+.cor-today-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgb(var(--color-primary-rgb));
+  color: #1c2420;
+}
+
+.cor-node-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--color-surface-rgb));
+  color: rgb(var(--color-text-secondary-rgb));
+}
+.cor-node-energy .cor-node-icon-wrap {
+  background: rgb(var(--color-support-rgb) / 0.4);
+  color: #1c2420;
+}
+
+.cor-node-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.cor-node-type {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgb(var(--color-text-primary-rgb));
+}
+.cor-node-desc {
+  font-size: 10px;
+  color: rgb(var(--color-text-muted-rgb));
+}
+
+.cor-stream-link {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  width: 8px;
+  height: 2px;
+  background: rgb(var(--color-support-rgb) / 0.5);
+}
+
 .cor-facts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; font-size: 14px; }
 .cor-facts li { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
 .cor-facts li span { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
@@ -75,9 +402,28 @@ html.dark .cor-option[data-selected='true'] { background: rgb(var(--color-primar
 .cor-adjust label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: rgb(var(--color-text-secondary-rgb)); }
 .cor-load { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 8px; background: rgb(var(--color-surface-secondary-rgb) / 0.5); }
 .cor-care { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; font-size: 14px; }
-.cor-weekgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }
-.cor-day { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 10px 2px; border-radius: 12px; border: 1px dashed rgb(var(--color-border-strong-rgb)); text-align: center; font-size: 10px; color: rgb(var(--color-text-muted-rgb)); min-width: 0; }
-.cor-day b { font-size: 12px; color: rgb(var(--color-text-secondary-rgb)); }
-.cor-day[data-on='true'] { border: 1px solid transparent; background: rgb(var(--color-primary-rgb) / 0.3); color: rgb(var(--color-text-primary-rgb)); }
-.cor-day[data-on='true'] b { color: rgb(var(--color-text-primary-rgb)); }
-.cor-day[data-today='true'] { outline: 2px solid rgb(var(--color-focus-ring-rgb)); outline-offset: 1px; }
+
+/* Context Panel Rhythm Summary */
+.cor-ctx-rhythm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.45);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.5);
+}
+.cor-ctx-wave {
+  display: flex;
+  align-items: center;
+  margin: 2px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cor-live-dot { animation: none !important; }
+  .cor-wave-pulse { animation: none !important; }
+  .cor-crest-marker { animation: none !important; }
+  .cor-breath-sphere span:first-child { transition: none !important; }
+}
+
+

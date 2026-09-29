@@ -37,7 +37,7 @@ function StudyCard({ reference }: { reference: BibleReference }) {
   const name = formatReference(reference, { names: true });
 
   return (
-    <section className="dm-card dm-card-pad esp-card dm-rise" style={{ ['--i' as string]: 4 }} aria-label="Estudo da passagem">
+    <section className="esp-sanctuary-block esp-study-block dm-rise" style={{ ['--i' as string]: 4 }} aria-label="Estudo da passagem">
       <Disclosure open={open} onOpenChange={(o) => { if (o) ensureStudy(reference); setOpen(o); }} summary={<span><span className="dm-h2">Estudar {name}</span><span className="dm-muted text-[13px] block mt-1">Três perguntas, no seu tempo. O que você escrever é privado.</span></span>}>
         <div className="esp-study">
           <p className="dm-faint text-[12px]">Perguntas de um modelo fixo (observar → entender → viver). Não são geradas por IA nem vêm de uma tradição específica.</p>
@@ -83,7 +83,7 @@ function ReflectionCard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const list = useMemo(() => buildView().reflections, [version]);
   return (
-    <section className="dm-card dm-card-pad esp-card dm-rise" style={{ ['--i' as string]: 5 }} aria-label="Reflexão privada">
+    <section className="esp-sanctuary-block esp-reflection-block dm-rise" style={{ ['--i' as string]: 5 }} aria-label="Reflexão privada">
       <h2 className="dm-h2">Reflexão privada</h2>
       <p className="dm-muted text-[13px]">Escreva o que tocou sua consciência hoje, sem necessidade de formatar. Fica só neste aparelho, sem criptografia ainda, e nunca sai para outras telas.</p>
       <label className="sr-only" htmlFor="esp-refl">Reflexão</label>
@@ -110,6 +110,8 @@ function ReflectionCard() {
   );
 }
 
+import { AtmosphericSanctuary, type AmbientTime, type SanctuaryMode } from './AtmosphericSanctuary';
+
 export function EspiritualHome({ onReplayIntro }: { onReplayIntro: () => void }) {
   const { version } = useSpiritualState();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,14 +121,23 @@ export function EspiritualHome({ onReplayIntro }: { onReplayIntro: () => void })
   const [addingPractice, setAddingPractice] = useState(false);
   const [pKind, setPKind] = useState(PRACTICE_KINDS[0].kind);
   const [pWhy, setPWhy] = useState('');
+  const [mode, setMode] = useState<SanctuaryMode>('proposito');
+  const [ambientTime, setAmbientTime] = useState<AmbientTime>('auto');
 
   const entry = v.reading?.todayEntry ?? v.reading?.nextEntry;
   const ref = entry?.references[0];
   const behind = v.reading && ['ficou_para_tras', 'retomada_sugerida'].includes(v.reading.status);
 
   return (
-    <div className="dm-root esp-root" data-domain="espiritual">
-      <header className="esp-head">
+    <div className="dm-root esp-root" data-domain="espiritual" data-sanctuary-mode={mode}>
+      <AtmosphericSanctuary
+        mode={mode}
+        onModeChange={(m) => setMode(m)}
+        ambientTime={ambientTime}
+        onAmbientTimeChange={(t) => setAmbientTime(t)}
+      />
+
+      <header className="esp-head esp-sanctuary-altar">
         <p className="dm-eyebrow">Espiritual · presença e propósito</p>
         {v.purpose ? (
           <>
@@ -175,9 +186,12 @@ export function EspiritualHome({ onReplayIntro }: { onReplayIntro: () => void })
         )}
       </section>
 
-      <div className="fin-cols">
-        <section className="dm-card dm-card-pad esp-card dm-rise" style={{ ['--i' as string]: 1 }} aria-label="Onde estou na Bíblia">
-          <h2 className="dm-h2">Onde estou na Bíblia</h2>
+      <div className="esp-sanctuary-grid">
+        <section className="esp-sanctuary-block esp-lectern-block dm-rise" style={{ ['--i' as string]: 1 }} aria-label="Onde estou na Bíblia">
+          <div className="esp-block-header">
+            <span className="material-symbols-outlined esp-block-icon" aria-hidden="true">menu_book</span>
+            <h2 className="dm-h2">Onde estou na Bíblia</h2>
+          </div>
           {!v.reading || !v.plan ? (
             <>
               <p className="dm-muted text-[13px]">Sem plano de leitura. Escolha por onde caminhar — o plano só guarda a posição.</p>
@@ -199,7 +213,7 @@ export function EspiritualHome({ onReplayIntro }: { onReplayIntro: () => void })
                   <p className="esp-ref">{formatReference(ref, { names: true })}</p>
                   <p className="dm-muted text-[13px] leading-snug">{v.reading.message}</p>
                   <p className="esp-textnote">
-                    <span className="material-symbols-outlined" aria-hidden="true">menu_book</span>
+                    <span className="material-symbols-outlined" aria-hidden="true">auto_stories</span>
                     <span>O texto bíblico aparecerá aqui quando uma tradução estiver conectada. Por enquanto, abra a passagem na sua Bíblia — o Medusa guarda onde você está.</span>
                   </p>
                   <div className="esp-actions">
@@ -217,8 +231,11 @@ export function EspiritualHome({ onReplayIntro }: { onReplayIntro: () => void })
           )}
         </section>
 
-        <section className="dm-card dm-card-pad esp-card dm-rise" style={{ ['--i' as string]: 2 }} aria-label="Práticas de hoje">
-          <h2 className="dm-h2">Suas práticas</h2>
+        <section className="esp-sanctuary-block esp-practice-block dm-rise" style={{ ['--i' as string]: 2 }} aria-label="Práticas de hoje">
+          <div className="esp-block-header">
+            <span className="material-symbols-outlined esp-block-icon" aria-hidden="true">self_improvement</span>
+            <h2 className="dm-h2">Suas práticas</h2>
+          </div>
           {v.practices.length === 0 && !addingPractice && <p className="dm-muted text-[13px]">Nenhuma prática ainda. Uma pequena já basta.</p>}
           <ul className="esp-practices">
             {v.practices.map((p) => {

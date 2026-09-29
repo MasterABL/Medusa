@@ -81,7 +81,253 @@ html.dark .fin-outcome { background: rgb(var(--color-accent-rgb) / 0.1); }
 .fin-intro { gap: 28px; justify-content: center; }
 .fin-answers { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
 @container dm (min-width: 760px) { .fin-answers { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.fin-answer { display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 2px solid rgb(var(--color-primary-rgb) / 0.55); }
+.fin-answer { display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 2px solid rgb(var(--color-primary-rgb) / 0.55); position: relative; }
 .fin-answer-value { font-size: clamp(24px, 4cqi + 6px, 36px); font-weight: 700; letter-spacing: -0.02em; color: rgb(var(--color-text-primary-rgb)); }
 .fin-answer-text { font-size: 16px; line-height: 1.4; font-weight: 600; color: rgb(var(--color-text-primary-rgb)); text-wrap: pretty; }
 .fin-intro-foot { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+
+/* ==========================================================================
+   Finanças — Geometric Balance Deck & Structured Flow System (Assinatura)
+   ========================================================================== */
+
+.fin-axis-mark {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: rgb(var(--color-primary-rgb));
+}
+
+.fin-balance-deck {
+  background: rgb(var(--color-surface-rgb));
+  border: 1px solid rgb(var(--color-border-rgb) / 0.7);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.fin-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@container dm (min-width: 760px) {
+  .fin-deck-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.fin-deck-cell {
+  position: relative;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-right: 1px solid rgb(var(--color-border-rgb) / 0.5);
+  border-bottom: 1px solid rgb(var(--color-border-rgb) / 0.5);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.fin-deck-cell:nth-child(2n) {
+  border-right: none;
+}
+@container dm (min-width: 760px) {
+  .fin-deck-cell { border-bottom: none; }
+  .fin-deck-cell:nth-child(2n) { border-right: 1px solid rgb(var(--color-border-rgb) / 0.5); }
+  .fin-deck-cell:last-child { border-right: none; }
+}
+
+.fin-cell-axis {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  background: rgb(var(--color-primary-rgb) / 0.4);
+}
+
+.fin-deck-btn {
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-snappy);
+}
+.fin-deck-btn:hover:not(:disabled) {
+  background: rgb(var(--color-surface-secondary-rgb) / 0.5);
+}
+
+/* Sistema de Fluxo Financeiro (River Flow) */
+.fin-flow-system {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.fin-flow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px dashed rgb(var(--color-border-rgb) / 0.6);
+  padding-bottom: 10px;
+}
+
+.fin-flow-axis-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fin-balance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.7);
+  color: rgb(var(--color-text-secondary-rgb));
+  border: 1px solid rgb(var(--color-border-rgb) / 0.6);
+}
+.fin-balance-badge[data-balanced='false'] {
+  background: rgb(var(--color-alert-rgb) / 0.12);
+  border-color: rgb(var(--color-alert-rgb) / 0.4);
+  color: var(--dm-alert-text);
+}
+
+.fin-river-container {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.35);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.5);
+  overflow: hidden;
+  padding: 10px 0;
+}
+html.dark .fin-river-container {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.fin-river-svg {
+  width: 100%;
+  height: 180px;
+  display: block;
+}
+
+.fin-stream-path {
+  transition: stroke-width 240ms var(--ease-smooth), opacity 240ms;
+}
+.fin-stream-path:hover {
+  stroke-width: 28px !important;
+  opacity: 0.95;
+}
+
+.fin-stream-simulated {
+  animation: finSimPulse 1.8s ease-in-out infinite;
+}
+@keyframes finSimPulse {
+  0%, 100% { opacity: 0.8; stroke-dashoffset: 0; }
+  50% { opacity: 0.35; stroke-dashoffset: 8; }
+}
+
+.fin-node-pulse {
+  animation: finNodePulse 2.8s ease-in-out infinite;
+}
+@keyframes finNodePulse {
+  0%, 100% { r: 9; opacity: 1; }
+  50% { r: 12; opacity: 0.75; }
+}
+
+.fin-stream-anchors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fin-anchor {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.fin-anchor-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--color-text-muted-rgb));
+}
+.fin-anchor-inflow { left: 16px; top: 38%; }
+.fin-anchor-spent { right: 20px; top: 12%; text-align: right; }
+.fin-anchor-bills { right: 20px; top: 44%; text-align: right; }
+.fin-anchor-free { right: 20px; bottom: 12%; text-align: right; }
+
+.fin-destinations-deck {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 10px;
+}
+@container dm (min-width: 680px) {
+  .fin-destinations-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.fin-dest-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgb(var(--color-surface-rgb));
+  border: 1px solid rgb(var(--color-border-rgb) / 0.65);
+  transition: transform 200ms var(--ease-smooth), border-color 200ms var(--ease-snappy), box-shadow 200ms;
+}
+.fin-dest-card:hover, .fin-dest-selected {
+  transform: translateY(-2px);
+  border-color: rgb(var(--color-primary-rgb) / 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+.fin-dest-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.fin-blueprint-grid .fin-answer {
+  border-top-color: rgb(var(--color-primary-rgb));
+  border-top-width: 2px;
+}
+.fin-blueprint-grid .fin-answer::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: rgb(var(--color-primary-rgb));
+}
+
+/* Context Panel Flow Summary */
+.fin-ctx-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(var(--color-surface-secondary-rgb) / 0.5);
+  border: 1px solid rgb(var(--color-border-rgb) / 0.6);
+  font-family: inherit;
+}
+.fin-ctx-flow-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fin-ctx-flow-arrow {
+  color: rgb(var(--color-text-secondary-rgb) / 0.5);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fin-node-pulse { animation: none !important; }
+  .fin-stream-simulated { animation: none !important; }
+  .fin-dest-card { transition: none !important; }
+}
+
+

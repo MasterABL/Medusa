@@ -15,11 +15,31 @@ export function GuardianContextPanel() {
   const [error, setError] = React.useState<string | null>(null);
 
   if (!finding) {
+    const findings = repo.listFindings();
     return (
-      <div className="dm-ctx-block">
-        <p className="dm-ctx-label">Investigação</p>
-        <p className="dm-muted text-[13px] leading-snug">Escolha um achado para ver a cadeia de verificação e a evidência aqui.</p>
-      </div>
+      <>
+        <div className="dm-ctx-block">
+          <p className="dm-ctx-label">Telemetria operacional</p>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="gd-beacon-dot" aria-hidden="true" />
+            <strong className="text-[14px]">Sentinela Ativo</strong>
+          </div>
+          <p className="dm-muted text-[13px] leading-snug">
+            Observando o Medusa continuamente sem ruído. {findings.length} sinal(is) sob vigilância.
+          </p>
+        </div>
+        <div className="dm-ctx-block">
+          <p className="dm-ctx-label">Facilidades em monitoramento</p>
+          <ul className="text-[12px] space-y-1.5 dm-muted">
+            <li className="flex justify-between"><span>Código & Integridade</span><span className="dm-num font-mono">OK</span></li>
+            <li className="flex justify-between"><span>Dados & Esquema</span><span className="dm-num font-mono">OK</span></li>
+            <li className="flex justify-between"><span>Segurança & Segredos</span><span className="dm-num font-mono">L3</span></li>
+            <li className="flex justify-between"><span>Privacidade Local</span><span className="dm-num font-mono">Protegido</span></li>
+            <li className="flex justify-between"><span>Políticas & Limites</span><span className="dm-num font-mono">Ativo</span></li>
+          </ul>
+          <p className="dm-faint text-[11px] mt-2">Clique em um achado na tela central para investigar evidências e propostas.</p>
+        </div>
+      </>
     );
   }
   const pending = proposal?.status === 'PENDING_APPROVAL';
@@ -35,6 +55,10 @@ export function GuardianContextPanel() {
   return (
     <>
       <div className="dm-ctx-block">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="gd-beacon-dot" aria-hidden="true" />
+          <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted">Telemetria Ativa</span>
+        </div>
         <p className="dm-ctx-label">Investigando · {CATEGORY_LABEL[finding.category]}</p>
         <strong className="text-[15px] leading-snug">{findingTitle(finding)}</strong>
         <span className="dm-faint text-[12px] dm-num">Confiança {Math.round(finding.confidence * 100)}%</span>

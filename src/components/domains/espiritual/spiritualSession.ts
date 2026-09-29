@@ -135,7 +135,10 @@ function rebuild(): SpiritualRepository {
   for (const c of data.completions) {
     recordPractice(r, { id: c.id, type: c.kind, label: PRACTICE_KINDS.find((k) => k.kind === c.kind)?.label ?? c.kind, completedAt: c.at, durationMinutes: c.minutes, definitionId: c.definitionId }, c.at);
   }
-  for (const f of data.reflections) createReflection(r, { id: f.id, content: f.content, createdAt: f.at, visibility: 'private' });
+  for (const f of data.reflections) {
+    const at = f.at ?? (f as any).createdAt ?? new Date().toISOString();
+    createReflection(r, { id: f.id, content: f.content, createdAt: at, visibility: 'private' });
+  }
   for (const s of data.studies) {
     saveNewStudy(r, StudyEngine.startStudy({ id: s.id, reference: s.ref, purposeId: data.purpose ? 'purpose_1' : undefined, createdAt: s.notes[0]?.at ?? now.toISOString() }));
     for (const n of s.notes) addItemToStudy(r, s.id, { id: n.id, kind: 'user_reflection', origin: 'user', content: n.text, createdAt: n.at, private: true });

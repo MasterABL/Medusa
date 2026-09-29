@@ -16,6 +16,7 @@ export function FinancasHome({ onReplayIntro }: { onReplayIntro: () => void }) {
   const { version } = useFinanceState();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const view = useMemo(() => buildFinanceView(), [version]);
+  const [simulatedExpense, setSimulatedExpense] = React.useState(0);
   const overdrawn = view.free < 0;
 
   const title = overdrawn ? (
@@ -45,28 +46,42 @@ export function FinancasHome({ onReplayIntro }: { onReplayIntro: () => void }) {
         }
       />
 
-      {/* Primeira dobra: as 4 perguntas — quanto tenho, quanto gastei, o que falta pagar, o que merece atenção. */}
-      <section aria-label="Resumo do mês" className="fin-tiles dm-rise" style={{ ['--i' as string]: 0 }}>
-        <div className="dm-card fin-tile">
-          <p className="dm-eyebrow">Saldo em conta</p>
-          <p className="fin-tile-value dm-num">{brl(view.available)}</p>
-          <p className="dm-faint text-[12px]">{brl(view.saved)} guardados em reserva</p>
+      {/* Primeira dobra: Ledger Deck geométrico estruturado */}
+      <section aria-label="Balanço estruturado do mês" className="fin-balance-deck dm-rise" style={{ ['--i' as string]: 0 }}>
+        <div className="fin-deck-grid">
+          <div className="fin-deck-cell">
+            <span className="fin-cell-axis" aria-hidden="true" />
+            <p className="dm-eyebrow">Saldo em conta</p>
+            <p className="fin-tile-value dm-num">{brl(view.available)}</p>
+            <p className="dm-faint text-[12px]">{brl(view.saved)} guardados em reserva</p>
+          </div>
+          <div className="fin-deck-cell">
+            <span className="fin-cell-axis" aria-hidden="true" />
+            <p className="dm-eyebrow">Recebido no mês</p>
+            <p className="fin-tile-value dm-num">{brl(view.income)}</p>
+            <p className="dm-faint text-[12px]">entradas de {view.monthLabel.split(' ')[0]}</p>
+          </div>
+          <div className="fin-deck-cell">
+            <span className="fin-cell-axis" aria-hidden="true" />
+            <p className="dm-eyebrow">Gasto no mês</p>
+            <p className="fin-tile-value dm-num">{brl(view.spent)}</p>
+            <p className="dm-faint text-[12px] dm-num">{view.income > 0 ? Math.round((view.spent / view.income) * 100) : 0}% do que entrou</p>
+          </div>
+          <button
+            type="button"
+            className="fin-deck-cell fin-deck-btn"
+            onClick={() => (view.bills[0] ? focusFinance({ kind: 'bill', id: view.bills[0].commitment.id }) : undefined)}
+            disabled={view.bills.length === 0}
+          >
+            <span className="fin-cell-axis" aria-hidden="true" />
+            <div className="flex items-center justify-between">
+              <p className="dm-eyebrow">Falta pagar</p>
+              <span className="material-symbols-outlined text-[16px] text-text-muted" aria-hidden="true">arrow_forward</span>
+            </div>
+            <p className="fin-tile-value dm-num">{brl(view.billsTotal)}</p>
+            <p className="dm-faint text-[12px]">{view.bills.length === 0 ? 'nenhuma conta pendente' : `${view.bills.length} conta${view.bills.length > 1 ? 's' : ''} · ver próxima`}</p>
+          </button>
         </div>
-        <div className="dm-card fin-tile">
-          <p className="dm-eyebrow">Recebido no mês</p>
-          <p className="fin-tile-value dm-num">{brl(view.income)}</p>
-          <p className="dm-faint text-[12px]">entradas de {view.monthLabel.split(' ')[0]}</p>
-        </div>
-        <div className="dm-card fin-tile">
-          <p className="dm-eyebrow">Gasto no mês</p>
-          <p className="fin-tile-value dm-num">{brl(view.spent)}</p>
-          <p className="dm-faint text-[12px] dm-num">{view.income > 0 ? Math.round((view.spent / view.income) * 100) : 0}% do que entrou</p>
-        </div>
-        <button type="button" className="dm-card fin-tile dm-tile-btn" onClick={() => (view.bills[0] ? focusFinance({ kind: 'bill', id: view.bills[0].commitment.id }) : undefined)} disabled={view.bills.length === 0}>
-          <p className="dm-eyebrow">Falta pagar</p>
-          <p className="fin-tile-value dm-num">{brl(view.billsTotal)}</p>
-          <p className="dm-faint text-[12px]">{view.bills.length === 0 ? 'nenhuma conta pendente' : `${view.bills.length} conta${view.bills.length > 1 ? 's' : ''} · ver a próxima`}</p>
-        </button>
       </section>
 
       <div className="dm-rise" style={{ ['--i' as string]: 1 }}>
@@ -75,16 +90,20 @@ export function FinancasHome({ onReplayIntro }: { onReplayIntro: () => void }) {
 
       <PendingApprovals domain="finance" version={version} execute={executeApprovedFinanceAction} onChanged={notifyFinanceChanged} />
 
+      {/* Fluxo Financeiro Contínuo com simulador dinâmico */}
       <section className="dm-card dm-card-pad fin-flow-card dm-rise" style={{ ['--i' as string]: 2 }} aria-label="Distribuição do mês">
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
-          <h2 className="dm-h2">Para onde vai o que entra</h2>
-          <span className="dm-muted text-[13px]">
-            Entradas de {view.monthLabel.split(' ')[0]}: <strong className="dm-num">{brl(view.income)}</strong>
+          <div>
+            <h2 className="dm-h2">Para onde vai o que entra</h2>
+            <p className="dm-muted text-[13px] mt-0.5">O caminho do dinheiro pelo sistema: entradas, compromissos fixos e margem diária livre.</p>
+          </div>
+          <span className="dm-muted text-[13px] font-mono">
+            Entradas de {view.monthLabel.split(' ')[0]}: <strong className="dm-num font-bold">{brl(view.income)}</strong>
           </span>
         </div>
-        <FlowBar view={view} morph />
-        <Disclosure summary={<span className="dm-btn" data-variant="quiet" data-size="sm" style={{ paddingInline: 0 }}>Decidir um gasto agora</span>} chevron={false}>
-          <SafeMarginSimulator view={view} />
+        <FlowBar view={view} morph simulatedExpense={simulatedExpense} />
+        <Disclosure summary={<span className="dm-btn" data-variant="quiet" data-size="sm" style={{ paddingInline: 0 }}><span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: 16 }}>calculate</span>Decidir um gasto agora</span>} chevron={false}>
+          <SafeMarginSimulator view={view} onSimulate={setSimulatedExpense} />
         </Disclosure>
       </section>
 
