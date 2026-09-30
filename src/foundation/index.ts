@@ -12,6 +12,7 @@ export * as EventBus from './eventBus';
 export * as ActionBus from './actionBus';
 export * as Guardian from './guardian';
 export * as GuardianLifecycle from './guardianLifecycle';
+export * as GuardianTrace from './guardianTrace';
 export * as IslandQueue from './island/eventQueue';
 export * as SoundMap from './sound/soundMap';
 export * as MotionIdentity from './motion/motionIdentity';

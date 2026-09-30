@@ -12,3 +12,4 @@ export * from './sound';
 export * from './motion';
 export * from './contextPanel';
 export * from './dataState';
+export * from './guardianTrace';
