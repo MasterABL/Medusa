@@ -6,6 +6,7 @@
 
 export * from './types';
 
+export * as DataStates from './dataState';
 export * as DomainRegistry from './domainRegistry';
 export * as EventBus from './eventBus';
 export * as ActionBus from './actionBus';
