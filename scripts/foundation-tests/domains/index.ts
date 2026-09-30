@@ -16,6 +16,7 @@ import { run as serialization } from './serialization';
 import { run as dataState } from './data-state';
 import { run as bodyFoundation } from './body-foundation';
 import { run as financeFoundation } from './finance-foundation';
+import { run as spiritualFoundation } from './spiritual-foundation';
 
 type Result = { total: number; fails: number };
 const suites: Array<[string, () => Result | Promise<Result>]> = [
@@ -32,6 +33,7 @@ const suites: Array<[string, () => Result | Promise<Result>]> = [
   ['data-state', dataState],
   ['body-foundation', bodyFoundation],
   ['finance-foundation', financeFoundation],
+  ['spiritual-foundation', spiritualFoundation],
 ];
 
 async function main(): Promise<void> {
