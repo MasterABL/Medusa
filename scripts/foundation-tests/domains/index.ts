@@ -18,6 +18,7 @@ import { run as bodyFoundation } from './body-foundation';
 import { run as financeFoundation } from './finance-foundation';
 import { run as spiritualFoundation } from './spiritual-foundation';
 import { run as guardianFoundation } from './guardian-foundation';
+import { run as agendaFoundation } from './agenda-foundation';
 
 type Result = { total: number; fails: number };
 const suites: Array<[string, () => Result | Promise<Result>]> = [
@@ -36,6 +37,7 @@ const suites: Array<[string, () => Result | Promise<Result>]> = [
   ['finance-foundation', financeFoundation],
   ['spiritual-foundation', spiritualFoundation],
   ['guardian-foundation', guardianFoundation],
+  ['agenda-foundation', agendaFoundation],
 ];
 
 async function main(): Promise<void> {
