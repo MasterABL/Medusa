@@ -120,6 +120,10 @@ export function run(): { total: number; fails: number } {
       const octItem = wide.comprometido.items.find((i) => i.sourceId === 'card:2026-10');
       return octItem?.amount === 200 && octItem.projected && octItem.projectedAmount === 200;
     })());
+    check('3.11b: janela de 30 dias não conta a mesma conta mensal duas vezes (vence hoje e daqui a 30 dias)', (() => {
+      const s = Snapshot.computeFinanceSnapshot({ accounts: [acc({ id: 'cc', type: 'checking', currentBalance: 5000 })], transactions: [], commitments: [commitment({ id: 'c1', label: 'Aluguel', expectedAmount: 800, dueDayOfMonth: 10 })], asOf: '2026-09-10' });
+      return s.comprometido.parts.contasFixas === 800;
+    })());
     check('3.12: cartão sem dia de vencimento: só a fatura do mês atual entra E a lacuna é declarada', (() => {
       const noDue = accounts.map((a) => (a.id === 'card' ? { ...a, cardCycle: { closingDay: 5 } } : a));
       const s = Snapshot.computeFinanceSnapshot({ accounts: noDue, transactions, commitments, asOf: ASOF });

@@ -19,6 +19,7 @@ import { run as financeFoundation } from './finance-foundation';
 import { run as spiritualFoundation } from './spiritual-foundation';
 import { run as guardianFoundation } from './guardian-foundation';
 import { run as agendaFoundation } from './agenda-foundation';
+import { run as legacyAdapters } from './legacy-adapters';
 
 type Result = { total: number; fails: number };
 const suites: Array<[string, () => Result | Promise<Result>]> = [
@@ -38,6 +39,7 @@ const suites: Array<[string, () => Result | Promise<Result>]> = [
   ['spiritual-foundation', spiritualFoundation],
   ['guardian-foundation', guardianFoundation],
   ['agenda-foundation', agendaFoundation],
+  ['legacy-adapters', legacyAdapters],
 ];
 
 async function main(): Promise<void> {

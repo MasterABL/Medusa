@@ -31,3 +31,4 @@ export * as WorkoutSessionEngine from './services/sessionEngine';
 export * as LoadProgressionEngine from './services/progressionEngine';
 export * as BodyMetricsEngine from './services/metricsEngine';
 export * as BodySelectors from './selectors';
+export * as BodyLegacyMinhaVida from './adapters/legacyMinhaVida';

@@ -40,3 +40,4 @@ export * from './repository/memory';
 export * as MemorySrs from './services/memorySrs';
 export * as SpiritualPresence from './services/presence';
 export * as SpiritualSelectors from './selectors';
+export * as SpiritualLegacyMinhaVida from './adapters/legacyMinhaVida';

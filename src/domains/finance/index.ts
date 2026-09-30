@@ -34,3 +34,4 @@ export * as RunwayProjection from './services/runwayProjection';
 export * as DuplicateDetection from './services/duplicateDetection';
 export * as FinanceSyncState from './services/syncState';
 export * as FinanceSelectors from './selectors';
+export * as FinanceLegacyMinhaVida from './adapters/legacyMinhaVida';

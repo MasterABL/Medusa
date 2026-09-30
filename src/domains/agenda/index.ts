@@ -5,3 +5,4 @@ export * as AgendaTimeline from './services/timeline';
 export * as AgendaConflicts from './services/conflicts';
 export * as AgendaFreeTime from './services/freeTime';
 export * as AgendaSelectors from './selectors';
+export * as AgendaLegacyMinhaVida from './adapters/legacyMinhaVida';

@@ -4,7 +4,7 @@
  * FÓRMULAS (todas sobre a moeda pedida; nada é convertido):
  *
  *   Tenho        = Σ saldo das contas ATIVAS do tipo checking|savings|cash
- *   Comprometido = Σ faturas com vencimento em [asOf, asOf+horizonDays]
+ *   Comprometido = Σ faturas com vencimento em [asOf, asOf+horizonDays−1] (horizonDays dias, hoje incluso)
  *                + Σ contas fixas previstas na janela e ainda não acertadas
  *                + Σ despesas pendentes (fora de cartão) até o fim da janela
  *   Livre        = Tenho − Comprometido               (pode ser negativo)
@@ -62,7 +62,9 @@ export function computeFinanceSnapshot(input: SnapshotInput): FinanceSnapshot {
   const horizonDays = input.horizonDays ?? 30;
   const burnWindowDays = input.burnWindowDays ?? 30;
   const { asOf } = input;
-  const windowEnd = addDays(asOf, horizonDays);
+  // Janela = hoje + (horizonDays − 1) dias, inclusive: exatamente `horizonDays` dias. Com o fim INCLUSIVO em
+  // asOf+horizonDays, uma conta mensal que vence hoje apareceria duas vezes (hoje e daqui a 30 dias).
+  const windowEnd = addDays(asOf, horizonDays - 1);
   const gaps: string[] = [];
 
   // ---- Tenho ----

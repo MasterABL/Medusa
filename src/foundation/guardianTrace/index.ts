@@ -10,3 +10,4 @@ export * as ActionFeedbackLog from './feedback';
 export * as AutonomyGrants from './grant';
 export * as CausalTrace from './causalTrace';
 export * as ActionCenter from './actionCenter';
+export * as GuardianLegacyMinhaVida from './legacyMinhaVida';
