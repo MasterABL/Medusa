@@ -15,6 +15,7 @@ import { run as consistency } from './shared-consistency';
 import { run as serialization } from './serialization';
 import { run as dataState } from './data-state';
 import { run as bodyFoundation } from './body-foundation';
+import { run as financeFoundation } from './finance-foundation';
 
 type Result = { total: number; fails: number };
 const suites: Array<[string, () => Result | Promise<Result>]> = [
@@ -30,6 +31,7 @@ const suites: Array<[string, () => Result | Promise<Result>]> = [
   ['serialização', serialization],
   ['data-state', dataState],
   ['body-foundation', bodyFoundation],
+  ['finance-foundation', financeFoundation],
 ];
 
 async function main(): Promise<void> {
