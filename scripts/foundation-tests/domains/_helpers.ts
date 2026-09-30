@@ -14,6 +14,10 @@ import * as Metrics from '../../../src/foundation/metrics/metricModel';
 import * as ProactiveMessaging from '../../../src/foundation/messaging/proactiveMessage';
 import * as ContextPanelRegistry from '../../../src/foundation/contextPanel/contextPanelRegistry';
 import { bootstrapDomains, __resetBootstrapForTests } from '../../../src/foundation/domains';
+import * as DecisionContext from '../../../src/foundation/guardianTrace/decisionContext';
+import * as ActionOutcomes from '../../../src/foundation/guardianTrace/outcome';
+import * as ActionFeedbackLog from '../../../src/foundation/guardianTrace/feedback';
+import * as AutonomyGrants from '../../../src/foundation/guardianTrace/grant';
 import type { DomainId } from '../../../src/foundation/types/domain';
 
 export function resetAll(): void {
@@ -31,6 +35,10 @@ export function resetAll(): void {
   Metrics.__resetMetricsForTests();
   ProactiveMessaging.__resetProactiveMessagesForTests();
   ContextPanelRegistry.__resetContextPanelsForTests();
+  DecisionContext.__resetDecisionContextForTests();
+  ActionOutcomes.__resetOutcomesForTests();
+  ActionFeedbackLog.__resetFeedbackForTests();
+  AutonomyGrants.__resetGrantsForTests();
   __resetBootstrapForTests();
   bootstrapDomains();
 }

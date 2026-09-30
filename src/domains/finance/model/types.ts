@@ -22,6 +22,8 @@ export interface FinancialAccount {
   currency: string;
   active: boolean;
   dataSource: FinancialDataSource;
+  /** Só para credit_card. Dias do mês; ausentes = desconhecidos (nunca inventados). */
+  cardCycle?: { closingDay?: number; dueDay?: number };
   createdAt: string;
   updatedAt: string;
 }
@@ -43,6 +45,12 @@ export interface Transaction {
   recurringCommitmentId?: string;
   status: TransactionStatus;
   metadata?: Record<string, unknown>;
+  /** Id na fonte externa (ex.: Open Finance). Dois lançamentos com o mesmo externalId são o MESMO fato. */
+  externalId?: string;
+  /** Compra parcelada: parcela `current` de `total`. Ausente = à vista. */
+  installment?: { current: number; total: number };
+  /** Mês da fatura ("YYYY-MM") quando a fonte informa. Preferido sobre qualquer cálculo local. */
+  invoiceMonth?: string;
 }
 
 export type CategoryKind = 'income' | 'expense';

@@ -13,6 +13,13 @@ import { run as integration } from './integration-scenarios';
 import { run as integrationRound2 } from './integration-round2';
 import { run as consistency } from './shared-consistency';
 import { run as serialization } from './serialization';
+import { run as dataState } from './data-state';
+import { run as bodyFoundation } from './body-foundation';
+import { run as financeFoundation } from './finance-foundation';
+import { run as spiritualFoundation } from './spiritual-foundation';
+import { run as guardianFoundation } from './guardian-foundation';
+import { run as agendaFoundation } from './agenda-foundation';
+import { run as legacyAdapters } from './legacy-adapters';
 
 type Result = { total: number; fails: number };
 const suites: Array<[string, () => Result | Promise<Result>]> = [
@@ -26,6 +33,13 @@ const suites: Array<[string, () => Result | Promise<Result>]> = [
   ['integração-2', integrationRound2],
   ['consistência', consistency],
   ['serialização', serialization],
+  ['data-state', dataState],
+  ['body-foundation', bodyFoundation],
+  ['finance-foundation', financeFoundation],
+  ['spiritual-foundation', spiritualFoundation],
+  ['guardian-foundation', guardianFoundation],
+  ['agenda-foundation', agendaFoundation],
+  ['legacy-adapters', legacyAdapters],
 ];
 
 async function main(): Promise<void> {

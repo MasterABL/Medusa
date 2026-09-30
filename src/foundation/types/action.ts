@@ -30,6 +30,14 @@ export interface Action<TPayload = unknown> {
   payload: TPayload;
   /** Quem/o que originou esta ação — normalmente um DomainEvent.id. */
   source?: string;
+  /**
+   * Cadeia causal: todo evento, contexto, decisão, aprovação, execução,
+   * resultado e feedback do MESMO caso compartilham este id. Opcional pra
+   * não quebrar quem já cria Actions; sem ele a trilha causal fica incompleta.
+   */
+  correlationId?: string;
+  /** DomainEvent.id que disparou esta ação (mais preciso que `source`, que é texto livre). */
+  sourceEventId?: string;
   /** Domínio/entidade afetada, quando a ação atravessa domínios (ex.: Agenda). */
   target?: DomainId;
   riskLevel: RiskLevel;

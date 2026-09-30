@@ -25,6 +25,8 @@ export interface CreateActionInput<TPayload = unknown> {
   undoDescription?: string;
   source?: string;
   target?: DomainId;
+  correlationId?: string;
+  sourceEventId?: string;
 }
 
 export function createAction<TPayload = unknown>(input: CreateActionInput<TPayload>): Action<TPayload> {
@@ -36,6 +38,8 @@ export function createAction<TPayload = unknown>(input: CreateActionInput<TPaylo
     intent: input.intent,
     payload: input.payload,
     source: input.source,
+    correlationId: input.correlationId,
+    sourceEventId: input.sourceEventId,
     target: input.target,
     riskLevel: input.riskLevel,
     reversible: input.reversible,
