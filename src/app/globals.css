@@ -892,6 +892,141 @@ html.theme-transitioning *::after {
 }
 
 /* ==========================================================================
+   DOMAIN PERSONALITY SYSTEM — MOTION PRIMITIVES (STITCH MASTER SCREENS)
+   ========================================================================== */
+
+/* 1. Finanças: Fluxo Contínuo de Vetores e Rio Líquido */
+@keyframes flowDash {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.animate-flow-dash {
+  animation: flowDash 3.2s linear infinite;
+}
+
+/* 2. Corpo: Metrônomo Biológico Oscilante */
+@keyframes needleOscillate {
+  0% {
+    transform: rotate(-26deg);
+  }
+  50% {
+    transform: rotate(26deg);
+  }
+  100% {
+    transform: rotate(-26deg);
+  }
+}
+.animate-needle {
+  transform-origin: bottom center;
+  animation: needleOscillate 1.62s ease-in-out infinite;
+}
+
+/* 2. Corpo: Ciclo Respiratório Concêntrico */
+@keyframes lungExpand {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.45;
+  }
+  40% {
+    transform: scale(1.32);
+    opacity: 0.95;
+  }
+  60% {
+    transform: scale(1.32);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(0.88);
+    opacity: 0.45;
+  }
+}
+.animate-lung {
+  animation: lungExpand 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* 2. Corpo: Fita Semanal de Carga */
+@keyframes glideStream {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.animate-glide-stream {
+  animation: glideStream 36s linear infinite;
+}
+
+/* 3. Guardian: Sentinela Radar Pulse & Topologia */
+@keyframes sentinelPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+}
+.animate-sentinel-pulse {
+  animation: sentinelPulse 2.8s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+}
+
+/* 4. Espiritual: Chama Sagrada do Altar & Drift Atmosférico */
+@keyframes flameFlicker {
+  0% {
+    transform: scaleY(1) scaleX(1) rotate(-1deg);
+    opacity: 0.9;
+  }
+  25% {
+    transform: scaleY(1.08) scaleX(0.94) rotate(1.5deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(0.96) scaleX(1.03) rotate(-1deg);
+    opacity: 0.86;
+  }
+  75% {
+    transform: scaleY(1.05) scaleX(0.97) rotate(0.8deg);
+    opacity: 0.98;
+  }
+  100% {
+    transform: scaleY(1) scaleX(1) rotate(-1deg);
+    opacity: 0.9;
+  }
+}
+.animate-flame-flicker {
+  transform-origin: bottom center;
+  animation: flameFlicker 3s ease-in-out infinite;
+}
+
+@keyframes auraDrift {
+  0% {
+    opacity: 0.35;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.08) translateY(-6px);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-aura-drift {
+  animation: auraDrift 9s ease-in-out infinite;
+}
+
+/* ==========================================================================
    ACESSIBILIDADE: REDUCED MOTION MANDATÓRIO (Tonal crossfade ~140ms, zero transform)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -919,7 +1054,14 @@ html.theme-transitioning *::after {
   .track-exit-left,
   .track-exit-right,
   .track-enter-from-right,
-  .track-enter-from-left {
+  .track-enter-from-left,
+  .animate-flow-dash,
+  .animate-needle,
+  .animate-lung,
+  .animate-glide-stream,
+  .animate-sentinel-pulse,
+  .animate-flame-flicker,
+  .animate-aura-drift {
     animation: none !important;
     transform: none !important;
   }

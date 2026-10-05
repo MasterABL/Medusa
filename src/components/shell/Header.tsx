@@ -60,6 +60,10 @@ export function Header() {
         return 'Corpo';
       case 'financas':
         return 'Finanças';
+      case 'guardian':
+        return 'Guardian';
+      case 'espiritual':
+        return 'Espiritual';
       case 'progresso':
         return 'Progresso';
       default:

@@ -6,6 +6,10 @@ import { useAgenda } from '@/context/AgendaContext';
 import { AgendaContextSummary } from '@/components/agenda/AgendaContextSummary';
 import { TrackContextPanel } from '@/components/education/TrackContextPanel';
 import { TodayContextPanel } from '@/components/hoje/TodayContextPanel';
+import { FinanceContextPanel } from '@/components/financas/FinanceContextPanel';
+import { BodyContextPanel } from '@/components/corpo/BodyContextPanel';
+import { GuardianContextPanel } from '@/components/guardian/GuardianContextPanel';
+import { SpiritualContextPanel } from '@/components/espiritual/SpiritualContextPanel';
 
 /**
  * Corpo do painel — compartilhado entre o `<aside>` fixo do desktop e o bottom sheet de
@@ -47,13 +51,19 @@ function ContextPanelBody({ onRequestClose, closeIcon }: { onRequestClose: () =>
             </button>
           </div>
 
-          {/* Corpo do painel: cada área tem seu próprio conteúdo contextual — Educação e Hoje
-              têm painéis dedicados; as demais rotas (ainda sem painel próprio) mantêm o
-              resumo operacional padrão. */}
+          {/* Corpo do painel com extensão contextual dedicada por domínio */}
           {activeRoute === 'educacao' ? (
             <TrackContextPanel />
           ) : activeRoute === 'hoje' ? (
             <TodayContextPanel />
+          ) : activeRoute === 'financas' ? (
+            <FinanceContextPanel />
+          ) : activeRoute === 'corpo' ? (
+            <BodyContextPanel />
+          ) : activeRoute === 'guardian' ? (
+            <GuardianContextPanel />
+          ) : activeRoute === 'espiritual' ? (
+            <SpiritualContextPanel />
           ) : (
             <>
               <div className="space-y-2.5 pb-6 border-b border-border/60">

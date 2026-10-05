@@ -32,6 +32,8 @@ export function Sidebar() {
     { route: 'educacao', label: 'Educação', icon: 'school', badge: '14', badgePill: true, dot: false },
     { route: 'corpo', label: 'Corpo', icon: 'motion_mode', badge: null, dot: false },
     { route: 'financas', label: 'Finanças', icon: 'layers', badge: null, dot: false, accentDot: true },
+    { route: 'guardian', label: 'Guardian', icon: 'shield', badge: null, dot: false },
+    { route: 'espiritual', label: 'Espiritual', icon: 'self_improvement', badge: null, dot: false },
     { route: 'progresso', label: 'Progresso', icon: 'analytics', badge: null, dot: false },
   ];
 

@@ -6,14 +6,56 @@ import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
 import { playFeedback } from '@/lib/audioFeedback';
 
 export function DynamicIsland() {
-  const { islandState, isQuiet, setIslandState, breakpoint, isVoiceActive, setVoiceActive, islandNotification } = useShell();
+  const { islandState, isQuiet, setIslandState, breakpoint, isVoiceActive, setVoiceActive, islandNotification, activeRoute } = useShell();
   const baseFixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+
+  // Contexto dinâmico por domínio quando não há notificação transitória prioritária
+  const domainDefaultFixture = React.useMemo(() => {
+    if (islandState !== 'active') return baseFixture;
+    switch (activeRoute) {
+      case 'financas':
+        return {
+          ...baseFixture,
+          tag: 'SOLVÊNCIA ATIVA',
+          desc: 'Margem livre +34.2% · D+0',
+          timerBadge: 'R$ 4.310',
+          badgeType: 'support' as const,
+        };
+      case 'corpo':
+        return {
+          ...baseFixture,
+          tag: 'CADÊNCIA VIVA',
+          desc: 'Ritmo 74 BPM · Zona 2',
+          timerBadge: '420 TSS',
+          badgeType: 'secondary' as const,
+        };
+      case 'guardian':
+        return {
+          ...baseFixture,
+          tag: 'SENTINELA ATIVA',
+          desc: 'Topologia 7 facetas nominal',
+          timerBadge: 'NOMINAL',
+          badgeType: 'primary' as const,
+        };
+      case 'espiritual':
+        return {
+          ...baseFixture,
+          tag: 'SANTUÁRIO VIVO',
+          desc: 'Crepúsculo · Modo Presença',
+          timerBadge: 'DIA 47',
+          badgeType: 'accent' as const,
+        };
+      default:
+        return baseFixture;
+    }
+  }, [islandState, activeRoute, baseFixture]);
+
   const fixture = islandNotification ? {
-    ...baseFixture,
-    tag: islandNotification.title || islandNotification.tag || baseFixture.tag,
-    desc: islandNotification.desc || islandNotification.description || baseFixture.desc,
-    timerBadge: islandNotification.badge || baseFixture.timerBadge,
-  } : baseFixture;
+    ...domainDefaultFixture,
+    tag: islandNotification.title || islandNotification.tag || domainDefaultFixture.tag,
+    desc: islandNotification.desc || islandNotification.description || domainDefaultFixture.desc,
+    timerBadge: islandNotification.badge || domainDefaultFixture.timerBadge,
+  } : domainDefaultFixture;
 
   const isExpanded = islandState !== 'collapsed';
   const isFocusMode = islandState === 'focus';

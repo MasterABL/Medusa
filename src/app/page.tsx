@@ -6,9 +6,13 @@ import { useShell } from '@/context/ShellContext';
 import { EducationContainer } from '@/components/education/EducationContainer';
 import { AgendaContainer } from '@/components/agenda/AgendaContainer';
 import { HojeContainer } from '@/components/hoje/HojeContainer';
+import { FinanceContainer } from '@/components/financas/FinanceContainer';
+import { BodyContainer } from '@/components/corpo/BodyContainer';
+import { GuardianContainer } from '@/components/guardian/GuardianContainer';
+import { SpiritualContainer } from '@/components/espiritual/SpiritualContainer';
 import { RoutePending } from '@/components/shell/RoutePending';
 
-const PENDING_ROUTES = ['corpo', 'financas', 'progresso'];
+const PENDING_ROUTES = ['progresso'];
 
 export default function HomePage() {
   const { setMode, mode, theme, setIslandState, activeRoute } = useShell();
@@ -25,6 +29,22 @@ export default function HomePage() {
 
   if (activeRoute === 'hoje') {
     return <HojeContainer />;
+  }
+
+  if (activeRoute === 'financas') {
+    return <FinanceContainer />;
+  }
+
+  if (activeRoute === 'corpo') {
+    return <BodyContainer />;
+  }
+
+  if (activeRoute === 'guardian') {
+    return <GuardianContainer />;
+  }
+
+  if (activeRoute === 'espiritual') {
+    return <SpiritualContainer />;
   }
 
   if (PENDING_ROUTES.includes(activeRoute)) {
