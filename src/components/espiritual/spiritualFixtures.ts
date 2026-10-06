@@ -1,11 +1,6 @@
 /**
- * ESPIRITUAL — Escritura Viva Fixtures (Modelo C)
- *
- * Protagonista: A Escritura.
- * Suporta Modos:
- * 1. Leitura & Foco (selecionar versículo revela foco e reflexão)
- * 2. Memória / SRS (palavras transformadas em lacunas de memorização)
- * 3. Oração & Silêncio (mudança de atmosfera, respiração contemplativa)
+ * ESPIRITUAL — Escritura Viva Fixtures
+ * Sistema completo de Leitura Bíblica, Planos, Memória SRS, Oração Contemplativa e Gratidão.
  */
 
 export interface ScriptureVerse {
@@ -24,6 +19,42 @@ export interface ScripturePassage {
   summary: string;
   theme: string;
   verses: ScriptureVerse[];
+}
+
+export interface ReadingPlanItem {
+  id: string;
+  title: string;
+  durationDays: number;
+  completedDays: number;
+  currentDayTitle: string;
+  currentReadingReference: string;
+  todayCompleted: boolean;
+  category: string;
+}
+
+export interface MemoryVerseCard {
+  id: string;
+  reference: string;
+  theme: string;
+  fullText: string;
+  keyWords: string[];
+  retentionLevel: 'novo' | 'revisando' | 'retido';
+  nextReviewDays: number;
+  masteryPercent: number;
+}
+
+export interface PrayerIntention {
+  id: string;
+  category: 'Família' | 'Paz & Direção' | 'Gratidão' | 'Saúde' | 'Propósito';
+  text: string;
+  date: string;
+  isAnswered: boolean;
+}
+
+export interface GratitudeEntry {
+  id: string;
+  date: string;
+  motives: string[];
 }
 
 export const SCRIPTURE_PASSAGES: ScripturePassage[] = [
@@ -75,6 +106,47 @@ export const SCRIPTURE_PASSAGES: ScripturePassage[] = [
     ],
   },
   {
+    id: 'salmo-23',
+    title: 'O Senhor é o Meu Pastor',
+    reference: 'Salmos 23:1-6',
+    book: 'Salmos',
+    chapter: 23,
+    summary: 'O cuidado terno e providencial de Deus nos vales de sombra e na mesa da comunhão.',
+    theme: 'Confiança & Refrigério',
+    verses: [
+      {
+        number: 1,
+        text: 'O Senhor é o meu pastor; de nada terei falta.',
+        reflection: 'O descanso da alma reside em saber que Aquele que cuida de nós não falha nem dorme.',
+        keyWords: ['Senhor', 'pastor', 'falta'],
+      },
+      {
+        number: 2,
+        text: 'Em verdes pastagens me faz repousar e me conduz a águas tranquilas;',
+        reflection: 'A quietude da mente é um presente concedido quando confiamos na condução do Bom Pastor.',
+        keyWords: ['pastagens', 'repousar', 'águas', 'tranquilas'],
+      },
+      {
+        number: 3,
+        text: 'restaura-me o vigor. Guia-me pelas veredas da justiça por amor do seu nome.',
+        reflection: 'A restauração interior precede o caminhar correto nas veredas da vida diária.',
+        keyWords: ['restaura', 'vigor', 'justiça', 'nome'],
+      },
+      {
+        number: 4,
+        text: 'Mesmo quando eu andar por um vale de trevas e morte, não temerei perigo algum, pois tu estás comigo; a tua vara e o teu cajado me protegem.',
+        reflection: 'A presença de Deus transforma o vale mais sombrio em lugar de proteção e amparo.',
+        keyWords: ['vale', 'trevas', 'perigo', 'comigo', 'protegem'],
+      },
+      {
+        number: 6,
+        text: 'Sei que a bondade e a fidelidade me acompanharão todos os dias da minha vida, e voltarei à casa do Senhor para sempre.',
+        reflection: 'A bondade e a misericórdia divinas nos seguem como guardiãs fiéis por todos os dias.',
+        keyWords: ['bondade', 'fidelidade', 'todos', 'casa', 'sempre'],
+      },
+    ],
+  },
+  {
     id: 'filipenses-4',
     title: 'A Paz que Excede Todo o Entendimento',
     reference: 'Filipenses 4:4-9',
@@ -90,12 +162,6 @@ export const SCRIPTURE_PASSAGES: ScripturePassage[] = [
         keyWords: ['Alegrai-vos', 'sempre', 'Senhor'],
       },
       {
-        number: 5,
-        text: 'Seja a vossa moderação conhecida de todos os homens. Perto está o Senhor.',
-        reflection: 'A mansidão prática no trato com os outros brota da convicção da proximidade divina.',
-        keyWords: ['moderação', 'Perto', 'Senhor'],
-      },
-      {
         number: 6,
         text: 'Não andeis ansiosos de coisa alguma; em tudo, porém, sejam conhecidas diante de Deus as vossas petições, pela oração e pela súplica, com ações de graças.',
         reflection: 'O antídoto contra a ansiedade não é o esforço mental, mas a oração filial regada a gratidão.',
@@ -107,21 +173,125 @@ export const SCRIPTURE_PASSAGES: ScripturePassage[] = [
         reflection: 'A paz divina atua como sentinela de guarnição sobre o coração e os pensamentos.',
         keyWords: ['paz', 'excede', 'guardará', 'corações', 'mentes'],
       },
-      {
-        number: 8,
-        text: 'Finalmente, irmãos, tudo o que é verdadeiro, tudo o que é nobre, tudo o que é correto, tudo o que é puro, tudo o que é amável, tudo o que é de boa fama, se há alguma virtude e se há algum louvor, nisso pensai.',
-        reflection: 'A disciplina dos pensamentos: alimentar a mente com aquilo que glorifica a Deus e edifica a alma.',
-        keyWords: ['verdadeiro', 'nobre', 'puro', 'amável', 'pensai'],
-      },
     ],
   },
 ];
 
-// Preservação de dados para compatibilidade com o ContextPanel e registros
+export const READING_PLANS: ReadingPlanItem[] = [
+  {
+    id: 'plan-1',
+    title: 'Cartas Paulinas & Teologia da Graça',
+    durationDays: 45,
+    completedDays: 28,
+    currentDayTitle: 'Dia 29 · Romanos 8 (Segurança Eterna)',
+    currentReadingReference: 'Romanos 8:1-39',
+    todayCompleted: false,
+    category: 'Epístolas',
+  },
+  {
+    id: 'plan-2',
+    title: 'Salmos de Refrigério & Louvor',
+    durationDays: 30,
+    completedDays: 14,
+    currentDayTitle: 'Dia 15 · Salmo 23 e 24',
+    currentReadingReference: 'Salmos 23:1-6',
+    todayCompleted: true,
+    category: 'Poesia & Oração',
+  },
+  {
+    id: 'plan-3',
+    title: 'Evangelho de João · O Verbo Vivo',
+    durationDays: 21,
+    completedDays: 7,
+    currentDayTitle: 'Dia 8 · João 15 (A Videira Verdadeira)',
+    currentReadingReference: 'João 15:1-17',
+    todayCompleted: false,
+    category: 'Evangelhos',
+  },
+];
+
+export const MEMORY_CARDS: MemoryVerseCard[] = [
+  {
+    id: 'mem-1',
+    reference: 'Romanos 8:31',
+    theme: 'Soberania & Proteção',
+    fullText: 'Que diremos, pois, diante destas coisas? Se Deus é por nós, quem será contra nós?',
+    keyWords: ['Deus', 'nós', 'contra'],
+    retentionLevel: 'revisando',
+    nextReviewDays: 2,
+    masteryPercent: 80,
+  },
+  {
+    id: 'mem-2',
+    reference: 'Filipenses 4:6-7',
+    theme: 'Paz & Ansiedade',
+    fullText: 'Não andeis ansiosos de coisa alguma; em tudo, pela oração e com ações de graças, sejam conhecidas as vossas petições.',
+    keyWords: ['ansiosos', 'oração', 'graças', 'petições'],
+    retentionLevel: 'novo',
+    nextReviewDays: 1,
+    masteryPercent: 50,
+  },
+  {
+    id: 'mem-3',
+    reference: 'Salmos 23:1',
+    theme: 'Descanso na Provisão',
+    fullText: 'O Senhor é o meu pastor; de nada terei falta.',
+    keyWords: ['Senhor', 'pastor', 'falta'],
+    retentionLevel: 'retido',
+    nextReviewDays: 7,
+    masteryPercent: 100,
+  },
+];
+
+export const PRAYER_INTENTIONS: PrayerIntention[] = [
+  {
+    id: 'p-1',
+    category: 'Família',
+    text: 'Saúde e paz no lar, proteção sobre meus pais e irmãos.',
+    date: 'Hoje',
+    isAnswered: false,
+  },
+  {
+    id: 'p-2',
+    category: 'Paz & Direção',
+    text: 'Sabedoria e discernimento nas decisões profissionais e de estudos.',
+    date: 'Hoje',
+    isAnswered: false,
+  },
+  {
+    id: 'p-3',
+    category: 'Gratidão',
+    text: 'Paz no trabalho e superação de um ciclo desafiador.',
+    date: 'Ontem',
+    isAnswered: true,
+  },
+];
+
+export const GRATITUDE_ENTRIES: GratitudeEntry[] = [
+  {
+    id: 'grat-1',
+    date: 'Hoje · 06 Out',
+    motives: [
+      'Paz e clareza mental durante a sessão de trabalho matinal.',
+      'Saúde e fôlego para treinar e caminhar em paz.',
+      'Provisão diária e teto seguro com o alimento de cada dia.',
+    ],
+  },
+  {
+    id: 'grat-2',
+    date: 'Ontem · 05 Out',
+    motives: [
+      'Alinhamento tranquilo de tarefas com a equipe.',
+      'Sessão profunda de leitura bíblica ao amanhecer.',
+      'Cuidado providencial de Deus nos detalhes financeiros.',
+    ],
+  },
+];
+
 export const ESPIRITUAL_DATA = {
   sanctuaryState: {
     vigilDays: 48,
-    currentHourName: 'Vésperas (Silêncio)',
+    currentHourName: 'Vésperas (Silêncio Contemplativo)',
     cycleName: 'Leitura Contínua · Ano II',
     atmosphere: 'Serena & Imersiva',
   },
