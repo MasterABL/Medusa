@@ -85,14 +85,18 @@ Agenda → Context → Guardian → Action → Hoje
 |---|---|---|
 | Itens da Agenda | `localStorage` (`medusa-agenda-items`), na `AgendaContext` (Anti) | **local** |
 | Trilha de estudo, áudio, shell | `localStorage` (Educação, Shell) | **local** |
-| Tasks, Projects, Acadêmico | repositórios em memória (`createInMemory*`) | **in-memory** |
-| Reminder Engine (lembretes, entregas, ack) | memória do motor; `exportState/importState` pronto | **in-memory**; o adapter é pendência |
+| Tasks, Projects | repositórios em memória + `createTaskPersistence`/`createProjectPersistence` + `bindRepositoryPersistence` | **in-memory**, **adapter preparado** |
+| Acadêmico | repositórios em memória | **in-memory** |
+| Eventos de contexto (Event Bus) | `createContextEventLog` / `snapshotEventHistory` (log limitado) | **adapter preparado** |
+| Histórico de ações | `exportActionHistory` | **somente exportação** (restaurar ação autorizada poderia re-executá-la) |
+| Relações entre entidades | `RelationStore.exportState/importState` | **in-memory**, pronta para o mesmo adapter |
+| Reminder Engine (lembretes, entregas, ack) | memória do motor; `createReminderPersistence` + `bindStatePersistence` prontos | **adapter preparado** (ninguém liga em produção ainda) |
 | Guardian (ações, auditoria, aprovações, resultados, feedback) | singletons em memória | **in-memory** |
-| Backend / banco | não existe no Medusa (nenhum Supabase ou `fetch` em `src/`) | **BLOQUEADO** |
+| Backend / banco | não existe no Medusa (nenhum Supabase ou `fetch` em `src/`); `createUnavailableStorageAdapter('supabase', …)` declara isso | **BLOQUEADO** |
 | Notificação nativa de celular | exige app nativo | **BLOQUEADO** |
 | E-mail | sem serviço de envio | **NÃO IMPLEMENTADO** |
 
-Nenhuma persistência falsa foi criada. Consequência registrada em teste (8.6): sem salvar o estado, recarregar a página faz um motor novo re-entregar um gatilho já entregue. O adapter necessário é pequeno: salvar `exportState()` no `localStorage` (ou backend) e chamar `importState()` ao abrir.
+Nenhuma persistência falsa foi criada. Consequência registrada em teste (8.6): sem salvar o estado, recarregar a página faz um motor novo re-entregar um gatilho já entregue. O contrato para isso agora existe (`src/foundation/persistence`): `StorageAdapter` (memory / localStorage / Supabase bloqueado) → `PersistenceAdapter` versionado lido como DataState → `bind*Persistence`. Testado em `persistence` (21 checagens): "recarregar a página" com o adapter não repete o T-5; sem armazenamento o estado é *erro*, não *vazio*. O que falta é a camada de app chamar `hydrate()` ao abrir e `flush()` depois de mudar.
 
 ---
 
@@ -105,17 +109,19 @@ Nenhuma persistência falsa foi criada. Consequência registrada em teste (8.6):
 | `test:foundation` | 64/64 |
 | `test:domains` | 676/676 |
 | `test:reminders` (v1, Anti) | passa |
-| `test:personal-os` (**nova**) | **185/185** |
+| `test:personal-os` (**nova**) | **230/230** |
 
 | Suíte Personal OS | Cobre |
 |---|---|
 | tasks-projects 31 | dependências (etapa 4 não recomendada antes da 2), ciclos, transições, marcos, prazos, viabilidade, seletores |
 | context-priority 29 | regras e overrides de importância, contexto de evento, telemedicina T-5 = máxima, projeto amanhã = alta, treino em 3h = média, curso em 15 dias = baixa, bloqueada, explicação |
-| reminders-v2 49 | **gates da telemedicina**, T-30/15/5/0, um disparo por gatilho, superseded, expiração, recuperação, intervalo mínimo, cancelamento, reagendamento, ack, soneca, follow-up, recorrência, export/import, Guardian (rebaixa para L2 se o usuário rejeita) |
+| reminders-v2 57 | **gates da telemedicina**, T-30/15/5/0 (T-30 agora no padrão crítico), um aviso por compromisso entre fontes (mesmo intent), um disparo por gatilho, superseded, expiração, recuperação, intervalo mínimo, cancelamento, reagendamento, ack, soneca, follow-up, recorrência, export/import, Guardian (rebaixa para L2 se o usuário rejeita) |
 | actions 14 | L1, L2, L3, aprovação, rejeição, falha, sem efeito, Action Center universal, trilha causal |
 | planner-recs 23 | 70 min → forte; 20 min antes de sair → inglês; energia; divisão; trabalho > estudo; deslocamento; buffer; sono; dependências; prazo; L2 para gravar |
 | today-integration 23 | estados das fontes; Agora, Próximo, Atenção, Ritmo, Recomendação; integração Agenda → Reminder → Guardian → Hoje → Actions |
 | academic 16 | atividade → Task, prova → evento crítico, prazos unificados, curso, ENEM, inglês |
+| persistence 21 | memory/localStorage/Supabase bloqueado, versão e migração, snapshot corrompido, recarregar sem repetir lembrete, log limitado, matriz de persistência |
+| events-relations 16 | evento canônico com 10 origens, canônico → EventContext → Reminder Engine, política de lembrete no evento, relações idempotentes e navegáveis |
 
 Também: `npm run typecheck` sem erros; `npm run build` ok; `npm run lint` com 0 erros e 8 avisos antigos, todos em arquivos que esta rodada não toca.
 
@@ -129,9 +135,32 @@ Também: `npm run typecheck` sem erros; `npm run build` ok; `npm run lint` com 0
 | Telemedicina: crítica → T-5 → Dynamic Island + Web Notification | **PROVADO** (domínio) | Web Notification testada com ambiente injetado com permissão; no navegador real depende da permissão do usuário |
 | Telemedicina com canal nativo | **BLOQUEADO** | o adapter existe; o canal exige app nativo |
 | `AgendaContext` usando o motor v2 | **NÃO IMPLEMENTADO** | arquivo do Anti; o encaixe está descrito em C. O v1 que ela usa foi corrigido. |
-| Persistência de lembretes, tarefas e projetos | **PARCIAL** | `exportState/importState` pronto; falta o adapter de storage |
+| Persistência de lembretes, tarefas, projetos, eventos de contexto | **PARCIAL** | contratos e adapters prontos e testados (memory/localStorage); ninguém chama `hydrate/flush` em produção; Supabase **BLOQUEADO** |
+| Um lembrete por compromisso, mesmo vindo de várias fontes | **PROVADO** | `intentKey`/`dedupKey`; a fonte que sobra herda os avisos na mesma sincronização |
+| Evento canônico (Agenda, Google, Outlook, Gmail, domínios, sistema) e relações por referência | **PROVADO** (contrato) | `src/foundation/events`, `src/foundation/relations` |
 | Hoje com Finanças, Corpo, Espiritual e Educação | **PARCIAL** | aparecem como fonte "não conectada" (o Hoje fica parcial e diz isso); o agregador aceita `extraSources` |
 | Planner com vários dias, prazos e dependências | **PROVADO** (determinístico) | sem otimização global: é guloso por prioridade |
 | Recomendação por IA generativa | **NÃO IMPLEMENTADO** | por decisão: regras primeiro |
 | UI (Hoje, Agenda, Educação, Action Center) | **NÃO IMPLEMENTADO** | fora do escopo, é do Anti |
 | Grant ligado ao `classify` | **NÃO IMPLEMENTADO** | continua decisão do dono; `informationalOnly` cobre só ações informativas |
+
+---
+
+## Finalização (06/10/2026)
+
+Rodada paralela ao Anti, antes do Gmail/Agenda. Auditoria do que já estava aqui:
+Context Engine, Tasks, Projects, Deadlines, Priority, Recommendation, Planner, Guardian,
+Actions, Hoje, Acadêmico e canais estavam **PROVADOS** e não foram refeitos. Fechado:
+
+1. **T-30 no padrão crítico** (`[30, 15, 5, 0]`); antes só existia por política.
+2. **Um aviso só por compromisso entre fontes**: o mesmo compromisso vindo da Agenda e de
+   um e-mail/Google Calendar com ids diferentes gera um conjunto de lembretes (por
+   `dedupKey` explícita ou data + início + título normalizado). Se a fonte que cobria some,
+   a outra herda na mesma sincronização. Estado exportado antes ganha o `intentKey` ao ser
+   importado.
+3. **Persistência preparada sem banco fingido** (`src/foundation/persistence`).
+4. **Evento canônico + origem explícita** (`src/foundation/events/canonical.ts`) e
+   **relações por referência** (`src/foundation/relations/graph.ts`), base do Gmail/Agenda.
+
+Continua: o encaixe do motor v2 na `AgendaContext` (arquivo do Anti) e a camada de app
+que liga `hydrate/flush`.
