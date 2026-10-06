@@ -11,7 +11,8 @@
     "test:foundation": "npx tsx scripts/foundation-tests/contract-tests.ts",
     "test:domains": "npx tsx scripts/foundation-tests/domains/index.ts",
     "test:reminders": "npx tsx scripts/foundation-tests/reminders-tests.ts",
-    "test:all": "npm run test:foundation && npm run test:domains && npm run test:reminders"
+    "test:personal-os": "npx tsx scripts/foundation-tests/personal-os/index.ts",
+    "test:all": "npm run test:foundation && npm run test:domains && npm run test:reminders && npm run test:personal-os"
   },
   "dependencies": {
     "next": "14.2.24",
