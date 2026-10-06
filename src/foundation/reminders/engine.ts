@@ -417,7 +417,24 @@ export function createReminderEngine(deps: ReminderEngineDeps) {
     return out;
   }
 
+  /**
+   * Estado serializável (lembretes + regras recorrentes). Hoje o motor vive em memória:
+   * sem persistir isto, recarregar a página esquece o que já foi entregue. Um adapter
+   * (localStorage/backend) só precisa salvar `exportState()` e chamar `importState()`.
+   */
+  function exportState(): { version: 1; records: ReminderRecord[]; rules: RecurringReminderRule[] } {
+    return { version: 1, records: Array.from(records.values()), rules: Array.from(rules.values()) };
+  }
+
+  function importState(state: { version: number; records: ReminderRecord[]; rules?: RecurringReminderRule[] }): void {
+    if (state.version !== 1) throw new Error(`Versão de estado de lembretes desconhecida: ${state.version}.`);
+    for (const r of state.records) records.set(r.id, r);
+    for (const rule of state.rules ?? []) rules.set(rule.id, rule);
+  }
+
   return {
+    exportState,
+    importState,
     syncEvents,
     cancelEvent,
     tick,

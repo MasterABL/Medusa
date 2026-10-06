@@ -196,6 +196,24 @@ export function run(): { total: number; fails: number } {
     check('8.4: regra semanal só no dia configurado (terça não, domingo sim)', engine.syncRecurring(DAY, at('08:00')).length === 0 && engine.syncRecurring('2026-10-11', at('08:00')).includes('rule:semana@2026-10-11#T0'));
   }
 
+  // ===== Persistência via export/import (adapter futuro) =====
+  resetAll();
+  {
+    const a = setup('granted', () => ({ id: 'p', offsetsMinutes: [5], channels: ['dynamic_island'], minGapMs: 60_000, requiresAcknowledgement: true }));
+    a.engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('09:00'));
+    a.engine.tick(at('10:00'));
+    const snapshot = JSON.parse(JSON.stringify(a.engine.exportState()));
+    const b = setup('granted', () => ({ id: 'p', offsetsMinutes: [5], channels: ['dynamic_island'], minGapMs: 60_000, requiresAcknowledgement: true }));
+    b.engine.importState(snapshot);
+    b.engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('10:01'));
+    b.engine.tick(at('10:01'));
+    check('8.5: estado restaurado (simula recarregar a página) → o T-5 já entregue NÃO sai de novo', b.island.length === 0 && b.engine.get('tele@2026-10-06#T5')!.state === 'delivered');
+    const c = setup('granted', () => ({ id: 'p', offsetsMinutes: [5], channels: ['dynamic_island'], minGapMs: 60_000, requiresAcknowledgement: true }));
+    c.engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('10:01'));
+    c.engine.tick(at('10:01'));
+    check('8.6: SEM estado persistido, um motor novo re-entregaria (por isso o adapter de persistência é pendência real)', c.island.length === 1);
+  }
+
   // ===== Guardian: aprovação e Action Center universal =====
   resetAll();
   {
