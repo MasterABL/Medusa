@@ -16,7 +16,7 @@ import type { AgendaItem } from '../../types/agenda';
 import type { BufferRule, RoutineBlock, TravelLeg } from '../../domains/agenda/model/temporal';
 import type { EventContextCategory } from '../reminders/types';
 import type { ImportanceClassification, ImportanceOverrides, ImportanceRule, ImportanceTier } from './importance';
-import { classifyEvent, DEFAULT_IMPORTANCE_RULES } from './importance';
+import { classifyEvent, DEFAULT_IMPORTANCE_RULES, normalize } from './importance';
 import { buildDay } from '../../domains/agenda/services/timeline';
 import { detectConflicts } from '../../domains/agenda/services/conflicts';
 
@@ -25,6 +25,12 @@ export interface EventLinks {
   relatedTaskId?: string;
   /** Eventos que precisam acontecer antes (ex.: exame antes da consulta de retorno). */
   dependsOnEventIds?: string[];
+  /**
+   * Identidade do compromisso entre fontes. O mesmo compromisso pode chegar pela Agenda,
+   * pelo Google Calendar e por um e-mail de confirmação com ids diferentes; quem
+   * reconhece que é a mesma coisa grava a mesma chave e o Reminder Engine avisa uma vez só.
+   */
+  dedupKey?: string;
 }
 
 export interface EventContext {
@@ -51,6 +57,8 @@ export interface EventContext {
   dependsOnEventIds: string[];
   relatedProjectId?: string;
   relatedTaskId?: string;
+  /** Ver `EventLinks.dedupKey`. Sem ela vale `defaultIntentKey()` (data + início + título normalizado). */
+  dedupKey?: string;
 }
 
 /** Antecedência padrão por tier — preparar e chegar a tempo. Configurável via parâmetro. */
@@ -101,6 +109,7 @@ export function buildEventContexts(input: BuildEventContextInput): EventContext[
         dependsOnEventIds: links.dependsOnEventIds ?? [],
         relatedProjectId: links.relatedProjectId,
         relatedTaskId: links.relatedTaskId,
+        dedupKey: links.dedupKey,
       };
     });
 }
@@ -110,4 +119,17 @@ export function startIso(ctx: Pick<EventContext, 'date' | 'startMin'>): string {
   const h = String(Math.floor(ctx.startMin / 60)).padStart(2, '0');
   const m = String(ctx.startMin % 60).padStart(2, '0');
   return `${ctx.date}T${h}:${m}:00`;
+}
+
+/**
+ * Chave de "mesmo compromisso" quando nenhuma fonte informou uma explícita: mesma data,
+ * mesmo início e mesmo título (sem acento/caixa/espaços extras). Conservadora de propósito:
+ * dois eventos com título diferente nunca são fundidos por aqui.
+ */
+export function defaultIntentKey(ctx: Pick<EventContext, 'date' | 'startMin' | 'title'>): string {
+  return `${ctx.date}|${ctx.startMin}|${normalize(ctx.title).replace(/\s+/g, ' ').trim()}`;
+}
+
+export function intentKeyOf(ctx: Pick<EventContext, 'date' | 'startMin' | 'title' | 'dedupKey'>): string {
+  return ctx.dedupKey ? `key:${ctx.dedupKey}` : defaultIntentKey(ctx);
 }

@@ -23,7 +23,7 @@
  */
 
 import type { EventContext } from '../context/eventContext';
-import { startIso } from '../context/eventContext';
+import { defaultIntentKey, intentKeyOf, startIso } from '../context/eventContext';
 import type { ImportanceTier } from '../context/importance';
 import type { EventContextCategory } from './types';
 import type { ChannelCapability, ChannelDeliveryResult, ChannelRegistry, NotificationChannelId, NotificationPayload } from './channels';
@@ -43,7 +43,7 @@ export interface ReminderPolicyV2 {
 }
 
 export const DEFAULT_REMINDER_POLICIES: Record<ImportanceTier, ReminderPolicyV2> = {
-  critical: { id: 'v2_critical', offsetsMinutes: [15, 5, 0], channels: ['dynamic_island', 'web_notification', 'native_mobile_notification'], minGapMs: 60_000, requiresAcknowledgement: true },
+  critical: { id: 'v2_critical', offsetsMinutes: [30, 15, 5, 0], channels: ['dynamic_island', 'web_notification', 'native_mobile_notification'], minGapMs: 60_000, requiresAcknowledgement: true },
   high: { id: 'v2_high', offsetsMinutes: [15, 5], channels: ['dynamic_island', 'web_notification'], minGapMs: 60_000, requiresAcknowledgement: true },
   medium: { id: 'v2_medium', offsetsMinutes: [15], channels: ['dynamic_island', 'web_notification'], minGapMs: 120_000, requiresAcknowledgement: false },
   low: { id: 'v2_low', offsetsMinutes: [5], channels: ['dynamic_island'], minGapMs: 300_000, requiresAcknowledgement: false },
@@ -71,6 +71,12 @@ export interface ReminderRecord {
   eventId: string;
   occurrenceDate: string;
   occurrenceKey: string;
+  /**
+   * Identidade do compromisso entre fontes (ver `intentKeyOf`). Dois eventos com o mesmo
+   * intent (ex.: o item da Agenda e o candidato vindo do e-mail de confirmação) geram um
+   * único conjunto de lembretes. Ausente em estado exportado antes desta versão.
+   */
+  intentKey?: string;
   title: string;
   /** Início do evento no momento em que o lembrete foi planejado (detecta reagendamento). */
   eventStartIso: string;
@@ -122,6 +128,8 @@ export interface SyncReport {
   planned: string[];
   superseded: string[];
   cancelled: string[];
+  /** Ocorrências que não ganharam lembrete próprio porque outra já cobre o mesmo compromisso. */
+  deduplicated: { occurrenceKey: string; coveredBy: string }[];
 }
 
 export interface TickReport {
@@ -149,6 +157,7 @@ function localIso(t: number): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 const hhmm = (iso: string) => iso.slice(11, 16);
+const minutesOf = (iso: string) => Number(iso.slice(11, 13)) * 60 + Number(iso.slice(14, 16));
 
 function minutesLabel(n: number): string {
   return n <= 0 ? 'agora' : `em ${n} min`;
@@ -162,6 +171,10 @@ export function createReminderEngine(deps: ReminderEngineDeps) {
 
   const byOccurrence = (key: string) => Array.from(records.values()).filter((r) => r.occurrenceKey === key);
   const pending = (r: ReminderRecord) => r.state === 'scheduled' || r.state === 'held_for_approval';
+  const alive = (r: ReminderRecord) => r.state !== 'cancelled' && r.state !== 'superseded' && r.state !== 'expired';
+  /** Outra ocorrência (de outro evento) que já cobre este mesmo compromisso, se houver. */
+  const coveringOccurrence = (intentKey: string, occurrenceKey: string): string | undefined =>
+    Array.from(records.values()).find((r) => r.intentKey === intentKey && r.occurrenceKey !== occurrenceKey && alive(r))?.occurrenceKey;
   const touch = (r: ReminderRecord, patch: Partial<ReminderRecord>, now: string) => {
     const next = { ...r, ...patch, updatedAt: now };
     records.set(r.id, next);
@@ -176,11 +189,14 @@ export function createReminderEngine(deps: ReminderEngineDeps) {
     const nowMs = ms(now);
     const startMs = ms(start);
     if (startMs + grace < nowMs) return [];
+    const intentKey = intentKeyOf(ctx);
+    if (coveringOccurrence(intentKey, key)) return [];
 
     const base = {
       eventId: ctx.eventId,
       occurrenceDate: ctx.date,
       occurrenceKey: key,
+      intentKey,
       title: ctx.title,
       eventStartIso: start,
       eventEndIso: end,
@@ -219,11 +235,18 @@ export function createReminderEngine(deps: ReminderEngineDeps) {
   }
 
   function syncEvents(contexts: EventContext[], now: string, opts: { coveredDates?: string[] } = {}): SyncReport {
-    const report: SyncReport = { planned: [], superseded: [], cancelled: [] };
-    const seen = new Set<string>();
+    const report: SyncReport = { planned: [], superseded: [], cancelled: [], deduplicated: [] };
+    const seen = new Set(contexts.map((c) => `${c.eventId}@${c.date}`));
+    // cancelar primeiro o que sumiu: se a fonte que cobria um compromisso foi removida,
+    // a outra fonte do mesmo compromisso herda os lembretes nesta mesma sincronização
+    const covered = new Set(opts.coveredDates ?? contexts.map((c) => c.date));
+    for (const r of Array.from(records.values())) {
+      if (r.kind === 'recurring' || !covered.has(r.occurrenceDate) || seen.has(r.occurrenceKey) || !pending(r)) continue;
+      touch(r, { state: 'cancelled', stateReason: 'evento removido ou cancelado na Agenda' }, now);
+      report.cancelled.push(r.id);
+    }
     for (const ctx of contexts) {
       const key = `${ctx.eventId}@${ctx.date}`;
-      seen.add(key);
       const existing = byOccurrence(key);
       const start = startIso(ctx);
       const moved = existing.filter((r) => pending(r) && r.eventStartIso !== start);
@@ -234,13 +257,12 @@ export function createReminderEngine(deps: ReminderEngineDeps) {
         records.set(archivedId, { ...r, id: archivedId, state: 'superseded', stateReason: `evento reagendado para ${hhmm(start)}`, updatedAt: now });
         report.superseded.push(archivedId);
       }
+      const coveredBy = existing.some(alive) ? undefined : coveringOccurrence(intentKeyOf(ctx), key);
+      if (coveredBy) {
+        report.deduplicated.push({ occurrenceKey: key, coveredBy });
+        continue;
+      }
       report.planned.push(...plan(ctx, now));
-    }
-    const covered = new Set(opts.coveredDates ?? contexts.map((c) => c.date));
-    for (const r of Array.from(records.values())) {
-      if (r.kind === 'recurring' || !covered.has(r.occurrenceDate) || seen.has(r.occurrenceKey) || !pending(r)) continue;
-      touch(r, { state: 'cancelled', stateReason: 'evento removido ou cancelado na Agenda' }, now);
-      report.cancelled.push(r.id);
     }
     return report;
   }
@@ -327,6 +349,17 @@ export function createReminderEngine(deps: ReminderEngineDeps) {
       for (const r of sorted.slice(1)) {
         touch(r, { state: 'superseded', stateReason: `substituído por ${chosen.id}` }, now);
         report.superseded.push(r.id);
+      }
+      // o mesmo compromisso já foi lembrado neste gatilho por outra fonte → não repetir
+      const twin = chosen.intentKey
+        ? Array.from(records.values()).find(
+            (x) => x.id !== chosen.id && x.intentKey === chosen.intentKey && x.occurrenceKey !== chosen.occurrenceKey && x.offsetMinutes === chosen.offsetMinutes && x.deliveries.some((d) => d.status === 'delivered')
+          )
+        : undefined;
+      if (twin) {
+        touch(chosen, { state: 'superseded', stateReason: `mesmo compromisso já lembrado por ${twin.id}` }, now);
+        report.superseded.push(chosen.id);
+        continue;
       }
       const policyGap = chosen.minGapMs;
       const last = byOccurrence(key)
@@ -428,7 +461,7 @@ export function createReminderEngine(deps: ReminderEngineDeps) {
 
   function importState(state: { version: number; records: ReminderRecord[]; rules?: RecurringReminderRule[] }): void {
     if (state.version !== 1) throw new Error(`Versão de estado de lembretes desconhecida: ${state.version}.`);
-    for (const r of state.records) records.set(r.id, r);
+    for (const r of state.records) records.set(r.id, r.intentKey ? r : { ...r, intentKey: defaultIntentKey({ date: r.occurrenceDate, startMin: minutesOf(r.eventStartIso), title: r.title }) });
     for (const rule of state.rules ?? []) rules.set(rule.id, rule);
   }
 

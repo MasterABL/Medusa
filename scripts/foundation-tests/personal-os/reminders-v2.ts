@@ -131,12 +131,12 @@ export function run(): { total: number; fails: number } {
     const { engine, island } = setup('granted');
     engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('09:00'));
     const moved = engine.syncEvents(buildEventContexts({ date: DAY, items: [{ ...tele(), startTime: '11:05', endTime: '11:35' }] }), at('09:30'));
-    check('5.1: evento remarcado → lembretes antigos superseded e novos planejados no novo horário', moved.superseded.length === 3 && engine.get('tele@2026-10-06#T5')!.triggerAtIso === at('11:00'));
+    check('5.1: evento remarcado → lembretes antigos superseded e novos planejados no novo horário', moved.superseded.length === 4 && engine.get('tele@2026-10-06#T5')!.triggerAtIso === at('11:00'));
     engine.tick(at('10:00'));
     check('5.2: nada sai no horário antigo', island.length === 0);
     const gone = engine.syncEvents(buildEventContexts({ date: DAY, items: [{ ...tele(), status: 'cancelled' }] }), at('09:40'), { coveredDates: [DAY] });
-    check('5.3: evento cancelado na Agenda → lembretes pendentes cancelados', gone.cancelled.length === 3 && engine.list({ states: ['scheduled'] }).length === 0);
-    check('5.4: cancelamento explícito por id também funciona', (() => { resetAll(); const s = setup(); s.engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('09:00')); return s.engine.cancelEvent('tele', 'usuário desmarcou', at('09:10')).length === 3; })());
+    check('5.3: evento cancelado na Agenda → lembretes pendentes cancelados', gone.cancelled.length === 4 && engine.list({ states: ['scheduled'] }).length === 0);
+    check('5.4: cancelamento explícito por id também funciona', (() => { resetAll(); const s = setup(); s.engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('09:00')); return s.engine.cancelEvent('tele', 'usuário desmarcou', at('09:10')).length === 4; })());
   }
 
   // ===== Acknowledgement, soneca e follow-up =====
@@ -234,6 +234,73 @@ export function run(): { total: number; fails: number } {
     engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('09:00'));
     const ov = selectReminderOverview(engine, at('09:00'));
     check('10.2: canais indisponíveis aparecem como "faltando" (partial), sem esconder', ov.status === 'partial' && ov.missing.some((m) => m.startsWith('web_notification')) && ov.missing.some((m) => m.startsWith('native_mobile_notification')));
+  }
+
+  // ===== Política padrão crítica e dedup entre fontes =====
+  resetAll();
+  {
+    const { engine } = setup('granted');
+    engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('09:00'));
+    check('11.1: evento crítico sem política específica → T-30, T-15, T-5 e horário exato', engine.list().map((r) => r.offsetMinutes).join() === '30,15,5,0');
+  }
+  resetAll();
+  {
+    // o mesmo compromisso chega por duas fontes com ids diferentes (Agenda + Google Calendar/e-mail)
+    const { engine, island } = setup('granted');
+    const a = tele();
+    const b = agendaItem('gcal-tele', 'Telemedicina com Dra. Ana', '10:05', '10:35');
+    const sync = engine.syncEvents(buildEventContexts({ date: DAY, items: [a, b] }), at('09:00'));
+    check('11.2: mesmo título e horário em dois eventos → um só conjunto de lembretes', new Set(engine.list().map((r) => r.eventId)).size === 1 && sync.deduplicated.length === 1 && sync.deduplicated[0].coveredBy === `${engine.list()[0].eventId}@${DAY}`);
+    engine.tick(at('09:35'));
+    engine.tick(at('09:50'));
+    engine.tick(at('10:00'));
+    engine.tick(at('10:05'));
+    check('11.3: cada gatilho sai uma vez só, nunca uma vez por fonte', island.map((p) => p.offsetMinutes).join() === '30,15,5,0');
+    const again = engine.syncEvents(buildEventContexts({ date: DAY, items: [a, b] }), at('10:06'));
+    check('11.4: sincronizar de novo não reabre a duplicata', again.planned.length === 0 && island.length === 4);
+  }
+  resetAll();
+  {
+    // títulos diferentes, mas a fonte afirma que é o mesmo compromisso (dedupKey)
+    const { engine, island } = setup('granted');
+    const items = [tele(), agendaItem('email-consulta', 'Consulta confirmada (e-mail)', '10:05', '10:35')];
+    const ctxs = buildEventContexts({ date: DAY, items, links: { tele: { dedupKey: 'consulta-ana' }, 'email-consulta': { dedupKey: 'consulta-ana' } } });
+    engine.syncEvents(ctxs, at('09:58'));
+    engine.tick(at('10:00'));
+    check('11.5: dedupKey explícita funde fontes com títulos diferentes', island.length === 1 && new Set(engine.list().map((r) => r.eventId)).size === 1);
+  }
+  resetAll();
+  {
+    const { engine } = setup('granted');
+    const items = [tele(), agendaItem('outra', 'Reunião de equipe', '10:05', '10:35')];
+    engine.syncEvents(buildEventContexts({ date: DAY, items }), at('09:00'));
+    check('11.6: compromissos diferentes no mesmo horário NÃO são fundidos', new Set(engine.list().map((r) => r.eventId)).size === 2);
+  }
+  resetAll();
+  {
+    // a fonte principal some (cancelada) → a outra passa a carregar os lembretes
+    const { engine } = setup('granted');
+    const a = tele();
+    const b = agendaItem('gcal-tele', 'Telemedicina com Dra. Ana', '10:05', '10:35');
+    engine.syncEvents(buildEventContexts({ date: DAY, items: [a, b] }), at('09:00'));
+    const owner = engine.list()[0].eventId;
+    const survivor = owner === 'tele' ? b : a;
+    engine.syncEvents(buildEventContexts({ date: DAY, items: [survivor] }), at('09:10'), { coveredDates: [DAY] });
+    check('11.7: se a fonte que cobria some, a outra herda os lembretes na mesma sincronização (não fica sem aviso)', engine.list({ states: ['scheduled'] }).some((r) => r.eventId === survivor.id));
+  }
+  resetAll();
+  {
+    // estado exportado antes desta versão (sem intentKey) continua deduplicando
+    const a = setup('granted', () => ({ id: 'p', offsetsMinutes: [5], channels: ['dynamic_island'], minGapMs: 60_000, requiresAcknowledgement: true }));
+    a.engine.syncEvents(buildEventContexts({ date: DAY, items: [tele()] }), at('09:00'));
+    a.engine.tick(at('10:00'));
+    const legacy = a.engine.exportState();
+    legacy.records = legacy.records.map(({ intentKey, ...r }) => r as typeof legacy.records[number]);
+    const b = setup('granted', () => ({ id: 'p', offsetsMinutes: [5], channels: ['dynamic_island'], minGapMs: 60_000, requiresAcknowledgement: true }));
+    b.engine.importState(legacy);
+    b.engine.syncEvents(buildEventContexts({ date: DAY, items: [agendaItem('gcal-tele', 'Telemedicina com Dra. Ana', '10:05', '10:35')] }), at('10:01'));
+    b.engine.tick(at('10:01'));
+    check('11.8: estado antigo importado ganha intentKey e a outra fonte não repete o T-5 já entregue', b.island.length === 0);
   }
 
   return result();
