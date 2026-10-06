@@ -1,212 +1,446 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { ESPIRITUAL_DATA, SpatialAperture, CanonicalSunHour } from './spiritualFixtures';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { SCRIPTURE_PASSAGES, ScripturePassage, ScriptureVerse } from './spiritualFixtures';
+import { playFeedback } from '@/lib/audioFeedback';
+
+type SpiritualMode = 'leitura' | 'memoria' | 'oracao';
 
 export function SpiritualContainer() {
-  const [data] = useState(ESPIRITUAL_DATA);
-  const [activeApertureId, setActiveApertureId] = useState<'proposito' | 'leitura' | 'estudo' | 'oracao'>('proposito');
-  const [deepSilence, setDeepSilence] = useState<boolean>(false);
+  const [selectedPassageId, setSelectedPassageId] = useState<string>('romanos-8');
+  const [mode, setMode] = useState<SpiritualMode>('leitura');
+  const [focusedVerseNumber, setFocusedVerseNumber] = useState<number | null>(31);
+  const [revealedWords, setRevealedWords] = useState<Set<string>>(new Set());
+  const [userNotes, setUserNotes] = useState<Record<number, string>>({});
+  const [editingNoteVerse, setEditingNoteVerse] = useState<number | null>(null);
+  const [noteDraft, setNoteDraft] = useState<string>('');
 
-  const currentAperture = useMemo(() => {
-    return data.apertures.find((a) => a.id === activeApertureId) || data.apertures[0];
-  }, [data.apertures, activeApertureId]);
+  // Estados de Oração / Silêncio
+  const [breathPhase, setBreathPhase] = useState<'inspira' | 'retém' | 'expira'>('inspira');
+  const [silenceSeconds, setSilenceSeconds] = useState<number>(0);
+  const [silenceRunning, setSilenceRunning] = useState<boolean>(false);
+
+  const passage: ScripturePassage = useMemo(() => {
+    return SCRIPTURE_PASSAGES.find((p) => p.id === selectedPassageId) || SCRIPTURE_PASSAGES[0];
+  }, [selectedPassageId]);
+
+  // Se trocar de passagem, redefine o versículo em foco para o primeiro da lista
+  useEffect(() => {
+    if (passage.verses[0]) {
+      setFocusedVerseNumber(passage.verses[0].number);
+    }
+    setRevealedWords(new Set());
+  }, [passage]);
+
+  // Ciclo da Respiração Contemplativa no modo oração
+  useEffect(() => {
+    if (mode !== 'oracao' || !silenceRunning) return;
+
+    const breathInterval = setInterval(() => {
+      setBreathPhase((prev) => {
+        if (prev === 'inspira') return 'retém';
+        if (prev === 'retém') return 'expira';
+        return 'inspira';
+      });
+    }, 4000);
+
+    const timerInterval = setInterval(() => {
+      setSilenceSeconds((s) => s + 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(breathInterval);
+      clearInterval(timerInterval);
+    };
+  }, [mode, silenceRunning]);
+
+  const focusedVerse: ScriptureVerse | undefined = useMemo(() => {
+    return passage.verses.find((v) => v.number === focusedVerseNumber);
+  }, [passage, focusedVerseNumber]);
+
+  // Ações do modo memória
+  const toggleWordReveal = useCallback((wordKey: string) => {
+    setRevealedWords((prev) => {
+      const next = new Set(prev);
+      if (next.has(wordKey)) next.delete(wordKey);
+      else next.add(wordKey);
+      return next;
+    });
+    playFeedback('press');
+  }, []);
+
+  const revealAllVerseWords = useCallback((verseNum: number) => {
+    const v = passage.verses.find((x) => x.number === verseNum);
+    if (!v) return;
+    setRevealedWords((prev) => {
+      const next = new Set(prev);
+      v.keyWords.forEach((w) => next.add(`${verseNum}-${w}`));
+      return next;
+    });
+    playFeedback('action');
+  }, [passage]);
+
+  // Salvar anotação reflexiva
+  const handleSaveNote = useCallback((verseNum: number) => {
+    if (!noteDraft.trim()) return;
+    setUserNotes((prev) => ({ ...prev, [verseNum]: noteDraft }));
+    setEditingNoteVerse(null);
+    setNoteDraft('');
+    playFeedback('success');
+  }, [noteDraft]);
 
   return (
     <main
-      className={`w-full pb-24 px-4 sm:px-8 max-w-5xl mx-auto flex flex-col gap-10 pt-6 flex-1 transition-all duration-700 ${
-        deepSilence ? 'bg-[#0B0F0D] text-[#EDEFEA]' : ''
+      className={`w-full pb-24 px-4 sm:px-8 max-w-4xl mx-auto flex flex-col gap-8 pt-6 flex-1 transition-colors duration-700 study-stage-enter ${
+        mode === 'oracao' ? 'bg-[#101513] text-[#FAFDF5] rounded-3xl p-6 sm:p-10 shadow-2xl' : ''
       }`}
+      aria-label="Escritura Viva · Leitura Espiritual"
     >
-      {/* ================= 1. CABEÇALHO DO SANTUÁRIO: PRESENÇA & VIGÍLIA ================= */}
-      <section aria-label="Santuário de Presença" className="flex flex-col gap-4 border-b border-border/60 pb-5">
-        <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#D4A373] living-pulse" />
-              <span className="text-[10px] font-mono font-medium tracking-widest uppercase text-text-muted">
-                Espiritual · Santuário de Presença, Fé e Caminho
-              </span>
-              <span className="text-text-muted/40">•</span>
-              <span className="text-[11px] font-mono text-[#D4A373]">
-                {data.sanctuaryState.currentHourName}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-text-primary">
-              Santuário da Presença &amp; O Caminho Interior
-            </h1>
-          </div>
-
-          {/* Botão de Silêncio Profundo e Contador de Vigília */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setDeepSilence(!deepSilence)}
-              className={`px-4 py-1.5 rounded-full border text-[11px] font-mono font-semibold transition-all flex items-center gap-2 shadow-subtle ${
-                deepSilence
-                  ? 'bg-[#D4A373]/25 border-[#D4A373] text-[#D4A373]'
-                  : 'bg-surface border-border/80 text-text-primary hover:border-text-primary'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                {deepSilence ? 'wb_twilight' : 'spa'}
-              </span>
-              {deepSilence ? 'Silêncio Ativo' : 'Entrar em Silêncio'}
-            </button>
-            <div className="bg-surface border border-border/70 rounded-xl px-3.5 py-1.5 flex flex-col">
-              <span className="text-[9px] font-mono uppercase text-text-muted">Vigília Contínua</span>
-              <span className="text-[15px] font-bold font-mono tabular-nums text-text-primary">
-                Dia {data.sanctuaryState.vigilDays}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= 2. O ALTAR DE PROPÓSITO: CHAMA SAGRADA E ESCRITURA ÂNCORA ================= */}
-      <section
-        aria-label="Altar Central de Presença"
-        className="relative rounded-3xl p-8 sm:p-14 border border-[#D4A373]/30 shadow-calm overflow-hidden flex flex-col items-center text-center gap-8 bg-gradient-to-b from-[#18201D]/5 to-[#18201D]/25 dark:from-[#111715] dark:to-[#0D1210]"
-      >
-        {/* Halo Cenográfico Suave */}
-        <div
-          className="absolute -top-24 w-96 h-96 rounded-full bg-[#D4A373]/15 blur-3xl pointer-events-none animate-aura-drift"
-          aria-hidden="true"
-        />
-
-        {/* Chama Sagrada Viva */}
-        <div className="relative flex flex-col items-center">
-          <div className="w-14 h-20 relative flex items-center justify-center">
-            {/* Brilho Expandido */}
-            <div className="absolute w-10 h-14 bg-amber-400/25 rounded-full blur-lg animate-pulse" />
-            {/* Núcleo da Chama */}
-            <div className="w-4 h-9 bg-gradient-to-t from-amber-600 via-amber-400 to-yellow-100 rounded-full animate-flame-flicker shadow-sm" />
-          </div>
-          {/* Base de Pedra */}
-          <div className="w-20 h-2 bg-gradient-to-r from-border-subtle via-border-strong to-border-subtle rounded-full mt-1" />
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#D4A373] mt-2 font-bold">
-            Chama da Vigília
-          </span>
-        </div>
-
-        {/* Palavra Âncora Monumental */}
-        <div className="max-w-2xl space-y-3 relative z-10">
-          <blockquote className="text-xl sm:text-2xl md:text-3xl font-serif italic text-text-primary leading-relaxed tracking-wide">
-            &ldquo;{currentAperture.sacredScripture}&rdquo;
-          </blockquote>
-          <div className="text-[12px] font-mono uppercase tracking-widest text-[#D4A373] font-bold">
-            — {currentAperture.reference}
-          </div>
-        </div>
-
-        {/* Ponto de Recolhimento */}
-        <div className="bg-surface/80 dark:bg-surface/40 backdrop-blur-md border border-border/70 rounded-2xl px-6 py-4 max-w-xl text-[13px] text-text-secondary leading-relaxed font-sans shadow-subtle">
-          {currentAperture.contemplativeFocus}
-        </div>
-      </section>
-
-      {/* ================= 3. O ARCO SOLAR DAS HORAS CANÔNICAS (TRANSIÇÃO TEMPORAL) ================= */}
-      <section aria-label="Arco Solar das Horas Canônicas" className="bg-surface rounded-2xl p-6 sm:p-7 border border-border/70 shadow-calm flex flex-col gap-6">
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+      {/* 1. CABEÇALHO CONTEMPLATIVO E MODOS DE PRÁTICA */}
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/40 pb-5">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-[#D4A373]">
-              wb_sunny
+            <span
+              className={`w-2 h-2 rounded-full ${
+                mode === 'oracao' ? 'bg-[#ADE4B5] animate-pulse' : 'bg-[#71DBD2]'
+              }`}
+              aria-hidden="true"
+            />
+            <span className="text-[11px] font-mono tracking-wider uppercase opacity-75">
+              Escritura Viva · {passage.theme}
             </span>
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-text-muted">
-              Arco Solar das Horas Canônicas (Transição da Luz ao Crepúsculo)
-            </h2>
           </div>
-          <span className="text-[10px] font-mono text-text-muted uppercase">
-            {data.sanctuaryState.cycleName}
-          </span>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {passage.reference}
+            </h1>
+
+            {/* Alternador de Passagem */}
+            <div className="flex items-center gap-1.5 ml-2">
+              {SCRIPTURE_PASSAGES.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPassageId(p.id);
+                    playFeedback('press');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all ${
+                    p.id === selectedPassageId
+                      ? 'bg-surface font-bold text-text-primary shadow-subtle border border-border/60'
+                      : 'opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  {p.book} {p.chapter}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Arco Horizontal Contínuo das 6 Horas */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {data.solarCycle.map((hour) => {
-            const isAtual = hour.status === 'atual';
-            const isGuardada = hour.status === 'guardada';
+        {/* BARRINHA DE MODOS: LEITURA, MEMÓRIA, ORAÇÃO */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-surface border border-border/70 shadow-subtle">
+          <button
+            type="button"
+            onClick={() => {
+              setMode('leitura');
+              playFeedback('press');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-[12px] font-mono font-medium transition-all flex items-center gap-1.5 ${
+              mode === 'leitura'
+                ? 'bg-[#FAFDF5] text-[#1C2420] shadow-sm font-bold border border-border/60'
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">menu_book</span>
+            <span>Leitura</span>
+          </button>
 
-            return (
-              <div
-                key={hour.id}
-                className={`p-3.5 rounded-xl border flex flex-col justify-between gap-3 transition-all ${
-                  isAtual
-                    ? 'bg-[#D4A373]/15 border-[#D4A373] shadow-subtle ring-1 ring-[#D4A373]/40'
-                    : 'bg-surface-elevated border-border/70'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-text-muted">{hour.solarTime}</span>
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      isAtual
-                        ? 'bg-[#D4A373] animate-pulse'
-                        : isGuardada
-                        ? 'bg-[#ADE4B5]'
-                        : 'bg-border-strong'
-                    }`}
-                  />
-                </div>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('memoria');
+              playFeedback('press');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-[12px] font-mono font-medium transition-all flex items-center gap-1.5 ${
+              mode === 'memoria'
+                ? 'bg-[#FAFDF5] text-[#1C2420] shadow-sm font-bold border border-border/60'
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">psychology</span>
+            <span>Memória</span>
+          </button>
 
-                <div>
-                  <h3 className="text-[14px] font-serif font-bold text-text-primary">
-                    {hour.name}
-                  </h3>
-                  <span className="text-[11px] text-text-secondary mt-0.5 block">
-                    {hour.sacredAnchor}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-border/50 text-[9px] font-mono uppercase tracking-wider text-text-muted">
-                  {isAtual ? 'Hora Presente' : isGuardada ? 'Guardada ✓' : 'Aguardando'}
-                </div>
-              </div>
-            );
-          })}
+          <button
+            type="button"
+            onClick={() => {
+              setMode('oracao');
+              setSilenceRunning(true);
+              playFeedback('action');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-[12px] font-mono font-medium transition-all flex items-center gap-1.5 ${
+              mode === 'oracao'
+                ? 'bg-[#101513] text-[#FAFDF5] shadow-sm font-bold border border-[#ADE4B5]/40'
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">spa</span>
+            <span>Oração</span>
+          </button>
         </div>
-      </section>
+      </header>
 
-      {/* ================= 4. QUATRO APERTURAS ESPACIAIS DE PRESENÇA ================= */}
-      <section aria-label="Quatro Aperturas Espaciais" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {data.apertures.map((aperture) => {
-          const isSelected = activeApertureId === aperture.id;
-          return (
-            <button
-              key={aperture.id}
-              type="button"
-              onClick={() => setActiveApertureId(aperture.id)}
-              className={`p-5 rounded-2xl border text-left flex flex-col justify-between gap-4 transition-all duration-300 ${
-                isSelected
-                  ? 'bg-surface-elevated border-[#D4A373] shadow-md ring-1 ring-[#D4A373]/40'
-                  : 'bg-surface border-border/70 hover:border-border-strong'
+      {/* 2. MODO ORAÇÃO / SILÊNCIO CONTEMPLATIVO */}
+      {mode === 'oracao' && (
+        <section aria-label="Modo Oração e Silêncio" className="flex flex-col items-center text-center gap-6 py-6 animate-in fade-in duration-500">
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] font-mono tracking-widest uppercase opacity-70">
+              Silêncio da Mente · Oração do Coração
+            </span>
+            <span className="opacity-40">•</span>
+            <span className="text-[12px] font-mono text-[#ADE4B5] tabular-nums font-bold">
+              {Math.floor(silenceSeconds / 60)}:
+              {String(silenceSeconds % 60).padStart(2, '0')}
+            </span>
+          </div>
+
+          {/* Círculo de Respiração Orgânica */}
+          <div className="relative flex items-center justify-center my-4">
+            <div
+              className={`w-36 h-36 rounded-full border border-[#ADE4B5]/40 flex flex-col items-center justify-center transition-all duration-1000 shadow-2xl ${
+                breathPhase === 'inspira'
+                  ? 'scale-110 bg-[#ADE4B5]/15 border-[#ADE4B5]'
+                  : breathPhase === 'retém'
+                  ? 'scale-110 bg-[#FFF18C]/15 border-[#FFF18C]'
+                  : 'scale-90 bg-transparent border-[#ADE4B5]/20'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="material-symbols-outlined text-[24px] text-[#D4A373]">
-                  {aperture.icon}
-                </span>
-                {isSelected && (
-                  <span className="w-2 h-2 rounded-full bg-[#D4A373] living-pulse" />
-                )}
-              </div>
+              <span className="material-symbols-outlined text-[28px] text-[#ADE4B5]">spa</span>
+              <span className="text-[11px] font-mono uppercase tracking-widest mt-1 font-bold">
+                {breathPhase === 'inspira'
+                  ? 'Inspire'
+                  : breathPhase === 'retém'
+                  ? 'Retenha'
+                  : 'Expire'}
+              </span>
+            </div>
+          </div>
 
-              <div>
-                <h3 className="text-[15px] font-serif font-bold text-text-primary">
-                  {aperture.title}
-                </h3>
-                <span className="text-[11px] font-mono text-[#D4A373] mt-1 block">
-                  {aperture.reference}
-                </span>
-              </div>
+          {/* Versículo Âncora da Oração */}
+          {focusedVerse && (
+            <div className="max-w-xl space-y-3 bg-[#FAFDF5]/5 border border-[#FAFDF5]/10 p-6 rounded-2xl backdrop-blur-sm">
+              <p className="text-xl sm:text-2xl font-serif italic leading-relaxed text-[#FAFDF5]">
+                &ldquo;{focusedVerse.text}&rdquo;
+              </p>
+              <span className="text-[11px] font-mono text-[#ADE4B5] tracking-widest uppercase block">
+                {passage.book} {passage.chapter}:{focusedVerse.number}
+              </span>
+            </div>
+          )}
 
-              <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted pt-2 border-t border-border/50">
-                {isSelected ? 'Presença Ativa' : 'Abrir Espaço'}
-              </div>
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setSilenceRunning(!silenceRunning)}
+              className="px-4 py-2 rounded-xl bg-[#FAFDF5]/10 hover:bg-[#FAFDF5]/20 text-[12px] font-mono transition-colors"
+            >
+              {silenceRunning ? 'Pausar Respiração' : 'Retomar Respiração'}
             </button>
-          );
-        })}
-      </section>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('leitura');
+                setSilenceRunning(false);
+                playFeedback('press');
+              }}
+              className="px-4 py-2 rounded-xl bg-[#ADE4B5] text-[#1C2420] text-[12px] font-mono font-bold transition-all shadow-subtle"
+            >
+              Retornar à Leitura
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* 3. A ESCRITURA PROTAGONISTA (MODOS LEITURA & MEMÓRIA) */}
+      {mode !== 'oracao' && (
+        <section aria-label="Texto Sagrado" className="flex flex-col gap-6">
+          <div className="space-y-6 sm:space-y-8 font-serif leading-relaxed text-[17px] sm:text-[19px]">
+            {passage.verses.map((verse) => {
+              const isFocused = focusedVerseNumber === verse.number;
+              const hasNote = !!userNotes[verse.number];
+
+              // Renderização do texto no Modo Memória (com lacunas)
+              const renderVerseContent = () => {
+                if (mode !== 'memoria') {
+                  return verse.text;
+                }
+
+                const words = verse.text.split(' ');
+                return words.map((w, wIdx) => {
+                  const clean = w.replace(/[,.;:?!]/g, '');
+                  const isKey = verse.keyWords.includes(clean);
+                  const wordKey = `${verse.number}-${clean}`;
+                  const isRevealed = revealedWords.has(wordKey);
+
+                  if (isKey) {
+                    if (isRevealed) {
+                      return (
+                        <button
+                          key={wIdx}
+                          type="button"
+                          onClick={() => toggleWordReveal(wordKey)}
+                          className="inline px-1 mx-0.5 rounded bg-[#ADE4B5]/40 text-text-primary font-sans font-semibold underline decoration-[#71DBD2] transition-colors"
+                          title="Clique para ocultar novamente"
+                        >
+                          {w}{' '}
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        key={wIdx}
+                        type="button"
+                        onClick={() => toggleWordReveal(wordKey)}
+                        className="inline-block px-2 py-0.5 mx-0.5 rounded-md bg-[#FAFDF5] border border-border/80 text-[13px] font-mono font-bold text-text-muted hover:border-[#71DBD2] hover:text-text-primary transition-all shadow-subtle"
+                        title="Clique para revelar a palavra"
+                      >
+                        [ ••• ]
+                      </button>
+                    );
+                  }
+                  return w + ' ';
+                });
+              };
+
+              return (
+                <div
+                  key={verse.number}
+                  className={`relative p-5 sm:p-7 rounded-2xl border transition-all duration-300 ${
+                    isFocused
+                      ? 'bg-[#FAFDF5] border-[#71DBD2]/60 shadow-calm ring-1 ring-[#71DBD2]/30'
+                      : 'bg-surface/60 border-border/40 opacity-75 hover:opacity-100 hover:bg-surface'
+                  }`}
+                >
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setFocusedVerseNumber(verse.number);
+                      playFeedback('press');
+                    }}
+                  >
+                    <span className="font-mono text-[12px] font-bold text-[#71DBD2] mr-3 select-none">
+                      {verse.number}
+                    </span>
+                    <span className="text-text-primary select-text">
+                      {renderVerseContent()}
+                    </span>
+                  </div>
+
+                  {/* CONTROLES E NOTAS QUANDO O VERSÍCULO ESTÁ EM FOCO */}
+                  {isFocused && (
+                    <div className="mt-5 pt-4 border-t border-border/50 font-sans text-[13px] flex flex-col gap-3 animate-in fade-in duration-200">
+                      {/* Modo Memória: Botões de Ajuda */}
+                      {mode === 'memoria' && (
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[11px] font-mono text-text-muted">
+                            Toque nas lacunas ou revele todas
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => revealAllVerseWords(verse.number)}
+                            className="px-3 py-1 rounded-lg bg-surface border border-border/70 hover:border-[#71DBD2] text-[11px] font-mono text-text-secondary hover:text-text-primary transition-colors"
+                          >
+                            Revelar Versículo
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Modo Leitura: Reflexão Contemplativa e Anotações */}
+                      {mode === 'leitura' && (
+                        <>
+                          <div className="flex items-start gap-2.5 text-text-secondary bg-surface-secondary/40 p-3 rounded-xl border border-border/50">
+                            <span className="material-symbols-outlined text-[17px] text-[#71DBD2] flex-shrink-0 mt-0.5">
+                              lightbulb
+                            </span>
+                            <p className="leading-snug">{verse.reflection}</p>
+                          </div>
+
+                          {/* Anotação Pessoal salva */}
+                          {hasNote && (
+                            <div className="p-3 rounded-xl bg-[#FAFDF5] border border-[#ADE4B5]/60 flex items-start justify-between gap-3">
+                              <div>
+                                <span className="text-[10px] font-mono uppercase text-green-800 font-bold block mb-0.5">
+                                  Minha Reflexão Guardada
+                                </span>
+                                <p className="text-[13px] text-text-primary leading-snug">
+                                  {userNotes[verse.number]}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingNoteVerse(verse.number);
+                                  setNoteDraft(userNotes[verse.number]);
+                                }}
+                                className="text-[11px] font-mono text-text-muted hover:text-text-primary"
+                              >
+                                Editar
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Formulário de Anotação */}
+                          {editingNoteVerse === verse.number ? (
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                value={noteDraft}
+                                onChange={(e) => setNoteDraft(e.target.value)}
+                                placeholder="Escreva uma breve reflexão ou oração sobre este trecho..."
+                                rows={2}
+                                className="w-full p-3 rounded-xl bg-surface border border-border/80 text-[13px] text-text-primary focus:outline-none focus:ring-1 focus:ring-[#71DBD2]"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingNoteVerse(null)}
+                                  className="px-3 py-1 text-[12px] text-text-muted hover:text-text-primary"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveNote(verse.number)}
+                                  className="px-3 py-1 rounded-lg bg-[#71DBD2] text-[#1C2420] text-[12px] font-semibold"
+                                >
+                                  Salvar Nota
+                                </button>
+                              </div>
+                            </div>
+                          ) : !hasNote ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingNoteVerse(verse.number);
+                                setNoteDraft('');
+                              }}
+                              className="self-start text-[11px] font-mono text-text-muted hover:text-text-primary flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">edit_note</span>
+                              <span>Anotar reflexão sobre este versículo</span>
+                            </button>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </main>
   );
 }
