@@ -22,7 +22,8 @@ import type { Task, TaskPriority } from '../../tasks/model/types';
 import type { RelationStore } from '../../../foundation/relations/graph';
 import type { EventContextCategory } from '../../../foundation/reminders/types';
 import type { ImportanceTier } from '../../../foundation/context/importance';
-import { normalize } from '../../../foundation/context/importance';
+import { classifyEvent, normalize } from '../../../foundation/context/importance';
+import { canonicalToAgendaItem } from '../../../foundation/events/canonical';
 import { PATTERNS } from './classify';
 
 export interface ExistingContext {
@@ -60,9 +61,10 @@ export function significantTokens(text: string): string[] {
     .split(/\s+/)
     .filter((t) => t.length >= 4 && !STOP.has(t));
 }
+/** Palavra em comum, inclusive uma dentro da outra ("consulta" ⊂ "teleconsulta"). */
 const overlaps = (a: string, b: string) => {
-  const tb = new Set(significantTokens(b));
-  return significantTokens(a).some((t) => tb.has(t));
+  const tb = significantTokens(b);
+  return significantTokens(a).some((t) => tb.some((u) => u === t || (t.length >= 5 && u.includes(t)) || (u.length >= 5 && t.includes(u))));
 };
 const minutesOf = (iso: string) => Number(iso.slice(11, 13)) * 60 + Number(iso.slice(14, 16));
 const cleanSubject = (s: string) => s.replace(/^\s*((re|res|fw|fwd|enc)\s*:\s*)+/i, '').trim();
@@ -100,7 +102,8 @@ function findExistingEvent(c: { title: string; start: string; category: EventCon
   return events.find((e) => {
     if (e.status === 'cancelled' || e.allDay || e.start.slice(0, 10) !== c.start.slice(0, 10)) return false;
     if (Math.abs(minutesOf(e.start) - minutesOf(c.start)) > 15) return false;
-    return overlaps(e.title, c.title) || e.category === c.category;
+    const category = e.category ?? classifyEvent(canonicalToAgendaItem(e)).category;
+    return overlaps(e.title, c.title) || category === c.category;
   });
 }
 
@@ -265,6 +268,14 @@ export function deriveCandidates(msg: EmailMessage, c: EmailClassification, x: E
     else if (ex) task = { ...task, status: 'linked_existing', matchedExisting: { kind: 'task', id: ex.id }, reasons: [...task.reasons, `parece a tarefa existente "${ex.title}"`] };
     out.push(task);
     if (task.status === 'proposed') act('criar_tarefa', 'SUGGEST_TASK_FROM_EMAIL', `Criar tarefa "${title}"`, task.id);
+    // o prazo é o mesmo trabalho: se a tarefa já existe, o prazo também já está coberto por ela
+    if (task.status === 'linked_existing' && deadlineCand) {
+      const linkedDeadline: DeadlineCandidate = { ...deadlineCand, status: 'linked_existing', matchedExisting: task.matchedExisting, reasons: [...deadlineCand.reasons, 'coberto pela tarefa já existente'] };
+      const i = out.findIndex((x) => x.id === deadlineCand!.id);
+      out[i] = linkedDeadline;
+      for (let j = out.length - 1; j >= 0; j--) if (out[j].kind === 'reminder' && (out[j] as ReminderIntentCandidate).targetCandidateId === deadlineCand.id) out.splice(j, 1);
+      for (let j = actions.length - 1; j >= 0; j--) if (actions[j].candidateId === deadlineCand.id) actions.splice(j, 1);
+    }
   }
 
   // pedido de resposta pode vir junto de outro pedido ("me envie… responda quando puder")
