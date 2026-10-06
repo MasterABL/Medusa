@@ -9,6 +9,7 @@ import { run as plannerRecs } from './planner-recs';
 import { run as todayIntegration } from './today-integration';
 import { run as academic } from './academic';
 import { run as persistence } from './persistence';
+import { run as eventsRelations } from './events-relations';
 
 type Result = { total: number; fails: number };
 const suites: Array<[string, () => Result | Promise<Result>]> = [
@@ -20,6 +21,7 @@ const suites: Array<[string, () => Result | Promise<Result>]> = [
   ['today-integration', todayIntegration],
   ['academic', academic],
   ['persistence', persistence],
+  ['events-relations', eventsRelations],
 ];
 
 (async () => {
