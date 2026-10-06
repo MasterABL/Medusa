@@ -44,7 +44,7 @@ export interface EventContext {
   leadTimeMinutes: number;
   /** Deslocamento ligado a este evento (minutos), quando a Agenda sabe. */
   travelMinutes?: number;
-  /** Ids (AgendaItem) que conflitam em horário com este evento. */
+  /** Ids que conflitam em horário: AgendaItem.id, ou id da entrada para rotina/deslocamento ("routine:trab"). */
   conflictsWith: string[];
   /** Este evento CEDE no conflito, pela política de prioridade da Agenda. */
   yieldsInConflict: boolean;
@@ -95,7 +95,8 @@ export function buildEventContexts(input: BuildEventContextInput): EventContext[
         importanceSource: c.source,
         leadTimeMinutes: lead[c.tier] + travel,
         travelMinutes: travel > 0 ? travel : undefined,
-        conflictsWith: mine.map((x) => (x.a.id === entry.id ? x.b : x.a).itemId).filter((id): id is string => !!id),
+        // item da Agenda → id do item; rotina/deslocamento (sem item) → id da entrada (ex.: "routine:trab")
+        conflictsWith: mine.map((x) => { const other = x.a.id === entry.id ? x.b : x.a; return other.itemId ?? other.id; }),
         yieldsInConflict: mine.some((x) => x.resolution.yieldId === entry.id),
         dependsOnEventIds: links.dependsOnEventIds ?? [],
         relatedProjectId: links.relatedProjectId,
