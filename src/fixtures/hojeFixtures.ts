@@ -10,4 +10,7 @@ export const hojeFixtureItems: HojeItem[] = [
   { id: 'h4', title: 'Caminhada / pausa ativa', category: 'saude', startMinutes: 13 * 60, durationMinutes: 30 },
   { id: 'h5', title: 'Sessão de revisão e correções', category: 'trabalho', startMinutes: 14 * 60, durationMinutes: 90 },
   { id: 'h6', title: 'Encerramento e descanso', category: 'descanso', startMinutes: 19 * 60, durationMinutes: 60 },
+  { id: 'h7', title: 'Revisão e Encerramento Diário', category: 'pessoal', startMinutes: 20 * 60 + 30, durationMinutes: 60 },
+  { id: 'h8', title: 'Descompressão & Leitura Noturna', category: 'descanso', startMinutes: 21 * 60 + 30, durationMinutes: 60 },
+  { id: 'h9', title: 'Planejamento do Amanhã', category: 'pessoal', startMinutes: 22 * 60 + 30, durationMinutes: 45 },
 ];

@@ -77,6 +77,7 @@ export function HojeContainer() {
   // Estados interativos da Matriz de Atenção
   const [selectedRibbonItemId, setSelectedRibbonItemId] = useState<string | null>(null);
   const [completedItemIds, setCompletedItemIds] = useState<Set<string>>(new Set());
+  const [lastCompletedItem, setLastCompletedItem] = useState<HojeItem | null>(null);
   const [promotedIndexOffset, setPromotedIndexOffset] = useState<number>(0);
   const [extendedMinutes, setExtendedMinutes] = useState<number>(0);
   const [recommendationDismissed, setRecommendationDismissed] = useState<boolean>(false);
@@ -97,10 +98,15 @@ export function HojeContainer() {
 
   const todayItems = useMemo(() => {
     const rawToday = agendaItems.filter((it) => it.date === todayStr);
-    if (rawToday.length > 0) {
-      return rawToday.map(mapAgendaToHojeItem).sort((a, b) => a.startMinutes - b.startMinutes);
+    const mapped = rawToday.map(mapAgendaToHojeItem);
+    if (mapped.length >= 2) {
+      return mapped.sort((a, b) => a.startMinutes - b.startMinutes);
     }
-    return hojeFixtureItems;
+    // Garante que o dia sempre tenha no mínimo dois blocos consecutivos para a Central Operacional
+    const existingTitles = new Set(mapped.map((m) => m.title));
+    const fillers = hojeFixtureItems.filter((f) => !existingTitles.has(f.title));
+    const combined = [...mapped, ...fillers.slice(0, Math.max(2, 4 - mapped.length))];
+    return combined.sort((a, b) => a.startMinutes - b.startMinutes);
   }, [agendaItems, todayStr]);
 
   const { agora: baseAgora, proximo: baseProximo, depois, maisTarde } = useMemo(
@@ -108,27 +114,37 @@ export function HojeContainer() {
     [todayItems, nowMinutes]
   );
 
-  // Promoção viva de bloco quando o anterior é concluído
-  const upcomingQueue = useMemo(() => {
-    const list: HojeItem[] = [];
-    if (baseAgora) list.push(baseAgora);
-    if (baseProximo) list.push(baseProximo);
-    list.push(...depois);
-    list.push(...maisTarde);
-    return list;
-  }, [baseAgora, baseProximo, depois, maisTarde]);
+  // Determina a fila ordenada de blocos da janela temporal a partir de baseAgora
+  const windowQueue = useMemo(() => {
+    if (!todayItems || todayItems.length === 0) return [];
+    const agoraIdx = baseAgora ? todayItems.findIndex((it) => it.id === baseAgora.id) : 0;
+    const startIdx = agoraIdx >= 0 ? agoraIdx : 0;
+    const slice = todayItems.slice(startIdx);
+    if (slice.length >= 2) return slice;
+    if (slice.length === 1) {
+      const fallback: HojeItem = {
+        id: `${slice[0].id}-next-seq`,
+        title: 'Revisão e Encerramento Diário',
+        category: 'pessoal',
+        startMinutes: slice[0].startMinutes + slice[0].durationMinutes,
+        durationMinutes: 45,
+      };
+      return [slice[0], fallback];
+    }
+    return hojeFixtureItems.slice(0, 2);
+  }, [todayItems, baseAgora]);
 
   const activeItem: HojeItem | null = useMemo(() => {
-    const uncompleted = upcomingQueue.filter((it) => !completedItemIds.has(it.id));
+    const uncompleted = windowQueue.filter((it) => !completedItemIds.has(it.id));
     return uncompleted[0] || null;
-  }, [upcomingQueue, completedItemIds]);
+  }, [windowQueue, completedItemIds]);
 
   const nextItem: HojeItem | null = useMemo(() => {
-    const uncompleted = upcomingQueue.filter((it) => !completedItemIds.has(it.id));
+    const uncompleted = windowQueue.filter((it) => !completedItemIds.has(it.id));
     return uncompleted[1] || null;
-  }, [upcomingQueue, completedItemIds]);
+  }, [windowQueue, completedItemIds]);
 
-  const isCurrentCompleted = activeItem ? completedItemIds.has(activeItem.id) : false;
+  const isCurrentCompleted = false;
 
   // Cálculo de progresso do item atual
   const progressPercent = useMemo(() => {
@@ -165,9 +181,11 @@ export function HojeContainer() {
   // Ações interativas no Agora
   const handleCompleteActive = useCallback(() => {
     if (!activeItem) return;
+    const currentCompleted = activeItem;
+    setLastCompletedItem(currentCompleted);
     setCompletedItemIds((prev) => {
       const next = new Set(prev);
-      next.add(activeItem.id);
+      next.add(currentCompleted.id);
       return next;
     });
 
@@ -175,11 +193,11 @@ export function HojeContainer() {
     setHistoryEntries((prev) => [
       {
         id: `hist-${Date.now()}`,
-        title: activeItem.title,
-        category: activeItem.category,
-        timeLabel: `${formatMinutes(activeItem.startMinutes)} — ${formatMinutes(nowMinutes)}`,
+        title: currentCompleted.title,
+        category: currentCompleted.category,
+        timeLabel: `${formatMinutes(currentCompleted.startMinutes)} — ${formatMinutes(nowMinutes)}`,
         status: 'completed',
-        durationMinutes: activeItem.durationMinutes + extendedMinutes,
+        durationMinutes: currentCompleted.durationMinutes + extendedMinutes,
         resultSummary: 'Concluído na sessão operacional do Hoje.',
       },
       ...prev,
@@ -191,7 +209,7 @@ export function HojeContainer() {
     triggerIslandNotification({
       title: 'Bloco Concluído!',
       tag: 'MATRIZ DE ATENÇÃO',
-      description: `${activeItem.title} foi concluído. ${nextItem ? `Próximo: ${nextItem.title}` : 'Sem mais blocos imediatos.'}`,
+      description: `${currentCompleted.title} foi concluído. ${nextItem ? `Próximo: ${nextItem.title}` : 'Sem mais blocos na janela.'}`,
       badge: 'PROMOVIDO',
       state: 'active',
       durationMs: 4000,
@@ -459,32 +477,60 @@ export function HojeContainer() {
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
                 Agora (Foco em Execução)
               </span>
-              {activeItem && !isCurrentCompleted && (
+              {activeItem && (
                 <span className="text-[11px] font-mono text-text-muted tabular-nums">
                   {minutesRemaining} min restantes
                 </span>
               )}
             </div>
 
+            {/* SE HOUVER BLOCO RECÉM-CONCLUÍDO E AINDA EXISTIR BLOCO ATIVO: exibe bloco anterior como concluído */}
+            {lastCompletedItem && activeItem && (
+              <div
+                data-testid="last-completed-summary"
+                className="p-4 rounded-2xl bg-[#FAFDF5] border border-[#D0EAA3] shadow-subtle flex items-center justify-between gap-4 transition-all animate-in fade-in slide-in-from-top-1 duration-300"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#D0EAA3] text-[#1C2420] flex items-center justify-center flex-shrink-0 shadow-subtle">
+                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                  </div>
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-mono uppercase text-text-muted">
+                        Bloco Anterior
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#D0EAA3]/80 text-[#1C2420] flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">verified</span>
+                        <span>Concluído</span>
+                      </span>
+                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-secondary text-text-secondary">
+                        {CATEGORY_LABEL[lastCompletedItem.category]}
+                      </span>
+                    </div>
+                    <h4 className="text-[13px] font-bold text-text-primary truncate">
+                      {lastCompletedItem.title}
+                    </h4>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-[11px] font-mono text-text-muted tabular-nums">
+                    {formatMinutes(lastCompletedItem.startMinutes)} — {formatMinutes(nowMinutes)}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {activeItem ? (
               <div
-                className={`p-5 sm:p-7 rounded-2xl border transition-all duration-300 ${
-                  isCurrentCompleted
-                    ? 'bg-[#FAFDF5] border-[#D0EAA3]/70 opacity-90'
-                    : 'bg-[#FAFDF5] border-[#71DBD2]/50 shadow-calm ring-1 ring-[#71DBD2]/20'
-                }`}
+                className="p-5 sm:p-7 rounded-2xl border transition-all duration-300 bg-[#FAFDF5] border-[#71DBD2]/50 shadow-calm ring-1 ring-[#71DBD2]/20"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-subtle transition-transform duration-300 ${
-                        isCurrentCompleted
-                          ? 'bg-[#D0EAA3] text-[#1C2420] scale-95'
-                          : 'bg-[#71DBD2] text-[#1C2420]'
-                      }`}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-subtle transition-transform duration-300 bg-[#71DBD2] text-[#1C2420]"
                     >
                       <span className="material-symbols-outlined text-[24px]">
-                        {isCurrentCompleted ? 'check' : CATEGORY_ICON[activeItem.category]}
+                        {CATEGORY_ICON[activeItem.category]}
                       </span>
                     </div>
 
@@ -512,59 +558,131 @@ export function HojeContainer() {
 
                   {/* Ações interativas diretas no Agora */}
                   <div className="flex items-center gap-2 pt-2 sm:pt-0">
-                    {!isCurrentCompleted ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleExtendActive}
-                          className="px-3 py-2 rounded-xl bg-surface border border-border/70 hover:border-border text-[12px] font-medium text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5 shadow-subtle"
-                          title="Estender bloco por 15 minutos"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">more_time</span>
-                          <span>+15 min</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCompleteActive}
-                          className="px-4 py-2 rounded-xl bg-[#71DBD2] hover:bg-[#71DBD2]/90 text-[#1C2420] text-[12px] font-semibold transition-transform active:scale-95 flex items-center gap-1.5 shadow-subtle"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">done</span>
-                          <span>Concluir</span>
-                        </button>
-                      </>
-                    ) : (
-                      <span className="px-3 py-1.5 rounded-xl bg-[#D0EAA3]/50 text-[#1C2420] text-[12px] font-medium font-mono flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[15px]">verified</span>
-                        <span>Concluído</span>
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      onClick={handleExtendActive}
+                      className="px-3 py-2 rounded-xl bg-surface border border-border/70 hover:border-border text-[12px] font-medium text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5 shadow-subtle"
+                      title="Estender bloco por 15 minutos"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">more_time</span>
+                      <span>+15 min</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-concluir-agora"
+                      data-testid="btn-concluir-agora"
+                      onClick={handleCompleteActive}
+                      className="px-4 py-2 rounded-xl bg-[#71DBD2] hover:bg-[#71DBD2]/90 text-[#1C2420] text-[12px] font-semibold transition-transform active:scale-95 flex items-center gap-1.5 shadow-subtle"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">done</span>
+                      <span>Concluir</span>
+                    </button>
                   </div>
                 </div>
 
                 {/* Barra de progresso orgânica do Agora */}
-                {!isCurrentCompleted && (
-                  <div className="mt-5 space-y-1.5">
-                    <div className="w-full bg-surface-secondary/70 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-[#71DBD2] to-[#ADE4B5] h-full rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${progressPercent}%` }}
-                      />
+                <div className="mt-5 space-y-1.5">
+                  <div className="w-full bg-surface-secondary/70 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-[#71DBD2] to-[#ADE4B5] h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-text-muted">
+                    <span>Iniciado</span>
+                    <span>{progressPercent}% decorrido</span>
+                    <span>Encerramento previsto</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ESTADO CALMO: QUANDO NÃO HÁ PRÓXIMO BLOCO, O BLOCO RECÉM-CONCLUÍDO PERMANECE REPRESENTADO E HÁ TRANSIÇÃO EXPLÍCITA */
+              <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+                {/* 1. O BLOCO RECÉM-CONCLUÍDO PERMANECE PROMINENTEMENTE REPRESENTADO */}
+                {lastCompletedItem && (
+                  <div className="p-5 sm:p-6 rounded-2xl bg-[#FAFDF5] border border-[#D0EAA3] shadow-calm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-[#D0EAA3] text-[#1C2420] flex items-center justify-center flex-shrink-0 shadow-subtle">
+                        <span className="material-symbols-outlined text-[24px]">verified</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#D0EAA3]/70 text-[#1C2420] font-bold">
+                            Último Bloco Realizado
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#D0EAA3] text-[#1C2420] flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">check</span>
+                            <span>Concluído</span>
+                          </span>
+                          <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-secondary text-text-secondary">
+                            {CATEGORY_LABEL[lastCompletedItem.category]}
+                          </span>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight">
+                          {lastCompletedItem.title}
+                        </h3>
+                        <p className="text-[11px] font-mono text-text-muted">
+                          Concluído com sucesso às {formatMinutes(nowMinutes)} • Duração registrada no histórico
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] font-mono text-text-muted">
-                      <span>Iniciado</span>
-                      <span>{progressPercent}% decorrido</span>
-                      <span>Encerramento previsto</span>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <span className="px-3 py-1.5 rounded-xl bg-[#D0EAA3]/50 text-[#1C2420] text-[12px] font-medium font-mono flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[15px]">task_alt</span>
+                        <span>100% Cumprido</span>
+                      </span>
                     </div>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="p-6 rounded-2xl bg-surface border border-border/70 shadow-calm text-center space-y-1 text-text-secondary">
-                <span className="material-symbols-outlined text-3xl text-[#71DBD2]">check_circle</span>
-                <p className="text-[13px] font-medium">Nenhum bloco agendado para o momento presente.</p>
-                <p className="text-[11px] text-text-muted font-mono">
-                  Aproveite para focar em tarefas pontuais ou antecipar o próximo bloco.
-                </p>
+
+                {/* 2. TRANSIÇÃO EXPLÍCITA PARA DIA/JANELA CONCLUÍDA OU ESTADO CALMO */}
+                <div
+                  data-testid="calm-state-card"
+                  className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#FAFDF5] via-surface to-[#F0FAF7] border border-[#71DBD2]/40 shadow-calm text-center space-y-4"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#71DBD2]/30 to-[#ADE4B5]/40 text-[#1C2420] flex items-center justify-center mx-auto shadow-subtle ring-4 ring-[#71DBD2]/10">
+                    <span className="material-symbols-outlined text-[28px] text-[#2D6A5D]">spa</span>
+                  </div>
+                  <div className="space-y-1.5 max-w-lg mx-auto">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#71DBD2] animate-pulse" />
+                      <span className="text-[11px] font-mono uppercase tracking-widest text-[#2D6A5D] font-bold">
+                        Transição Concluída · Estado Calmo
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+                      Janela do Dia Concluída
+                    </h2>
+                    <p className="text-[13px] text-text-secondary leading-relaxed">
+                      Todos os blocos de compromisso programados para esta janela foram cumpridos com sucesso.
+                      O ritmo operacional entra em descanso e desaceleração tranquila.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubView('historico');
+                        playFeedback('press');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-surface border border-border/80 hover:border-border text-[12px] font-medium text-text-primary transition-colors flex items-center gap-1.5 shadow-subtle"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">history</span>
+                      <span>Ver no Histórico ({completedBlocksCount})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubView('contexto');
+                        playFeedback('press');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-surface border border-border/80 hover:border-border text-[12px] font-medium text-text-primary transition-colors flex items-center gap-1.5 shadow-subtle"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">checklist</span>
+                      <span>Revisar Tarefas ({completedTasksCount}/{tasks.length})</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </section>

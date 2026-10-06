@@ -337,6 +337,79 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-01T08:00:00Z',
     },
 
+    // 9b. Execução Focada Noturna (Terça-feira 19:30–21:00)
+    {
+      id: 'item-foco-ter',
+      title: 'Execução Focada — Engenharia de Software',
+      kind: 'time_block',
+      domain: 'work',
+      categoryId: 'cat-trabalho',
+      colorId: 'azul_nevoa',
+      date: dayTer,
+      startTime: '19:30',
+      endTime: '21:00',
+      durationMinutes: 90,
+      allDay: false,
+      isFlexible: false,
+      description: 'Implementação de contratos e transições de estado do Temporal OS.',
+      location: 'Ambiente de Desenvolvimento',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+
+    // 9c. Revisão e Encerramento Diário (Terça-feira 21:00–22:00)
+    {
+      id: 'item-fechamento-ter',
+      title: 'Revisão e Encerramento Diário',
+      kind: 'time_block',
+      domain: 'personal',
+      categoryId: 'cat-pessoal',
+      colorId: 'pessego',
+      date: dayTer,
+      startTime: '21:00',
+      endTime: '22:00',
+      durationMinutes: 60,
+      allDay: false,
+      isFlexible: true,
+      description: 'Checagem de entregas, reconciliação de notas e fechamento operacional.',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+
+    // 9d. Descompressão & Leitura Noturna (Terça-feira 22:00–23:00)
+    {
+      id: 'item-descanso-ter',
+      title: 'Descompressão & Leitura Noturna',
+      kind: 'time_block',
+      domain: 'personal',
+      categoryId: 'cat-pessoal',
+      colorId: 'pessego',
+      date: dayTer,
+      startTime: '22:00',
+      endTime: '23:00',
+      durationMinutes: 60,
+      allDay: false,
+      isFlexible: true,
+      description: 'Transição suave para o descanso.',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Entrada Manual',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-01T08:00:00Z',
+      updatedAt: '2026-09-01T08:00:00Z',
+    },
+
     // 10. Compromisso
     {
       id: 'item-leitura-sintese',

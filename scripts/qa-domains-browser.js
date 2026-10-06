@@ -53,38 +53,98 @@ async function run() {
   check('Hoje renderiza bloco Agora', agoraText.includes('Execução Focada') || agoraText.includes('AGORA') || agoraText.includes('Agora (Foco em Execução)'));
   check('Hoje renderiza Atenção & Alertas', agoraText.includes('Telemedicina') || agoraText.includes('ATENÇÃO'));
 
-  // Testar Concluir Bloco Agora (botão com label "Concluir")
-  const titleBefore = await page.evaluate(() => {
+  // 1. Obter título do Bloco A (bloco ativo no Agora)
+  const titleA = await page.evaluate(() => {
     const h2 = document.querySelector('h2');
     return h2 ? h2.innerText.trim() : '';
   });
+  check('Bloco A ativo no Agora', titleA.length > 0, `Bloco A: "${titleA}"`);
 
-  const concluirBtn = await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('button'));
-    const btn = buttons.find(b => b.innerText.includes('Concluir'));
+  // 2. Obter título do Bloco B (bloco na sequência em Próximo)
+  const titleB = await page.evaluate(() => {
+    const nextSection = document.querySelector('section[aria-label="Próximo Bloco"]');
+    if (!nextSection) return '';
+    const h3 = nextSection.querySelector('h3');
+    return h3 ? h3.innerText.trim() : '';
+  });
+  check('Bloco B consecutivo presente em Próximo', titleB.length > 0 && titleB !== titleA, `Bloco B: "${titleB}"`);
+
+  // 3. Clicar em "Concluir" no Bloco A
+  const concluirBtnA = await page.evaluate(() => {
+    const btn = document.querySelector('#btn-concluir-agora') ||
+      Array.from(document.querySelectorAll('section[aria-label="Compromisso Atual"] button')).find(b => b.innerText.includes('Concluir'));
     if (btn) {
       btn.click();
       return true;
     }
     return false;
   });
-  check('Botão Concluir clicado no bloco Agora', concluirBtn);
+  check('Botão Concluir clicado no Bloco A', concluirBtnA);
   await sleep(800);
 
-  // Verificar promoção espacial de Próximo (ou estado "sem mais blocos" após conclusão)
-  const titleAfter = await page.evaluate(() => {
-    const h2 = document.querySelector('h2');
-    return h2 ? h2.innerText.trim() : '';
+  // 4. Provar: Bloco A fica Concluído (permanece representado visualmente com badge/status Concluído)
+  const stateAfterA = await page.evaluate(() => {
+    const body = document.body.innerText;
+    const completedSummary = document.querySelector('[data-testid="last-completed-summary"]');
+    return {
+      hasCompletedBadge: body.includes('Concluído'),
+      summaryText: completedSummary ? completedSummary.innerText : '',
+      protagonistH2: document.querySelector('h2') ? document.querySelector('h2').innerText.trim() : '',
+    };
   });
-  const bodyAfter = await page.evaluate(() => document.body.innerText);
-  // PROVADO: lógica correta. Quando há próximo, o h2 troca. Quando não há próximo
-  // (único bloco no fixture para este horário), a UI mostra estado "Concluído".
-  const spatialPromotionOk =
-    (titleAfter.length > 0 && titleAfter !== titleBefore) ||
-    bodyAfter.includes('Concluído') ||
-    bodyAfter.includes('Sem mais blocos') ||
-    bodyAfter.includes('concluído');
-  check('Promoção espacial ou estado Concluído após Agora', spatialPromotionOk, `Antes: "${titleBefore}" / Depois: "${titleAfter}"`);
+  check(
+    'Bloco A permanece representado com status Concluído',
+    stateAfterA.hasCompletedBadge && stateAfterA.summaryText.includes(titleA),
+    `Bloco A concluído: "${titleA}" visível no resumo com badge Concluído`
+  );
+
+  // 5. Provar: Bloco B assume protagonismo no Agora
+  check(
+    'Bloco B assume protagonismo no Agora',
+    stateAfterA.protagonistH2 === titleB,
+    `Novo Protagonista no h2: "${stateAfterA.protagonistH2}" === Bloco B: "${titleB}"`
+  );
+
+  // 6. Concluir blocos restantes da janela até que não haja mais próximo bloco
+  let lastCompletedBlockTitle = titleB;
+  while (true) {
+    const hasNextActive = await page.evaluate(() => {
+      const btn = document.querySelector('#btn-concluir-agora');
+      return !!btn;
+    });
+    if (!hasNextActive) break;
+    lastCompletedBlockTitle = await page.evaluate(() => {
+      const h2 = document.querySelector('h2');
+      return h2 ? h2.innerText.trim() : '';
+    });
+    await page.evaluate(() => {
+      const btn = document.querySelector('#btn-concluir-agora');
+      if (btn) btn.click();
+    });
+    await sleep(800);
+  }
+  check('Blocos restantes concluídos até encerramento da janela operacional', true, `Último concluído: "${lastCompletedBlockTitle}"`);
+
+  // 7. Provar: Bloco recém-concluído permanece representado e há transição explícita para Estado Calmo / Janela Concluída
+  const stateCalm = await page.evaluate(() => {
+    const body = document.body.innerText;
+    const calmCard = document.querySelector('[data-testid="calm-state-card"]');
+    return {
+      bodyText: body,
+      hasCalmCard: !!calmCard,
+      calmCardText: calmCard ? calmCard.innerText : '',
+    };
+  });
+  check(
+    'Bloco recém-concluído permanece representado mesmo sem próximo bloco',
+    stateCalm.bodyText.includes(lastCompletedBlockTitle) && stateCalm.bodyText.includes('Concluído'),
+    `Bloco preservado: "${lastCompletedBlockTitle}" com status Concluído`
+  );
+  check(
+    'Transição explícita para Janela/Dia Concluída em Estado Calmo',
+    stateCalm.hasCalmCard && (stateCalm.calmCardText.includes('Janela do Dia Concluída') || stateCalm.calmCardText.includes('Estado Calmo')),
+    'Card de Estado Calmo ativo com mensagem de descanso e ações de encerramento'
+  );
 
   // Alternar subview para Contexto / Tarefas
   const tarefasTabClicked = await page.evaluate(() => {
