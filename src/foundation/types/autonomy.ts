@@ -34,6 +34,14 @@ export interface AutonomyPolicyRule {
   /** Nível mínimo de confiança exigido para operar em L2 sem aprovação extra. */
   minTrustForL2?: number;
   notes?: string;
+  /**
+   * Ação puramente INFORMATIVA ao próprio usuário (ex.: lembrete): não muda nada
+   * no mundo, é reversível e de baixo risco. Só vale com baseRisk 'baixo',
+   * reversible true e teto L1 — fora disso é ignorado. Permite L1 sem histórico
+   * de confiança, mas continua passando pelo Guardian e pela auditoria, e cai
+   * para L2 se a confiança observada virar 'requer_atencao'.
+   */
+  informationalOnly?: { reason: string };
 }
 
 /**

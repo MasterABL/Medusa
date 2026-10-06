@@ -74,6 +74,11 @@ export const agendaDomain: DomainDefinition = {
     'MOVE_STUDY_BLOCK_WITHIN_WINDOW',
     'RESCHEDULE_IMPORTANT_EVENT',
     'CANCEL_EVENT',
+    // Personal OS Core: lembrete proativo (L1 informativo), sugestão de bloco (L2) e
+    // aplicação de um plano sugerido pelo planner (L2) — todos via Guardian.
+    'CREATE_REMINDER',
+    'SUGGEST_FOCUS_BLOCK',
+    'APPLY_SUGGESTED_SCHEDULE',
   ],
   motionIdentityId: 'motion-agenda',
   soundProfileId: 'sound-agenda',

@@ -37,6 +37,31 @@ const DOMAINS = [hojeDomain, agendaDomain, educationDomain, guardianDomain, fina
 const DEFAULT_AUTONOMY_RULES: AutonomyPolicyRule[] = [
   {
     domain: 'agenda',
+    actionType: 'CREATE_REMINDER',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    informationalOnly: { reason: 'lembrar um compromisso não altera nada no mundo e pode ser dispensado.' },
+    notes: 'Lembrete proativo (T-30/T-15/T-5/horário exato). Personal OS Core.',
+  },
+  {
+    domain: 'agenda',
+    actionType: 'SUGGEST_FOCUS_BLOCK',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L2',
+    notes: 'Sugerir um bloco de foco (ex.: 45 min para o projeto) — o usuário decide.',
+  },
+  {
+    domain: 'agenda',
+    actionType: 'APPLY_SUGGESTED_SCHEDULE',
+    baseRisk: 'moderado',
+    reversible: true,
+    ceilingLevel: 'L2',
+    notes: 'Gravar na Agenda um plano montado pelo planner — sempre com confirmação.',
+  },
+  {
+    domain: 'agenda',
     actionType: 'MOVE_STUDY_BLOCK_WITHIN_WINDOW',
     baseRisk: 'baixo',
     reversible: true,

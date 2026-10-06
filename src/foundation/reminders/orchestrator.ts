@@ -28,6 +28,8 @@ import {
 export class ReminderOrchestrator {
   private adapters: Map<string, NotificationAdapter> = new Map();
   private cooldowns: Map<string, number> = new Map(); // `${eventId}_T${offset}` -> timestamp ms
+  private fired: Set<string> = new Set();
+  private intentEvents: Map<string, string> = new Map();
   private deliveryHistory: ReminderDelivery[] = [];
   private acknowledgements: Map<string, ReminderAcknowledgement> = new Map();
   private activeIslandReminder: ReminderIntent | null = null;
@@ -91,6 +93,14 @@ export class ReminderOrchestrator {
           continue;
         }
 
+        // Cada gatilho (evento, data, horário, T-x) dispara UMA vez. Só o cooldown não bastava:
+        // a janela do T-5 dura ~2,5 min e o cooldown de alta importância é 2 min, então o mesmo
+        // lembrete podia sair duas vezes. Mudar o horário do evento gera chave nova (reagendamento).
+        const firedKey = `${intent.eventId}|${intent.eventDate}|${intent.eventStartTime}|T${intent.triggerOffsetMinutes}`;
+        if (this.fired.has(firedKey)) continue;
+        this.fired.add(firedKey);
+        this.intentEvents.set(intent.id, intent.eventId);
+
         // Registrar timestamp do disparo
         this.cooldowns.set(cooldownKey, now.getTime());
 
@@ -112,7 +122,8 @@ export class ReminderOrchestrator {
   acknowledge(intentId: string, action: AcknowledgementAction, snoozeMinutes?: number): ReminderAcknowledgement {
     const ack: ReminderAcknowledgement = {
       intentId,
-      eventId: intentId.split('_')[1] || '',
+      // ids de evento podem conter "_" — procurar o intent registrado em vez de fatiar a string
+      eventId: this.intentEvents.get(intentId) ?? (this.activeIslandReminder?.id === intentId ? this.activeIslandReminder.eventId : ''),
       action,
       timestamp: new Date().toISOString(),
       snoozeMinutes,
@@ -133,6 +144,7 @@ export class ReminderOrchestrator {
   clearHistory() {
     this.deliveryHistory = [];
     this.cooldowns.clear();
+    this.fired.clear();
     this.acknowledgements.clear();
     this.activeIslandReminder = null;
   }
