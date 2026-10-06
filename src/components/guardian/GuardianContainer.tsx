@@ -1,348 +1,306 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { GUARDIAN_DATA, TopologyNode, SecuritySignal, IncidentEvidence } from './guardianFixtures';
+import React, { useState, useMemo, useCallback } from 'react';
+import { GUARDIAN_CASES, DecisionChainCase, DecisionStepId } from './guardianFixtures';
+import { useShell } from '@/context/ShellContext';
+import { playFeedback } from '@/lib/audioFeedback';
 
 export function GuardianContainer() {
-  const [data] = useState(GUARDIAN_DATA);
-  const [selectedNodeId, setSelectedNodeId] = useState<string>('node-vault');
-  const [activeTab, setActiveTab] = useState<'investigacao' | 'sinais' | 'integridade'>('investigacao');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('telemedicina-t5');
+  const [activeStepId, setActiveStepId] = useState<DecisionStepId>('evento');
+  const [isSimulatingFlow, setIsSimulatingFlow] = useState<boolean>(false);
+  const [approvedCases, setApprovedCases] = useState<Set<string>>(new Set());
 
-  const selectedNode = useMemo(() => {
-    return data.nodes.find((n) => n.id === selectedNodeId) || data.nodes[0];
-  }, [data.nodes, selectedNodeId]);
+  const { triggerIslandNotification } = useShell();
+
+  const currentCase: DecisionChainCase = useMemo(() => {
+    return GUARDIAN_CASES.find((c) => c.id === selectedCaseId) || GUARDIAN_CASES[0];
+  }, [selectedCaseId]);
+
+  const activeStep = useMemo(() => {
+    return currentCase.steps.find((s) => s.id === activeStepId) || currentCase.steps[0];
+  }, [currentCase, activeStepId]);
+
+  const isCaseApproved = approvedCases.has(currentCase.id) || currentCase.status === 'concluido';
+
+  // Simular animação do evento percorrendo a cadeia
+  const handleSimulateFlow = useCallback(() => {
+    if (isSimulatingFlow) return;
+    setIsSimulatingFlow(true);
+    playFeedback('action');
+
+    const steps: DecisionStepId[] = ['evento', 'contexto', 'decisao', 'acao', 'resultado'];
+    let index = 0;
+
+    const interval = setInterval(() => {
+      index++;
+      if (index < steps.length) {
+        setActiveStepId(steps[index]);
+        playFeedback('press');
+      } else {
+        clearInterval(interval);
+        setIsSimulatingFlow(false);
+        playFeedback('success');
+      }
+    }, 600);
+  }, [isSimulatingFlow]);
+
+  const handleApproveAction = useCallback(() => {
+    if (!currentCase.actionPrompt) return;
+    setApprovedCases((prev) => {
+      const next = new Set(prev);
+      next.add(currentCase.id);
+      return next;
+    });
+    playFeedback('success');
+    triggerIslandNotification({
+      title: 'Ação Aprovada',
+      tag: 'GUARDIAN DECISION',
+      description: currentCase.actionPrompt.successMessage,
+      badge: 'L2 CONFIRMADO',
+      state: 'active',
+      durationMs: 4000,
+    });
+  }, [currentCase, triggerIslandNotification]);
 
   return (
-    <main className="w-full pb-20 px-4 sm:px-8 max-w-6xl mx-auto flex flex-col gap-8 pt-6 flex-1">
-      {/* ================= 1. CABEÇALHO OPERACIONAL: VIGILÂNCIA SILENCIOSA ================= */}
-      <section aria-label="Estado Operacional da Sentinela" className="flex flex-col gap-4 border-b border-border/60 pb-5">
-        <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#18534B] dark:bg-[#71DBD2] living-pulse" />
-              <span className="text-[10px] font-mono font-medium tracking-widest uppercase text-text-muted">
-                Guardian · Console Topológico &amp; Observação Ativa
-              </span>
-              <span className="text-text-muted/40">•</span>
-              <span className="text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2]">
-                {data.telemetry.sentinelStatus}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-              Observação Topológica &amp; Análise de Sinais
-            </h1>
-          </div>
-
-          {/* Telemetria de Rede e Sentinela */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="bg-surface border border-border/70 rounded-xl px-3 py-1.5 flex flex-col">
-              <span className="text-[9px] font-mono uppercase text-text-muted">Índice Geral</span>
-              <span className="text-[15px] font-bold font-mono tabular-nums text-[#18534B] dark:text-[#71DBD2]">
-                {data.telemetry.systemHealthScore}/100
-              </span>
-            </div>
-            <div className="bg-surface border border-border/70 rounded-xl px-3 py-1.5 flex flex-col">
-              <span className="text-[9px] font-mono uppercase text-text-muted">Taxa de Inspeção</span>
-              <span className="text-[15px] font-bold font-mono tabular-nums text-text-primary">
-                {data.telemetry.packetInspectionRate}
-              </span>
-            </div>
-            <div className="bg-surface border border-border/70 rounded-xl px-3 py-1.5 flex flex-col">
-              <span className="text-[9px] font-mono uppercase text-text-muted">Latência Média</span>
-              <span className="text-[15px] font-bold font-mono tabular-nums text-text-primary">
-                {data.telemetry.averageLatencyMs} ms
-              </span>
-            </div>
-            <div className="bg-surface border border-border/70 rounded-xl px-3 py-1.5 flex flex-col">
-              <span className="text-[9px] font-mono uppercase text-text-muted">Nós Monitorados</span>
-              <span className="text-[15px] font-bold font-mono tabular-nums text-text-primary">
-                {data.telemetry.monitoredEntities} Ativos
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= 2. TOPOLOGIA RELACIONAL COM VETORES E INSPETOR ================= */}
-      <section aria-label="Topologia de Nodos" className="bg-surface rounded-2xl p-6 sm:p-7 border border-border/70 shadow-calm flex flex-col gap-6">
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+    <main
+      className="w-full pb-20 px-4 sm:px-8 max-w-5xl mx-auto flex flex-col gap-8 pt-6 flex-1 study-stage-enter"
+      aria-label="Guardian · Cadeia de Decisão Causal"
+    >
+      {/* 1. CABEÇALHO LIMPO E SELETOR DE CASOS */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/60 pb-5">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-[#18534B] dark:text-[#71DBD2]">
-              device_hub
+            <span className="w-2 h-2 rounded-full bg-[#71DBD2] animate-pulse" aria-hidden="true" />
+            <span className="text-[11px] font-mono tracking-wider uppercase text-text-muted">
+              Guardian · Autonomia &amp; Proteção
             </span>
-            <h2 className="text-[11px] font-mono uppercase tracking-widest text-text-muted">
-              Topologia Relacional e Tráfego Criptográfico (6 Nodos)
-            </h2>
+            <span className="text-text-muted/40">•</span>
+            <span className="text-[11px] font-mono text-text-secondary">
+              Cadeia de Decisão Causal
+            </span>
           </div>
-          <span className="text-[10px] font-mono text-text-muted uppercase">
-            {data.telemetry.lastAuditTime}
-          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
+            {currentCase.title}
+          </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-center">
-          {/* Canvas SVG da Topologia */}
-          <div className="bg-surface-elevated border border-border/70 rounded-xl p-4 flex flex-col items-center justify-center relative min-h-[340px] overflow-hidden">
-            <svg viewBox="0 0 520 340" className="w-full h-full max-h-[340px] overflow-visible">
-              {/* Conexões com Latência e Linhas */}
-              {data.links.map((link, idx) => {
-                const source = data.nodes.find((n) => n.id === link.from);
-                const target = data.nodes.find((n) => n.id === link.to);
-                if (!source || !target) return null;
-
-                const isConnected = selectedNodeId === source.id || selectedNodeId === target.id;
-
-                return (
-                  <g key={idx}>
-                    <line
-                      x1={source.x}
-                      y1={source.y}
-                      x2={target.x}
-                      y2={target.y}
-                      stroke={isConnected ? '#71DBD2' : 'currentColor'}
-                      strokeWidth={isConnected ? '2.5' : '1.2'}
-                      strokeDasharray={isConnected ? 'none' : '4 3'}
-                      className={isConnected ? 'text-medusa-primary' : 'text-border-strong opacity-40'}
-                    />
-                  </g>
-                );
-              })}
-
-              {/* Nós Interativos */}
-              {data.nodes.map((node) => {
-                const isSelected = selectedNodeId === node.id;
-                const isVault = node.type === 'vault';
-
-                return (
-                  <g
-                    key={node.id}
-                    transform={`translate(${node.x}, ${node.y})`}
-                    onClick={() => setSelectedNodeId(node.id)}
-                    className="cursor-pointer group"
-                  >
-                    {isVault && (
-                      <circle r="30" className="fill-medusa-primary/10 animate-sentinel-pulse" />
-                    )}
-
-                    <circle
-                      r={isVault ? '22' : '16'}
-                      className={`transition-all duration-200 ${
-                        isSelected
-                          ? 'fill-surface stroke-medusa-primary stroke-[3px] shadow-lg'
-                          : isVault
-                          ? 'fill-[#18534B] dark:fill-[#71DBD2] stroke-surface stroke-2'
-                          : 'fill-surface-secondary stroke-border-strong stroke-[1.5px] hover:stroke-medusa-primary'
-                      }`}
-                    />
-
-                    <text
-                      textAnchor="middle"
-                      dy="4"
-                      className={`text-[12px] select-none font-mono ${
-                        isVault && !isSelected ? 'fill-white dark:fill-[#1C2420]' : 'fill-text-primary'
-                      }`}
-                    >
-                      {node.type === 'vault' ? '🔒' : node.type === 'workstation' ? '💻' : node.type === 'mobile' ? '📱' : node.type === 'cloud' ? '☁️' : node.type === 'key' ? '🔑' : '🗄️'}
-                    </text>
-
-                    <text
-                      y={isVault ? '34' : '26'}
-                      textAnchor="middle"
-                      className={`text-[9px] font-mono select-none ${
-                        isSelected ? 'fill-text-primary font-bold' : 'fill-text-secondary'
-                      }`}
-                    >
-                      {node.label.split(' ')[0]} ({node.trafficRate})
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-
-          {/* Inspetor Detalhado do Nó Selecionado */}
-          <div className="bg-surface-elevated border border-border/70 rounded-xl p-5 flex flex-col justify-between gap-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                  Nó Inspecionado
-                </span>
-                <span className="text-[10px] font-mono uppercase bg-[#ADE4B5]/25 text-[#18534B] dark:text-[#ADE4B5] px-2 py-0.5 rounded-full font-bold">
-                  {selectedNode.status}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-bold text-text-primary">
-                {selectedNode.label}
-              </h3>
-
-              <div className="space-y-2 pt-1 text-[12px] font-mono">
-                <div className="flex justify-between py-1 border-b border-border/50">
-                  <span className="text-text-muted">IP / Identificador</span>
-                  <span className="font-bold text-text-primary tabular-nums">
-                    {selectedNode.ipOrFingerprint}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-border/50">
-                  <span className="text-text-muted">Taxa de Tráfego</span>
-                  <span className="font-bold text-text-primary">
-                    {selectedNode.trafficRate}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-border/50">
-                  <span className="text-text-muted">Latência do Nó</span>
-                  <span className="font-bold text-[#18534B] dark:text-[#71DBD2]">
-                    {selectedNode.latencyMs} ms
-                  </span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-text-muted">Último Heartbeat</span>
-                  <span className="text-text-secondary">
-                    {selectedNode.lastPing}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-border/60 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-text-muted">Cifra: ChaCha20-Poly1305</span>
+        {/* Seletor de Casos */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          {GUARDIAN_CASES.map((c) => {
+            const isSelected = c.id === selectedCaseId;
+            return (
               <button
+                key={c.id}
                 type="button"
-                className="text-[11px] font-mono font-bold px-3 py-1 rounded-lg bg-surface border border-border/80 hover:border-medusa-primary text-text-primary transition-all"
-              >
-                Inspecionar Chaves
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= 3. NAVEGAÇÃO DE INVESTIGAÇÃO, SINAIS & INTEGRIDADE ================= */}
-      <section aria-label="Camada Investigativa" className="bg-surface rounded-2xl p-6 sm:p-7 border border-border/70 shadow-calm flex flex-col gap-6">
-        {/* Abas Operacionais */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
-          <div className="flex items-center gap-2">
-            {[
-              { id: 'investigacao', label: 'Incidente em Curso (#INC-889)', badge: '1 Ativo' },
-              { id: 'sinais', label: 'Feed de Sinais ao Vivo', badge: '5 Recentes' },
-              { id: 'integridade', label: 'Integridade de Hardware & Kernel', badge: '4/4 OK' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-mono font-bold transition-all flex items-center gap-2 ${
-                  activeTab === tab.id
-                    ? 'bg-[#18534B] dark:bg-medusa-primary text-white dark:text-[#1C2420] shadow-subtle'
-                    : 'bg-surface-secondary text-text-secondary hover:text-text-primary'
+                onClick={() => {
+                  setSelectedCaseId(c.id);
+                  setActiveStepId('evento');
+                  playFeedback('press');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-[12px] font-mono transition-all flex items-center gap-1.5 whitespace-nowrap border shadow-subtle ${
+                  isSelected
+                    ? 'bg-[#FAFDF5] border-[#71DBD2] text-text-primary font-bold ring-1 ring-[#71DBD2]/40'
+                    : 'bg-surface border-border/70 text-text-muted hover:text-text-primary'
                 }`}
               >
-                <span>{tab.label}</span>
-                <span className="text-[10px] font-normal opacity-80">({tab.badge})</span>
+                <span className="material-symbols-outlined text-[16px]">{c.domainIcon}</span>
+                <span>{c.domainLabel.split(' ')[0]}</span>
+                <span className="text-[10px] opacity-70">({c.autonomyLevel})</span>
               </button>
-            ))}
+            );
+          })}
+        </div>
+      </header>
+
+      {/* 2. CADEIA VIVA DE DECISÃO (EVENTO -> CONTEXTO -> DECISÃO -> AÇÃO -> RESULTADO) */}
+      <section
+        aria-label="Cadeia de Decisão Causal"
+        className="p-6 sm:p-8 rounded-2xl bg-surface border border-border/70 shadow-calm flex flex-col gap-6"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
+              Fluxo Causal Interativo
+            </span>
+            <span className="text-text-muted/40">•</span>
+            <span className="text-[11px] font-mono text-[#71DBD2]">
+              {currentCase.autonomyLabel}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSimulateFlow}
+            disabled={isSimulatingFlow}
+            className="px-3.5 py-1.5 rounded-xl bg-surface border border-border/70 hover:border-[#71DBD2] text-[12px] font-mono font-medium text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5 shadow-subtle disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[16px] text-[#71DBD2]">
+              {isSimulatingFlow ? 'sync' : 'play_arrow'}
+            </span>
+            <span>{isSimulatingFlow ? 'Percorrendo...' : 'Percorrer Cadeia'}</span>
+          </button>
+        </div>
+
+        {/* Linha da Cadeia e Nós */}
+        <div className="relative py-4">
+          {/* Trilha de fundo */}
+          <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-1 bg-surface-secondary/70 rounded-full" />
+
+          {/* Nós da Cadeia */}
+          <div className="relative z-10 flex items-center justify-between gap-2">
+            {currentCase.steps.map((step, idx) => {
+              const isActive = activeStepId === step.id;
+              const stepIndex = currentCase.steps.findIndex((s) => s.id === activeStepId);
+              const isPast = idx <= stepIndex;
+
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveStepId(step.id);
+                    playFeedback('press');
+                  }}
+                  className={`group flex flex-col items-center gap-2.5 transition-all duration-300 focus:outline-none ${
+                    isActive ? 'scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'
+                  }`}
+                >
+                  <div
+                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-calm ${
+                      isActive
+                        ? 'bg-[#FAFDF5] border-2 border-[#71DBD2] text-[#1C2420] ring-4 ring-[#71DBD2]/25 shadow-lg'
+                        : isPast
+                        ? 'bg-[#ADE4B5]/40 border border-[#ADE4B5] text-[#1C2420]'
+                        : 'bg-surface border border-border/80 text-text-muted'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[22px] sm:text-[24px]">
+                      {step.icon}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`text-[11px] font-mono uppercase tracking-wider transition-colors ${
+                      isActive
+                        ? 'text-text-primary font-bold'
+                        : 'text-text-muted group-hover:text-text-secondary'
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Conteúdo da Aba Selecionada */}
-        {activeTab === 'investigacao' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-surface-elevated p-3.5 rounded-xl border border-border/70">
+        {/* 3. PAINEL DE CONTEXTO CAUSAL DO NÓ SELECIONADO (PROTAGONISTA) */}
+        <div className="p-6 sm:p-7 rounded-2xl bg-surface-secondary/40 border border-border/70 flex flex-col gap-5 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center flex-shrink-0 text-[#1C2420] shadow-subtle border border-border/60">
+                <span className="material-symbols-outlined text-[20px]">{activeStep.icon}</span>
+              </div>
               <div>
-                <span className="text-[10px] font-mono uppercase bg-alert/20 text-alert px-2 py-0.5 rounded font-bold">
-                  {data.incidentInvestigation.severity}
+                <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">
+                  Etapa Selecionada · {activeStep.label}
                 </span>
-                <h3 className="text-base font-bold text-text-primary mt-1">
-                  {data.incidentInvestigation.title}
+                <h3 className="text-lg sm:text-xl font-bold text-text-primary">
+                  {activeStep.headline}
                 </h3>
-                <span className="text-[11px] font-mono text-text-secondary">
-                  Origem: {data.incidentInvestigation.source}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="px-3 py-1.5 rounded-lg bg-surface border border-border/80 text-[11px] font-mono text-text-secondary hover:text-text-primary"
-                >
-                  Falso Positivo
-                </button>
-                <button
-                  type="button"
-                  className="px-3.5 py-1.5 rounded-lg bg-medusa-primary text-[#1C2420] font-bold text-[11px] font-mono shadow-subtle"
-                >
-                  Manter Quarentena
-                </button>
               </div>
             </div>
 
-            {/* Linha do Tempo da Investigação com Evidências Reais */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              {data.incidentInvestigation.timeline.map((step) => (
-                <div
-                  key={step.step}
-                  className="bg-surface-elevated border border-border/70 rounded-xl p-3.5 space-y-2"
-                >
-                  <div className="flex justify-between items-center text-[10px] font-mono">
-                    <span className="font-bold text-text-muted">PASSO 0{step.step}</span>
-                    <span className="text-text-muted">{step.time}</span>
-                  </div>
-                  <h4 className="text-[13px] font-bold text-text-primary">{step.title}</h4>
-                  <p className="text-[11px] text-text-secondary leading-snug">{step.details}</p>
-                  {step.artifactHash && (
-                    <div className="pt-2 border-t border-border/50 text-[9px] font-mono text-text-muted truncate">
-                      {step.artifactHash}
-                    </div>
-                  )}
-                  {step.actionTaken && (
-                    <div className="pt-2 border-t border-border/50 text-[10px] font-mono text-[#18534B] dark:text-[#ADE4B5] font-bold">
-                      ✓ {step.actionTaken}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-surface border border-border/60 text-text-secondary self-start sm:self-auto shadow-subtle">
+              Fase {currentCase.steps.findIndex((s) => s.id === activeStep.id) + 1} de 5
+            </span>
           </div>
-        )}
 
-        {activeTab === 'sinais' && (
-          <div className="divide-y divide-border/60">
-            {data.recentSignals.map((sig) => (
-              <div key={sig.id} className="py-2.5 flex items-center justify-between text-[12px] font-mono">
-                <div className="flex items-center gap-3">
-                  <span className="text-text-muted text-[11px]">{sig.timestamp}</span>
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      sig.severity === 'atencao'
-                        ? 'bg-alert'
-                        : sig.severity === 'info'
-                        ? 'bg-medusa-primary'
-                        : 'bg-[#ADE4B5]'
-                    }`}
-                  />
-                  <span className="font-bold text-text-primary">{sig.source}:</span>
-                  <span className="text-text-secondary">{sig.event}</span>
-                </div>
-                <span className="text-[10px] text-text-muted">{sig.protocol}</span>
-              </div>
-            ))}
-          </div>
-        )}
+          <p className="text-[14px] text-text-secondary leading-relaxed max-w-3xl">
+            {activeStep.summary}
+          </p>
 
-        {activeTab === 'integridade' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {data.integrityChecklist.map((item, idx) => (
-              <div key={idx} className="bg-surface-elevated border border-border/70 rounded-xl p-3.5 flex justify-between items-center">
-                <div>
-                  <h4 className="text-[13px] font-semibold text-text-primary">{item.component}</h4>
-                  <span className="text-[10px] font-mono text-text-muted">Checagem: {item.timestamp}</span>
-                </div>
-                <span className="text-[11px] font-mono font-bold text-[#18534B] dark:text-[#ADE4B5] bg-[#ADE4B5]/20 px-2 py-0.5 rounded">
-                  ✓ {item.status}
+          {/* Evidências Concretas */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            {activeStep.evidence.map((ev, i) => (
+              <div
+                key={i}
+                className="p-3.5 rounded-xl bg-surface border border-border/60 flex flex-col gap-1 shadow-subtle"
+              >
+                <span className="text-[10px] font-mono uppercase text-text-muted">{ev.label}</span>
+                <span className="text-[13px] font-mono font-semibold text-text-primary">
+                  {ev.value}
                 </span>
               </div>
             ))}
           </div>
-        )}
+
+          {/* Ação Interativa de Aprovação (se for o caso e etapa de decisão/ação) */}
+          {currentCase.actionPrompt && !isCaseApproved && (activeStep.id === 'decisao' || activeStep.id === 'acao') && (
+            <div className="pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <span className="text-[12px] text-text-secondary">
+                {currentCase.actionPrompt.confirmMessage}
+              </span>
+              <button
+                type="button"
+                onClick={handleApproveAction}
+                className="px-4 py-2 rounded-xl bg-[#71DBD2] hover:bg-[#71DBD2]/90 text-[#1C2420] text-[13px] font-semibold transition-transform active:scale-95 flex items-center gap-2 shadow-subtle self-start sm:self-auto"
+              >
+                <span className="material-symbols-outlined text-[18px]">verified_user</span>
+                <span>{currentCase.actionPrompt.label}</span>
+              </button>
+            </div>
+          )}
+
+          {currentCase.actionPrompt && isCaseApproved && (
+            <div className="pt-3 border-t border-border/60 flex items-center gap-2 text-emerald-800 text-[12px] font-mono font-medium">
+              <span className="material-symbols-outlined text-[17px]">check_circle</span>
+              <span>{currentCase.actionPrompt.successMessage}</span>
+            </div>
+          )}
+        </div>
       </section>
+
+      {/* 4. VISÃO GERAL DE AUTONOMIA E POLÍTICAS */}
+      <footer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-surface border border-border/60 shadow-subtle flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#ADE4B5]/40 flex items-center justify-center flex-shrink-0 text-text-primary">
+            <span className="material-symbols-outlined text-[18px]">bolt</span>
+          </div>
+          <div>
+            <h4 className="text-[12px] font-bold font-mono text-text-primary">L1 · Autonomia Rotineira</h4>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Lembretes, buffers e pré-cargas executam sem burocracia.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-surface border border-border/60 shadow-subtle flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#FFF18C]/50 flex items-center justify-center flex-shrink-0 text-text-primary">
+            <span className="material-symbols-outlined text-[18px]">touch_app</span>
+          </div>
+          <div>
+            <h4 className="text-[12px] font-bold font-mono text-text-primary">L2 · Aval Humano</h4>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Estornos, cancelamentos e compras requerem seu clique prévio.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-surface border border-border/60 shadow-subtle flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#C45B5B]/30 flex items-center justify-center flex-shrink-0 text-text-primary">
+            <span className="material-symbols-outlined text-[18px]">lock</span>
+          </div>
+          <div>
+            <h4 className="text-[12px] font-bold font-mono text-text-primary">L3 · Alto Impacto</h4>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Operações críticas bloqueadas até confirmação explícita.
+            </p>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

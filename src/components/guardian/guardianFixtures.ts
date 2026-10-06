@@ -1,99 +1,275 @@
-export interface TopologyNode {
-  id: string;
+/**
+ * GUARDIAN FOUNDATION — Decision Chain Fixtures (Modelo B)
+ *
+ * Princípio Arquitetural:
+ * Cadeia causal viva: EVENTO -> CONTEXTO -> DECISÃO -> AÇÃO -> RESULTADO.
+ * Sem jargão de infraestrutura ou hacker aesthetic. Linguagem clara de proteção pessoal.
+ */
+
+export type DecisionStepId = 'evento' | 'contexto' | 'decisao' | 'acao' | 'resultado';
+
+export interface DecisionChainStep {
+  id: DecisionStepId;
   label: string;
-  type: 'vault' | 'workstation' | 'mobile' | 'cloud' | 'key' | 'credentials';
-  status: 'nominal' | 'inspecao' | 'alerta';
-  ipOrFingerprint: string;
-  lastPing: string;
-  trafficRate: string;
-  latencyMs: number;
-  x: number;
-  y: number;
+  icon: string;
+  headline: string;
+  summary: string;
+  evidence: { label: string; value: string }[];
+  highlightColor: string; // pastel hex
 }
 
-export interface TopologyLink {
-  from: string;
-  to: string;
-  protocol: string;
-  status: 'seguro' | 'ativo' | 'verificando';
-  latencyMs: number;
-  cipher: string;
-}
-
-export interface SecuritySignal {
+export interface DecisionChainCase {
   id: string;
-  timestamp: string;
-  source: string;
-  severity: 'info' | 'atencao' | 'nominal';
-  event: string;
-  protocol: string;
-}
-
-export interface IncidentEvidence {
-  step: number;
-  time: string;
   title: string;
-  details: string;
-  artifactHash?: string;
-  actionTaken?: string;
+  domain: 'agenda' | 'financas' | 'corpo';
+  domainLabel: string;
+  domainIcon: string;
+  autonomyLevel: 'L1' | 'L2' | 'L3';
+  autonomyLabel: string;
+  status: 'concluido' | 'aguardando_aprovacao' | 'em_observacao';
+  steps: DecisionChainStep[];
+  actionPrompt?: {
+    label: string;
+    confirmMessage: string;
+    successMessage: string;
+  };
 }
 
-export const GUARDIAN_DATA = {
-  telemetry: {
-    systemHealthScore: 94.2,
-    activeThreats: 0,
-    activeIncidents: 1,
-    monitoredEntities: 7,
-    packetInspectionRate: '1.420 pkt/s',
-    averageLatencyMs: 4.2,
-    lastAuditTime: 'Há 4m · Assinatura Ed25519',
-    sentinelStatus: 'Sentinela Operacional · Silenciosa',
+export const GUARDIAN_CASES: DecisionChainCase[] = [
+  {
+    id: 'telemedicina-t5',
+    title: 'Compromisso Crítico: Consulta de Telemedicina',
+    domain: 'agenda',
+    domainLabel: 'Agenda & Presença',
+    domainIcon: 'schedule',
+    autonomyLevel: 'L1',
+    autonomyLabel: 'L1 · Autônomo',
+    status: 'concluido',
+    steps: [
+      {
+        id: 'evento',
+        label: 'Evento',
+        icon: 'notifications_active',
+        headline: 'Consulta Médica Detectada',
+        summary: 'Consulta com Dr. Roberto identificada na Agenda para hoje com link externo.',
+        evidence: [
+          { label: 'Horário', value: '17:00' },
+          { label: 'Canal', value: 'Google Meet / Telemedicina' },
+          { label: 'Antecedência', value: 'Janela T-15 e T-5 min' },
+        ],
+        highlightColor: '#FFF18C',
+      },
+      {
+        id: 'contexto',
+        label: 'Contexto',
+        icon: 'history',
+        headline: 'Histórico & Relevância',
+        summary: 'Compromisso inadiável. Ocorrência prévia de consulta perdida por falta de alarme audível.',
+        evidence: [
+          { label: 'Prioridade', value: 'Crítica / Alta' },
+          { label: 'Impacto de Falha', value: 'Perda de receita médica' },
+          { label: 'Estado Atual', value: 'Usuário em sessão de trabalho' },
+        ],
+        highlightColor: '#71DBD2',
+      },
+      {
+        id: 'decisao',
+        label: 'Decisão',
+        icon: 'gavel',
+        headline: 'Política de Interrupção Gradual',
+        summary: 'Ativar aviso antecipado e sobrepor Dynamic Island em T-5 com botão direto para o link.',
+        evidence: [
+          { label: 'Regra', value: 'Política de Telemedicina #MED-01' },
+          { label: 'Nível', value: 'L1 (Execução sem burocracia)' },
+          { label: 'Canais', value: 'Dynamic Island + Web Banner' },
+        ],
+        highlightColor: '#ADE4B5',
+      },
+      {
+        id: 'acao',
+        label: 'Ação',
+        icon: 'bolt',
+        headline: 'Disparo do Lembrete Ativo',
+        summary: 'Dynamic Island iluminada com contagem regressiva e link direto para a sala.',
+        evidence: [
+          { label: 'Disparo', value: 'T-5 minutos antes' },
+          { label: 'Ação Disponível', value: 'Abrir Sala da Consulta' },
+          { label: 'Status', value: 'Entregue com sucesso' },
+        ],
+        highlightColor: '#71DBD2',
+      },
+      {
+        id: 'resultado',
+        label: 'Resultado',
+        icon: 'verified',
+        headline: 'Presença Assegurada',
+        summary: 'Usuário alertado no momento exato com antecedência para abrir o histórico e a câmera.',
+        evidence: [
+          { label: 'Confirmação', value: 'Check-in realizado' },
+          { label: 'Atraso', value: '0 minutos' },
+          { label: 'Proteção', value: '100% íntegra' },
+        ],
+        highlightColor: '#D0EAA3',
+      },
+    ],
   },
-
-  nodes: [
-    { id: 'node-vault', label: 'Identity Vault (Master)', type: 'vault', status: 'nominal', ipOrFingerprint: 'ed25519:9f8a...3b', lastPing: 'Agora', trafficRate: '340 pkt/s', latencyMs: 0.8, x: 260, y: 160 },
-    { id: 'node-workstation', label: 'Workstation (Ubuntu/Arch)', type: 'workstation', status: 'nominal', ipOrFingerprint: '100.64.0.12 (Tailscale)', lastPing: '1s atrás', trafficRate: '680 pkt/s', latencyMs: 3.4, x: 100, y: 60 },
-    { id: 'node-mobile', label: 'Mobile (Secure Enclave)', type: 'mobile', status: 'nominal', ipOrFingerprint: '100.64.0.18 (Tailscale)', lastPing: '2s atrás', trafficRate: '120 pkt/s', latencyMs: 14.2, x: 420, y: 60 },
-    { id: 'node-cloud', label: 'Infra Cloud (GCP Hardened)', type: 'cloud', status: 'nominal', ipOrFingerprint: 'us-east1 / VPC Privada', lastPing: '3s atrás', trafficRate: '210 pkt/s', latencyMs: 22.1, x: 440, y: 260 },
-    { id: 'node-key', label: 'YubiKey Hardware FIDO2', type: 'key', status: 'nominal', ipOrFingerprint: 'Slot 1: HMAC-SHA1', lastPing: 'Ativo', trafficRate: '8 evt/m', latencyMs: 0.1, x: 80, y: 260 },
-    { id: 'node-creds', label: 'KeePassXC / Zero-Knowledge', type: 'credentials', status: 'inspecao', ipOrFingerprint: 'Argon2id · 64 MiB', lastPing: '12s atrás', trafficRate: '14 pkt/s', latencyMs: 1.2, x: 260, y: 300 },
-  ] as TopologyNode[],
-
-  links: [
-    { from: 'node-vault', to: 'node-workstation', protocol: 'WireGuard mTLS', status: 'seguro', latencyMs: 3.4, cipher: 'ChaCha20-Poly1305' },
-    { from: 'node-vault', to: 'node-mobile', protocol: 'Noise IK Handshake', status: 'seguro', latencyMs: 14.2, cipher: 'AES-256-GCM' },
-    { from: 'node-vault', to: 'node-cloud', protocol: 'IAM VPC-SC', status: 'seguro', latencyMs: 22.1, cipher: 'TLS 1.3 Strict' },
-    { from: 'node-vault', to: 'node-key', protocol: 'CCID / FIDO2', status: 'seguro', latencyMs: 0.1, cipher: 'Hardware Token' },
-    { from: 'node-vault', to: 'node-creds', protocol: 'Local IPC Socket', status: 'ativo', latencyMs: 1.2, cipher: 'Argon2id IPC' },
-  ] as TopologyLink[],
-
-  recentSignals: [
-    { id: 'sig-1', timestamp: '14:22:04', source: 'Workstation', severity: 'nominal', event: 'Renovação de lease WireGuard bem-sucedida', protocol: 'WG / UDP 51820' },
-    { id: 'sig-2', timestamp: '14:20:18', source: 'Identity Vault', severity: 'info', event: 'Sincronização de chave mestra Ed25519', protocol: 'Local IPC' },
-    { id: 'sig-3', timestamp: '14:18:02', source: 'Workstation', severity: 'atencao', event: 'Handshake TLS 1.2 atípico interceptado e bloqueado', protocol: 'HTTPS / Port 443' },
-    { id: 'sig-4', timestamp: '14:15:30', source: 'Mobile', severity: 'nominal', event: 'Desbloqueio biométrico via Secure Enclave', protocol: 'Local Auth' },
-    { id: 'sig-5', timestamp: '14:00:00', source: 'Infra Cloud', severity: 'nominal', event: 'Auditoria de políticas IAM VPC-SC concluída', protocol: 'GCP Admin' },
-  ] as SecuritySignal[],
-
-  incidentInvestigation: {
-    id: 'INC-889',
-    title: 'Tentativa de Negociação Criptográfica Insegura (TLS 1.2)',
-    source: 'Workstation (Ubuntu/Arch)',
-    severity: 'Baixa · Contido',
-    timeline: [
-      { step: 1, time: '14:18:02', title: 'Sinal Bruto Capturado', details: 'Socket local tentou abrir conexão de telemetria externa solicitando cipher suite TLS_RSA_WITH_AES_128_CBC_SHA.' },
-      { step: 2, time: '14:18:03', title: 'Triagem Automática', details: 'Algoritmo classificou como tráfego legado de script Python não-atualizado em /tmp. Zero correspondência com assinaturas de malware.' },
-      { step: 3, time: '14:18:05', title: 'Evidência Capturada', details: 'Pacote isolado. Dump de cabeçalho salvo com hash de integridade.', artifactHash: 'sha256:9f83ac127e...bc89' },
-      { step: 4, time: '14:19:00', title: 'Revisão do Operador', details: 'Conexão bloqueada preventivamente. Recomendado forçar flag --min-tls-version=TLSv1.3 no ambiente local.', actionTaken: 'Quarentena de socket aplicada' },
-    ] as IncidentEvidence[],
+  {
+    id: 'cobranca-duplicada',
+    title: 'Anomalia Financeira: Cobrança Repetida',
+    domain: 'financas',
+    domainLabel: 'Finanças & Solvência',
+    domainIcon: 'account_balance_wallet',
+    autonomyLevel: 'L2',
+    autonomyLabel: 'L2 · Requer Aprovação',
+    status: 'aguardando_aprovacao',
+    actionPrompt: {
+      label: 'Aprovar Pedido de Estorno (R$ 89,90)',
+      confirmMessage: 'Confirmar contestação de cobrança duplicada?',
+      successMessage: 'Contestação enviada ao emissor. R$ 89,90 protegidos.',
+    },
+    steps: [
+      {
+        id: 'evento',
+        label: 'Evento',
+        icon: 'error_outline',
+        headline: 'Lançamento Repetido Detectado',
+        summary: 'Dois débitos idênticos de R$ 89,90 registrados na mesma fatura com 4 minutos de intervalo.',
+        evidence: [
+          { label: 'Origem', value: 'SaaS Cloud Sync' },
+          { label: 'Valor', value: 'R$ 89,90 x 2' },
+          { label: 'Intervalo', value: '3 min 42 seg' },
+        ],
+        highlightColor: '#C45B5B',
+      },
+      {
+        id: 'contexto',
+        label: 'Contexto',
+        icon: 'manage_search',
+        headline: 'Verificação de Contrato',
+        summary: 'O plano contratado é mensal simples de licença única. Não há compras adicionais registradas.',
+        evidence: [
+          { label: 'Histórico', value: 'Cobrança única habitual' },
+          { label: 'Impacto', value: 'Redução desnecessária de margem' },
+          { label: 'Classificação', value: 'Duplicidade de transação' },
+        ],
+        highlightColor: '#FFF18C',
+      },
+      {
+        id: 'decisao',
+        label: 'Decisão',
+        icon: 'policy',
+        headline: 'Aprovação de Estorno Solicitada',
+        summary: 'Classificado como L2: Guardian prepara a contestação mas aguarda o aval do usuário.',
+        evidence: [
+          { label: 'Regra', value: 'Antifraude & Duplicidade #FIN-04' },
+          { label: 'Autonomia', value: 'L2 (Humano no comando)' },
+          { label: 'Recomendação', value: 'Contestação imediata' },
+        ],
+        highlightColor: '#71DBD2',
+      },
+      {
+        id: 'acao',
+        label: 'Ação',
+        icon: 'send',
+        headline: 'Contestação Formatada',
+        summary: 'Comprovante e protocolo de cobrança duplicada montados para estorno com um toque.',
+        evidence: [
+          { label: 'Canal', value: 'Emissor do Cartão' },
+          { label: 'Status', value: 'Pronto para envio' },
+          { label: 'Ação Pendente', value: 'Clique para aprovar' },
+        ],
+        highlightColor: '#FFF18C',
+      },
+      {
+        id: 'resultado',
+        label: 'Resultado',
+        icon: 'savings',
+        headline: 'Proteção de Capital',
+        summary: 'Recuperação do valor indevido e prevenção de novos débitos duplicados na fatura.',
+        evidence: [
+          { label: 'Economia', value: 'R$ 89,90 recuperados' },
+          { label: 'Runway', value: 'Margem livre preservada' },
+          { label: 'Garantia', value: 'Zero perda silenciosa' },
+        ],
+        highlightColor: '#D0EAA3',
+      },
+    ],
   },
-
-  integrityChecklist: [
-    { component: 'Hardware Root of Trust (TPM 2.0)', status: 'Verificado', timestamp: 'Há 1h' },
-    { component: 'Secure Boot & dm-verity Kernel', status: 'Ativo & Intacto', timestamp: 'Boot 08:30' },
-    { component: 'Chaves SSH & FIDO2 Hardware', status: 'Protegidas (PIN OK)', timestamp: 'Há 12m' },
-    { component: 'Isolamento de Memória & ASLR', status: 'Habilitado (Kernel Hardened)', timestamp: 'Ativo' },
-  ],
-};
-
-export const INITIAL_GUARDIAN_DATA = GUARDIAN_DATA;
+  {
+    id: 'modulacao-carga',
+    title: 'Recuperação Biológica: Modulação de Carga',
+    domain: 'corpo',
+    domainLabel: 'Corpo & Movimento',
+    domainIcon: 'fitness_center',
+    autonomyLevel: 'L1',
+    autonomyLabel: 'L1 · Autônomo',
+    status: 'concluido',
+    steps: [
+      {
+        id: 'evento',
+        label: 'Evento',
+        icon: 'bedtime',
+        headline: 'Sono Abaixo da Média',
+        summary: 'Registro de apenas 5h40 de sono após dia de esforço elevado no Agachamento.',
+        evidence: [
+          { label: 'Sono Real', value: '5h 40min' },
+          { label: 'Treino Prévio', value: 'Agachamento 110 kg' },
+          { label: 'Horas Decorridas', value: '18 horas' },
+        ],
+        highlightColor: '#FFF18C',
+      },
+      {
+        id: 'contexto',
+        label: 'Contexto',
+        icon: 'analytics',
+        headline: 'Índice de Fadiga Neuromuscular',
+        summary: 'Fadiga central elevada aumenta em 4x a probabilidade de falha técnica no Levantamento Terra.',
+        evidence: [
+          { label: 'Treino de Hoje', value: 'Ficha B (Posteriores / Terra)' },
+          { label: 'Risco Articular', value: 'Lombar e isquiotibiais' },
+          { label: 'Princípio', value: 'Sobrecarga sustentável' },
+        ],
+        highlightColor: '#71DBD2',
+      },
+      {
+        id: 'decisao',
+        label: 'Decisão',
+        icon: 'auto_fix_high',
+        headline: 'Ajuste de Volume Preventivo',
+        summary: 'Manter a sessão para consistência, mas reduzir carga em 15% focando em velocidade e técnica.',
+        evidence: [
+          { label: 'Regra', value: 'Biofeedback & Longevidade #BIO-02' },
+          { label: 'Nível', value: 'L1 (Ajuste adaptativo)' },
+          { label: 'Meta Adaptada', value: '3x5 com 90 kg (em vez de 105)' },
+        ],
+        highlightColor: '#ADE4B5',
+      },
+      {
+        id: 'acao',
+        label: 'Ação',
+        icon: 'tune',
+        headline: 'Atualização da Bancada de Treino',
+        summary: 'Metas ajustadas automaticamente na ficha com nota explicativa discreta para o aquecimento.',
+        evidence: [
+          { label: 'Destino', value: 'Modo Treino do Medusa' },
+          { label: 'Aquecimento', value: '2 séries extras de mobilidade' },
+          { label: 'Status', value: 'Aplicado na sessão' },
+        ],
+        highlightColor: '#71DBD2',
+      },
+      {
+        id: 'resultado',
+        label: 'Resultado',
+        icon: 'shield_check',
+        headline: 'Estímulo Mantido sem Lesão',
+        summary: 'Estímulo neural preservado sem sobrecarga articular, garantindo recuperação para a semana.',
+        evidence: [
+          { label: 'Adesão', value: '100% da rotina cumprida' },
+          { label: 'Integridade', value: 'Zero dor articular' },
+          { label: 'Progressão', value: 'Base sólida para próxima carga' },
+        ],
+        highlightColor: '#D0EAA3',
+      },
+    ],
+  },
+];
