@@ -2,8 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { FINANCAS_DATA, BudgetEnvelope, UpcomingBill } from './financeFixtures';
+import { getReconciledFinanceData } from './financeBridge';
 
 export function FinanceContainer() {
+  const reconciled = useMemo(() => getReconciledFinanceData(), []);
   const [data] = useState(FINANCAS_DATA);
 
   // Estados do Simulador de Decisão Financeira
@@ -11,9 +13,9 @@ export function FinanceContainer() {
   const [shockPercent, setShockPercent] = useState<number>(0);
   const [activeEnvelopeFilter, setActiveEnvelopeFilter] = useState<string>('todos');
 
-  // Recálculo dinâmico da decisão
+  // Recálculo dinâmico da decisão conectado à Foundation
   const decisionSimulation = useMemo(() => {
-    const baseInflow = data.summary.totalMonthlyInflow;
+    const baseInflow = data.inflows.reduce((acc, i) => acc + i.amount, 0);
     const adjustedInflow = baseInflow + extraRevenue;
     
     // Total de despesas dos envelopes sem a margem
@@ -26,7 +28,7 @@ export function FinanceContainer() {
     const simulatedMarginPercent = adjustedInflow > 0 ? (simulatedFreeMargin / adjustedInflow) * 100 : 0;
     
     const dailyBurn = shockedExpenses / 30;
-    const simulatedRunwayDays = dailyBurn > 0 ? Math.round((data.summary.consolidatedLiquidity + simulatedFreeMargin) / dailyBurn) : 999;
+    const simulatedRunwayDays = dailyBurn > 0 ? Math.round((reconciled.tenhoTotal + simulatedFreeMargin) / dailyBurn) : 999;
 
     return {
       adjustedInflow,
@@ -37,22 +39,18 @@ export function FinanceContainer() {
       isComfortable: simulatedMarginPercent >= 15,
       isWarning: simulatedMarginPercent < 10,
     };
-  }, [data, extraRevenue, shockPercent]);
+  }, [reconciled, data, extraRevenue, shockPercent]);
 
   return (
     <main className="w-full pb-20 px-4 sm:px-8 max-w-6xl mx-auto flex flex-col gap-8 pt-6 flex-1">
-      {/* ================= 1. CABEÇALHO FINANCEIRO: EQUAÇÃO LÍQUIDA REAL ================= */}
+      {/* ================= 1. CABEÇALHO FINANCEIRO: EQUAÇÃO CANÔNICA DE CAIXA ================= */}
       <section aria-label="Equação Financeira Global" className="flex flex-col gap-4 border-b border-border/60 pb-5">
         <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#18534B] dark:bg-[#71DBD2] living-pulse" />
               <span className="text-[10px] font-mono font-medium tracking-widest uppercase text-text-muted">
-                Finanças · Fluxo Operacional, Orçamento &amp; Margem
-              </span>
-              <span className="text-text-muted/40">•</span>
-              <span className="text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2]">
-                D+0 Auditado
+                Finanças · Fluxo de Caixa, Compromissos &amp; Margem
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
@@ -63,23 +61,23 @@ export function FinanceContainer() {
           {/* Equação Líquida em Destaque */}
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="bg-surface border border-border/70 rounded-xl px-3 py-1.5 flex flex-col">
-              <span className="text-[9px] font-mono uppercase text-text-muted">Entradas Mês</span>
-              <span className="text-[15px] font-bold font-mono tabular-nums text-[#18534B] dark:text-[#71DBD2]">
-                +R$ {data.summary.totalMonthlyInflow.toLocaleString('pt-BR')}
+              <span className="text-[9px] font-mono uppercase text-text-muted">Tenho Líquido</span>
+              <span className="text-[15px] font-bold font-mono tabular-nums text-text-primary">
+                R$ {reconciled.tenhoTotal.toLocaleString('pt-BR')}
               </span>
             </div>
             <span className="text-text-muted font-mono font-bold">-</span>
             <div className="bg-surface border border-border/70 rounded-xl px-3 py-1.5 flex flex-col">
-              <span className="text-[9px] font-mono uppercase text-text-muted">Saídas Fixas</span>
-              <span className="text-[15px] font-bold font-mono tabular-nums text-text-primary">
-                R$ {data.summary.totalMonthlyOutflow.toLocaleString('pt-BR')}
+              <span className="text-[9px] font-mono uppercase text-text-muted">Comprometido</span>
+              <span className="text-[15px] font-bold font-mono tabular-nums text-alert">
+                R$ {reconciled.comprometidoTotal.toLocaleString('pt-BR')}
               </span>
             </div>
             <span className="text-text-muted font-mono font-bold">=</span>
             <div className="bg-[#71DBD2]/15 border border-medusa-primary/50 rounded-xl px-3.5 py-1.5 flex flex-col shadow-subtle">
-              <span className="text-[9px] font-mono uppercase text-[#18534B] dark:text-[#71DBD2] font-bold">Margem Livre</span>
+              <span className="text-[9px] font-mono uppercase text-[#18534B] dark:text-[#71DBD2] font-bold">Livre</span>
               <span className="text-[15px] font-extrabold font-mono tabular-nums text-[#18534B] dark:text-[#71DBD2]">
-                R$ {data.summary.freeMarginCurrent.toLocaleString('pt-BR')} ({data.summary.freeMarginPercent}%)
+                R$ {reconciled.livreTotal.toLocaleString('pt-BR')} ({reconciled.livrePercent}%)
               </span>
             </div>
           </div>

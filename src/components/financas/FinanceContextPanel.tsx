@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FINANCAS_DATA } from './financeFixtures';
+import { getReconciledFinanceData } from './financeBridge';
 
 export function FinanceContextPanel() {
+  const reconciled = useMemo(() => getReconciledFinanceData(), []);
   const data = FINANCAS_DATA;
   const pendingBills = data.upcomingBills.filter((b) => b.status !== 'pago').slice(0, 3);
 
@@ -16,21 +18,21 @@ export function FinanceContextPanel() {
             Solvência &amp; Liquidez
           </span>
           <span className="text-[11px] font-mono text-[#18534B] dark:text-[#71DBD2] font-semibold tabular-nums">
-            {data.summary.runwayDays} dias de caixa
+            {reconciled.runwayDays} dias de caixa
           </span>
         </div>
         <div className="flex items-baseline justify-between">
           <span className="text-2xl font-bold tracking-tight text-text-primary tabular-nums">
-            R$ {data.summary.consolidatedLiquidity.toLocaleString('pt-BR')}
+            R$ {reconciled.tenhoTotal.toLocaleString('pt-BR')}
           </span>
-          <span className="text-[11px] text-text-secondary font-mono">D+0 Auditado</span>
+          <span className="text-[11px] text-text-secondary font-mono">Disponível</span>
         </div>
         <div className="w-full bg-surface-subtle h-1.5 rounded-full overflow-hidden">
           <div className="bg-[#18534B] dark:bg-medusa-primary h-full w-[94%]" />
         </div>
         <div className="text-[10px] text-text-muted font-mono pt-0.5 flex justify-between">
-          <span>Margem Livre: R$ {data.summary.freeMarginCurrent.toLocaleString('pt-BR')}</span>
-          <span className="font-semibold text-text-secondary">({data.summary.freeMarginPercent}%)</span>
+          <span>Livre: R$ {reconciled.livreTotal.toLocaleString('pt-BR')}</span>
+          <span className="font-semibold text-text-secondary">({reconciled.livrePercent}%)</span>
         </div>
       </div>
 

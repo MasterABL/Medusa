@@ -280,54 +280,70 @@ export function DynamicIsland() {
           }`}
         />
 
-        {/* Inline Actions (em telas desktop/tablet) */}
+        {/* Inline Actions (em telas desktop/tablet) ou Ação de Lembrete Proativo */}
         <div
           id="island-actions-group"
           className={`island-collapsible flex items-center gap-1.5 flex-shrink-0 overflow-hidden ${
-            showActions ? 'island-item-in max-w-[240px]' : 'island-item-out max-w-0 pointer-events-none'
+            showActions || islandNotification?.actionLabel ? 'island-item-in max-w-[240px]' : 'island-item-out max-w-0 pointer-events-none'
           }`}
         >
-          {fixture.secondaryAction && (
+          {islandNotification?.actionLabel ? (
             <button
               type="button"
-              className="btn-interactive hidden 2xl:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+              className="btn-interactive px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#18534B] text-[#71DBD2] dark:bg-[#71DBD2] dark:text-[#0D1F1A] hover:opacity-90 transition-all flex items-center gap-1 shadow-sm flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
-                setIslandState('idle');
+                islandNotification.onAction?.();
               }}
             >
-              {fixture.secondaryAction.label}
+              <span>{islandNotification.actionLabel}</span>
+              <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
             </button>
-          )}
+          ) : (
+            <>
+              {fixture.secondaryAction && (
+                <button
+                  type="button"
+                  className="btn-interactive hidden 2xl:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIslandState('idle');
+                  }}
+                >
+                  {fixture.secondaryAction.label}
+                </button>
+              )}
 
-          {fixture.primaryAction && (
-            <button
-              type="button"
-              className={`btn-interactive px-2 py-0.5 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 shadow-sm focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0 ${getPrimaryActionStyle(
-                fixture.primaryAction.variant
-              )}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (islandState === 'active') {
-                  setIslandState('success');
-                } else if (islandState === 'idle') {
-                  setIslandState('active');
-                } else if (islandState === 'error') {
-                  setIslandState('processing');
-                } else if (islandState === 'attention') {
-                  setIslandState('context');
-                } else {
-                  setIslandState('active');
-                }
-              }}
-            >
-              {fixture.primaryAction.icon ? (
-                <span className="material-symbols-outlined text-[13px]">
-                  {fixture.primaryAction.icon}
-                </span>
-              ) : null}
-              <span>{fixture.primaryAction.label}</span>
-            </button>
+              {fixture.primaryAction && (
+                <button
+                  type="button"
+                  className={`btn-interactive px-2 py-0.5 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 shadow-sm focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0 ${getPrimaryActionStyle(
+                    fixture.primaryAction.variant
+                  )}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (islandState === 'active') {
+                      setIslandState('success');
+                    } else if (islandState === 'idle') {
+                      setIslandState('active');
+                    } else if (islandState === 'error') {
+                      setIslandState('processing');
+                    } else if (islandState === 'attention') {
+                      setIslandState('context');
+                    } else {
+                      setIslandState('active');
+                    }
+                  }}
+                >
+                  {fixture.primaryAction.icon ? (
+                    <span className="material-symbols-outlined text-[13px]">
+                      {fixture.primaryAction.icon}
+                    </span>
+                  ) : null}
+                  <span>{fixture.primaryAction.label}</span>
+                </button>
+              )}
+            </>
           )}
         </div>
         </>

@@ -25,6 +25,8 @@ import {
   getPrevDate,
 } from '@/components/agenda/agendaHelpers';
 import { playFeedback } from '@/lib/audioFeedback';
+import { useShell } from '@/context/ShellContext';
+import { globalReminderOrchestrator } from '@/foundation/reminders';
 
 interface AgendaContextType {
   items: AgendaItem[];
@@ -124,6 +126,38 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
   const [activeSlotTime, setActiveSlotTime] = useState<{ start: string; end: string } | null>(null);
   const [lastDeletedItems, setLastDeletedItems] = useState<AgendaItem[] | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<AgendaItem[] | null>(null);
+
+  const { triggerIslandNotification, setActiveRoute } = useShell();
+
+  // Proactive Reminders Orchestration (Personal OS)
+  useEffect(() => {
+    globalReminderOrchestrator.setIslandChangeHandler((reminder) => {
+      if (reminder) {
+        triggerIslandNotification({
+          title: reminder.eventTitle,
+          tag: reminder.importance === 'high' ? 'COMPROMISSO CRÍTICO' : 'LEMBRETE',
+          description: reminder.message,
+          badge: `T-${reminder.triggerOffsetMinutes} MIN`,
+          state: reminder.importance === 'high' ? 'attention' : 'active',
+          durationMs: 9000,
+          actionLabel: reminder.actionLabel || 'Abrir compromisso',
+          onAction: () => {
+            setActiveRoute('agenda');
+            setSelectedItemId(reminder.eventId);
+            globalReminderOrchestrator.dismissActiveIslandReminder('opened');
+          },
+        });
+      }
+    });
+
+    const checkReminders = () => {
+      globalReminderOrchestrator.processAgendaItems(items, new Date());
+    };
+
+    checkReminders();
+    const interval = setInterval(checkReminders, 30_000);
+    return () => clearInterval(interval);
+  }, [items, triggerIslandNotification, setActiveRoute]);
 
   // Expiração do Toast de Desfazer (7 segundos)
   useEffect(() => {

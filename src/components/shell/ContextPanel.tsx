@@ -136,48 +136,36 @@ function ContextPanelBody({ onRequestClose, closeIcon }: { onRequestClose: () =>
 }
 
 export function ContextPanel() {
-  const { geometry, setContextOpen, breakpoint, activeRoute } = useShell();
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const { geometry, isContextOpen, setContextOpen, breakpoint, activeRoute } = useShell();
 
-  // No mobile estreito (<768px), o Context Panel funciona como bottom sheet para não espremer a viewport.
-  // Em Desktop e Tablet / Tela Dividida (>=768px), funciona como coluna lateral real integrada à geometria.
+  // No mobile estreito (<768px), o Context Panel funciona como bottom sheet acionado pelo botão do Header,
+  // eliminando o botão flutuante sobreposto ao conteúdo (correção P0 de mobile).
   if (breakpoint === 'mobile') {
     return (
       <>
-        <button
-          type="button"
-          id="btn-open-context-sheet"
-          onClick={() => setIsMobileSheetOpen(true)}
-          title="Abrir Painel de Contexto"
-          aria-label="Abrir Painel de Contexto"
-          className="btn-interactive fixed right-4 bottom-20 z-30 bg-surface border border-border p-3 rounded-full shadow-lg text-text-secondary hover:text-text-primary flex items-center justify-center focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none"
-        >
-          <span className="material-symbols-outlined text-[20px]">dock_to_left</span>
-        </button>
-
         <div
           id="context-sheet-backdrop"
           aria-hidden="true"
-          onClick={() => setIsMobileSheetOpen(false)}
+          onClick={() => setContextOpen(false)}
           className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-200 ${
-            isMobileSheetOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            isContextOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         />
 
         <aside
           id="context-panel-mobile-sheet"
           aria-label="Painel de Contexto Regional"
-          aria-hidden={!isMobileSheetOpen}
+          aria-hidden={!isContextOpen}
           className={`fixed left-0 right-0 bottom-0 z-40 bg-surface rounded-t-2xl shadow-island max-h-[80vh] flex flex-col pt-2 pb-6 panel-transition border-t border-border/70 ${
-            isMobileSheetOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'
+            isContextOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'
           }`}
         >
-          {/* Handle — sinaliza "isto é uma folha que se puxa", mesmo sem gesto de arrastar implementado */}
+          {/* Handle — sinaliza a folha que desliza suavemente */}
           <div className="flex justify-center pb-3 flex-shrink-0">
             <div className="w-10 h-1.5 rounded-full bg-border/80" />
           </div>
           <div className="overflow-y-auto">
-            <ContextPanelBody onRequestClose={() => setIsMobileSheetOpen(false)} closeIcon="close" />
+            <ContextPanelBody onRequestClose={() => setContextOpen(false)} closeIcon="close" />
           </div>
         </aside>
       </>

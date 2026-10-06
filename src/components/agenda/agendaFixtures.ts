@@ -197,6 +197,31 @@ export function getInitialAgendaItems(referenceDate: Date = new Date()): AgendaI
       updatedAt: '2026-09-03T11:00:00Z',
     },
 
+    // 4b. Telemedicina (Pessoal, event) — Caso Real Proactive Reminders
+    {
+      id: 'item-telemedicina',
+      title: 'Telemedicina — Cardiologista',
+      kind: 'event',
+      domain: 'personal',
+      categoryId: 'cat-pessoal',
+      colorId: 'terracota_suave',
+      date: daySeg,
+      startTime: '20:30',
+      endTime: '21:00',
+      durationMinutes: 30,
+      allDay: false,
+      isFlexible: false,
+      description: 'Retorno com cardiologista para avaliação de exames.',
+      location: 'Google Meet / Plataforma Conexa',
+      source: {
+        sourceType: 'manual',
+        sourceLabel: 'Consulta Telemedicina',
+      },
+      status: 'scheduled',
+      createdAt: '2026-09-03T11:00:00Z',
+      updatedAt: '2026-09-03T11:00:00Z',
+    },
+
     // 5. Rotina de Trabalho (Trabalho, routine) Qui-Sex 08:00-12:00
     {
       id: 'item-rotina-trabalho',

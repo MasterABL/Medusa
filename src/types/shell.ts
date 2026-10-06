@@ -44,6 +44,8 @@ export interface IslandNotification {
   badge?: string;
   state?: IslandState;
   durationMs?: number;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 export type Breakpoint = 'desktop' | 'tablet' | 'mobile';

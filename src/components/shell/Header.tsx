@@ -266,30 +266,23 @@ export function Header() {
             )}
           </div>
 
-          {/* Música/Spotify (Round 5 §20) — ver auditoria de viabilidade completa em
-              SpotifyMusicWidget.tsx. Adjacente ao Island (mesma zona da Dynamic Island, "camada
-              viva" do cabeçalho) em vez de dentro dele, de propósito: modificar a máquina de
-              estados já testada do Island às cegas (sem conseguir verificar a integração real do
-              Spotify neste ambiente) era mais risco do que valia. */}
-          <SpotifyMusicWidget />
+          {/* Música/Spotify e Áudio: em viewports maiores para evitar colisão no mobile 390px */}
+          <div className="hidden sm:flex items-center gap-1">
+            <SpotifyMusicWidget />
+            <AudioSettingsWidget />
+          </div>
 
-          {/* Feedback sonoro (Round 5 §10) — mesma zona da entrada de música, "camada viva" do
-              cabeçalho. */}
-          <AudioSettingsWidget />
-
-          {/* Toggle Context Panel (Apenas quando o painel regional for suportado no layout atual) */}
-          {geometry.isContextAvailable && (
-            <button
-              type="button"
-              id="toggle-context-panel"
-              onClick={toggleContext}
-              title="Alternar Context Panel Regional"
-              aria-label="Alternar Painel de Contexto"
-              className="btn-interactive w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface/80 border border-border/60 text-text-secondary hover:text-text-primary flex items-center justify-center shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
-            >
-              <span className="material-symbols-outlined text-[16px]">dock_to_left</span>
-            </button>
-          )}
+          {/* Toggle Context Panel (Desktop coluna lateral / Mobile bottom-sheet) */}
+          <button
+            type="button"
+            id="toggle-context-panel"
+            onClick={toggleContext}
+            title="Alternar Context Panel"
+            aria-label="Alternar Painel de Contexto"
+            className="btn-interactive w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface/80 border border-border/60 text-text-secondary hover:text-text-primary flex items-center justify-center shadow-subtle focus-visible:ring-2 focus-visible:ring-focus-ring focus:outline-none flex-shrink-0"
+          >
+            <span className="material-symbols-outlined text-[16px]">dock_to_left</span>
+          </button>
 
           {/* Avatar discreto */}
           <div className="w-7 h-7 rounded-full bg-surface-secondary border border-border/60 flex items-center justify-center text-[#1C2420] dark:text-[#E5EDE8] font-medium text-[10px] select-none flex-shrink-0 shadow-subtle">

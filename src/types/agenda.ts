@@ -13,7 +13,9 @@ export type AgendaDomain =
   | 'body'
   | 'finance'
   | 'work'
-  | 'external';
+  | 'external'
+  | 'spiritual'
+  | 'guardian';
 
 export type AgendaSourceType =
   | 'manual'
