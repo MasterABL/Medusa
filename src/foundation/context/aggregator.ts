@@ -17,7 +17,7 @@ import type { ImportanceTier } from './importance';
 import type { PriorityBand } from '../priority/engine';
 import type { Recommendation } from '../recommendations/engine';
 
-export type ContextSourceId = 'agenda' | 'tasks' | 'projects' | 'reminders' | 'guardian' | 'education' | 'finance' | 'body' | 'spiritual' | 'recommendations';
+export type ContextSourceId = 'agenda' | 'tasks' | 'projects' | 'reminders' | 'guardian' | 'education' | 'finance' | 'body' | 'spiritual' | 'recommendations' | 'email';
 
 export interface TodayItem {
   id: string;
@@ -30,7 +30,9 @@ export interface TodayItem {
   /** Calculado pelo agregador a partir de `now`. */
   minutesUntilStart?: number;
   band?: PriorityBand;
-  refs?: { eventId?: string; taskId?: string; projectId?: string; reminderId?: string };
+  refs?: { eventId?: string; taskId?: string; projectId?: string; reminderId?: string; emailId?: string; candidateId?: string };
+  /** Ainda não confirmado na Agenda (ex.: consulta detectada num e-mail). A UI deve dizer isso. */
+  provisional?: { reason: string };
   source: ContextSourceId;
 }
 
@@ -42,7 +44,11 @@ export type AttentionReason =
   | 'lembrete_sem_reconhecimento'
   | 'aprovacao_pendente'
   | 'canal_bloqueado'
-  | 'tarefa_bloqueada';
+  | 'tarefa_bloqueada'
+  | 'email_requer_acao'
+  | 'email_prazo'
+  | 'email_risco'
+  | 'email_acompanhamento';
 
 export interface AttentionItem {
   id: string;

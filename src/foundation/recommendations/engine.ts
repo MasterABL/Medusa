@@ -58,7 +58,7 @@ export interface Recommendation {
   id: string;
   kind: 'bloco_de_foco' | 'tarefa_curta' | 'pratica_curta';
   title: string;
-  targetRef: { taskId?: string; projectId?: string; practiceId?: string };
+  targetRef: { taskId?: string; projectId?: string; practiceId?: string; emailCandidateId?: string };
   durationMinutes: number;
   window: FreeWindow;
   /** Começa já (janela atual) ou mais tarde no dia. */
@@ -115,7 +115,7 @@ export function recommend(input: RecommendationInput, limit = 3): Recommendation
         id: `rec:${r.candidate.id}:${w.startIso}`,
         kind: duration >= 25 ? 'bloco_de_foco' : 'tarefa_curta',
         title: r.candidate.title,
-        targetRef: { taskId: r.candidate.refs?.taskId, projectId: r.candidate.refs?.projectId },
+        targetRef: { taskId: r.candidate.refs?.taskId, projectId: r.candidate.refs?.projectId, emailCandidateId: r.candidate.refs?.emailCandidateId },
         durationMinutes: duration,
         window: w,
         timing: u.timing,

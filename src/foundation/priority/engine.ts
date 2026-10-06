@@ -45,7 +45,7 @@ export interface PriorityCandidate {
   /** 0-1: o quanto cabe no contexto atual (energia, local, rotina). Ausente = neutro. */
   contextFit?: number;
   /** Referências de origem (projeto, evento, tarefa) para a UI e para a trilha causal. */
-  refs?: { projectId?: string; taskId?: string; eventId?: string; milestoneId?: string };
+  refs?: { projectId?: string; taskId?: string; eventId?: string; milestoneId?: string; emailCandidateId?: string };
 }
 
 export type PriorityBand = 'maxima' | 'alta' | 'media' | 'baixa' | 'bloqueada';

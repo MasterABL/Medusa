@@ -21,7 +21,8 @@ export type DomainId =
   | 'guardian'
   | 'finance'
   | 'body'
-  | 'spiritual';
+  | 'spiritual'
+  | 'email';
 
 /**
  * Voz e identidade de um domínio. Não é um personagem caricato — a diferença
