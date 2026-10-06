@@ -1,9 +1,9 @@
 /**
- * GUARDIAN FOUNDATION — Decision Chain Fixtures (Modelo B)
+ * GUARDIAN FOUNDATION — Decision Chain & Autonomy Center Fixtures
  *
  * Princípio Arquitetural:
  * Cadeia causal viva: EVENTO -> CONTEXTO -> DECISÃO -> AÇÃO -> RESULTADO.
- * Sem jargão de infraestrutura ou hacker aesthetic. Linguagem clara de proteção pessoal.
+ * Radar de riscos, Centro de Ações (L1/L2/L3), Matriz de Confiança Humana e Auditoria.
  */
 
 export type DecisionStepId = 'evento' | 'contexto' | 'decisao' | 'acao' | 'resultado';
@@ -21,7 +21,7 @@ export interface DecisionChainStep {
 export interface DecisionChainCase {
   id: string;
   title: string;
-  domain: 'agenda' | 'financas' | 'corpo';
+  domain: 'agenda' | 'financas' | 'corpo' | 'espiritual' | 'educacao';
   domainLabel: string;
   domainIcon: string;
   autonomyLevel: 'L1' | 'L2' | 'L3';
@@ -33,6 +33,59 @@ export interface DecisionChainCase {
     confirmMessage: string;
     successMessage: string;
   };
+}
+
+export interface GuardianRadarItem {
+  id: string;
+  domain: 'agenda' | 'financas' | 'corpo' | 'espiritual' | 'educacao';
+  domainLabel: string;
+  domainIcon: string;
+  severity: 'critico' | 'atencao' | 'informativo';
+  headline: string;
+  description: string;
+  detectedAt: string;
+  interventionProposal: string;
+  autonomyLevel: 'L1' | 'L2' | 'L3';
+}
+
+export interface GuardianActionItem {
+  id: string;
+  domain: 'agenda' | 'financas' | 'corpo' | 'espiritual' | 'educacao';
+  domainLabel: string;
+  domainIcon: string;
+  title: string;
+  intent: string;
+  autonomyLevel: 'L1' | 'L2' | 'L3';
+  status: 'pending' | 'approved' | 'executed' | 'rejected' | 'undone';
+  reversible: boolean;
+  reason: string;
+  requestedAt: string;
+  expiresIn?: string;
+  executedAt?: string;
+}
+
+export interface GuardianTrustPolicy {
+  id: string;
+  domain: 'agenda' | 'financas' | 'corpo' | 'espiritual' | 'educacao';
+  domainLabel: string;
+  domainIcon: string;
+  actionCategory: string;
+  currentLevel: 'L1' | 'L2' | 'L3';
+  trustScorePercent: number;
+  description: string;
+  humanOverrideAllowed: boolean;
+}
+
+export interface GuardianAuditLogEntry {
+  id: string;
+  timestamp: string;
+  domain: string;
+  actionTitle: string;
+  autonomyApplied: 'L1' | 'L2' | 'L3';
+  policyUsed: string;
+  verdict: 'EXECUTADO_AUTONOMO' | 'APROVADO_USUARIO' | 'RECUSADO_USUARIO' | 'BLOQUEADO_SEGURANCA';
+  correlationId: string;
+  details: string;
 }
 
 export const GUARDIAN_CASES: DecisionChainCase[] = [
@@ -271,5 +324,297 @@ export const GUARDIAN_CASES: DecisionChainCase[] = [
         highlightColor: '#D0EAA3',
       },
     ],
+  },
+  {
+    id: 'privacidade-espiritual',
+    title: 'Auditoria de Privacidade: Reflexão Pessoal',
+    domain: 'espiritual',
+    domainLabel: 'Espiritual & Privacidade',
+    domainIcon: 'lock',
+    autonomyLevel: 'L3',
+    autonomyLabel: 'L3 · Bloqueio Estrito',
+    status: 'concluido',
+    steps: [
+      {
+        id: 'evento',
+        label: 'Evento',
+        icon: 'edit_note',
+        headline: 'Registro de Oração e Gratidão Criado',
+        summary: 'Nova anotação íntima no diário espiritual contendo nomes de familiares e intenções.',
+        evidence: [
+          { label: 'Origem', value: 'Espiritual · Oração Contemplativa' },
+          { label: 'Classificação', value: 'Dado de Intimidade / Fé' },
+          { label: 'Sensibilidade', value: 'Máxima' },
+        ],
+        highlightColor: '#ADE4B5',
+      },
+      {
+        id: 'contexto',
+        label: 'Contexto',
+        icon: 'security',
+        headline: 'Política de Soberania Pessoal',
+        summary: 'O Medusa veta categoricamente indexação ou envio de diários espirituais para nuvens públicas.',
+        evidence: [
+          { label: 'Auditor', value: 'SpiritualPrivacyAuditor' },
+          { label: 'Criptografia', value: 'AES-256 no dispositivo' },
+          { label: 'Status', value: 'Isolamento verificado' },
+        ],
+        highlightColor: '#71DBD2',
+      },
+      {
+        id: 'decisao',
+        label: 'Decisão',
+        icon: 'shield',
+        headline: 'Bloqueio de Compartilhamento L3',
+        summary: 'Impedir qualquer sincronização externa que não seja a chave privada do usuário.',
+        evidence: [
+          { label: 'Nível', value: 'L3 (Proibição absoluta)' },
+          { label: 'Regra', value: 'Constituição de Privacidade #ESP-01' },
+          { label: 'Exceção', value: 'Nenhuma' },
+        ],
+        highlightColor: '#C45B5B',
+      },
+      {
+        id: 'acao',
+        label: 'Ação',
+        icon: 'vpn_key',
+        headline: 'Cifragem Local & Blindagem',
+        summary: 'Registro gravado estritamente no armazenamento local com chave derivada.',
+        evidence: [
+          { label: 'Localização', value: 'Storage Local Privado' },
+          { label: 'Auditoria', value: 'Aprovada sem vazamentos' },
+          { label: 'Acesso', value: 'Somente pelo usuário' },
+        ],
+        highlightColor: '#71DBD2',
+      },
+      {
+        id: 'resultado',
+        label: 'Resultado',
+        icon: 'check_circle',
+        headline: 'Intimidade Preservada',
+        summary: 'O usuário desfruta de um ambiente 100% seguro para orar, meditar e agradecer sem vigilância.',
+        evidence: [
+          { label: 'Vazamentos', value: 'Zero' },
+          { label: 'Confiabilidade', value: '100%' },
+          { label: 'Paz Mental', value: 'Garantida' },
+        ],
+        highlightColor: '#D0EAA3',
+      },
+    ],
+  },
+];
+
+export const GUARDIAN_RADAR_ITEMS: GuardianRadarItem[] = [
+  {
+    id: 'radar-1',
+    domain: 'financas',
+    domainLabel: 'Finanças',
+    domainIcon: 'credit_card',
+    severity: 'critico',
+    headline: 'Cobrança Duplicada Detectada (R$ 89,90)',
+    description: 'Dois lançamentos idênticos em menos de 4 minutos no cartão de crédito.',
+    detectedAt: 'Há 12 min',
+    interventionProposal: 'Submeter contestação ao emissor do cartão.',
+    autonomyLevel: 'L2',
+  },
+  {
+    id: 'radar-2',
+    domain: 'agenda',
+    domainLabel: 'Agenda & Saúde',
+    domainIcon: 'medical_services',
+    severity: 'critico',
+    headline: 'Telemedicina T-5 minutos',
+    description: 'Dr. Roberto Mendes às 17:00. Link da sala pronto.',
+    detectedAt: 'Há 2 min',
+    interventionProposal: 'Fixar atalho na Dynamic Island e disparar alarme discreto.',
+    autonomyLevel: 'L1',
+  },
+  {
+    id: 'radar-3',
+    domain: 'educacao',
+    domainLabel: 'Educação',
+    domainIcon: 'school',
+    severity: 'atencao',
+    headline: 'Entrega do Projeto Integrado em 22 horas',
+    description: 'Relatório final com 2 seções ainda marcadas como rascunho.',
+    detectedAt: 'Há 1 hora',
+    interventionProposal: 'Sugerir bloco de revisão de 45m na Matriz de Atenção Hoje.',
+    autonomyLevel: 'L1',
+  },
+  {
+    id: 'radar-4',
+    domain: 'corpo',
+    domainLabel: 'Corpo',
+    domainIcon: 'fitness_center',
+    severity: 'informativo',
+    headline: 'Recuperação Lombar Completa',
+    description: 'Intervalo de 72h após treino de pernas cumprido com sucesso.',
+    detectedAt: 'Há 3 horas',
+    interventionProposal: 'Liberar progressão de carga no Treino B.',
+    autonomyLevel: 'L1',
+  },
+];
+
+export const GUARDIAN_ACTION_ITEMS: GuardianActionItem[] = [
+  {
+    id: 'act-1',
+    domain: 'financas',
+    domainLabel: 'Finanças',
+    domainIcon: 'credit_card',
+    title: 'Contestação de Cobrança Duplicada (R$ 89,90)',
+    intent: 'Proteger o caixa contra cobrança em duplicidade de assinatura SaaS.',
+    autonomyLevel: 'L2',
+    status: 'pending',
+    reversible: true,
+    reason: 'Política de proteção de solvência #FIN-04 exige confirmação humana para débitos de cartão.',
+    requestedAt: 'Hoje às 11:42',
+    expiresIn: 'Vence em 23h',
+  },
+  {
+    id: 'act-2',
+    domain: 'agenda',
+    domainLabel: 'Agenda',
+    domainIcon: 'schedule',
+    title: 'Disparo de Alarme Antecipado T-5 (Telemedicina)',
+    intent: 'Assegurar presença pontual em compromisso médico inadiável.',
+    autonomyLevel: 'L1',
+    status: 'executed',
+    reversible: false,
+    reason: 'Executado com autonomia L1 conforme rotina médica aprovada.',
+    requestedAt: 'Hoje às 16:55',
+    executedAt: 'Hoje às 16:55',
+  },
+  {
+    id: 'act-3',
+    domain: 'corpo',
+    domainLabel: 'Corpo',
+    domainIcon: 'fitness_center',
+    title: 'Modulação de Volume na Bancada (Agachamento -15%)',
+    intent: 'Prevenir lesão por fadiga acumulada mantendo estímulo neural.',
+    autonomyLevel: 'L1',
+    status: 'executed',
+    reversible: true,
+    reason: 'Ajuste adaptativo baseado em registro de sono inferior a 6 horas.',
+    requestedAt: 'Hoje às 08:15',
+    executedAt: 'Hoje às 08:15',
+  },
+  {
+    id: 'act-4',
+    domain: 'espiritual',
+    domainLabel: 'Espiritual',
+    domainIcon: 'lock',
+    title: 'Blindagem Criptográfica de Anotação Íntima',
+    intent: 'Cifrar reflexão espiritual impedindo telemetria e sincronização insegura.',
+    autonomyLevel: 'L3',
+    status: 'executed',
+    reversible: false,
+    reason: 'Cláusula pétrea de soberania pessoal #ESP-01.',
+    requestedAt: 'Hoje às 07:45',
+    executedAt: 'Hoje às 07:45',
+  },
+];
+
+export const GUARDIAN_TRUST_POLICIES: GuardianTrustPolicy[] = [
+  {
+    id: 'trust-agenda-reminders',
+    domain: 'agenda',
+    domainLabel: 'Agenda & Compromissos',
+    domainIcon: 'schedule',
+    actionCategory: 'Lembretes e Antecipação',
+    currentLevel: 'L1',
+    trustScorePercent: 98,
+    description: 'Criação de lembretes, antecipação de janelas de trânsito e avisos contextuais.',
+    humanOverrideAllowed: true,
+  },
+  {
+    id: 'trust-finance-disputes',
+    domain: 'financas',
+    domainLabel: 'Finanças Pessoais',
+    domainIcon: 'account_balance_wallet',
+    actionCategory: 'Estornos e Movimentações',
+    currentLevel: 'L2',
+    trustScorePercent: 85,
+    description: 'Contestação de compras, categorização de transferências e simulação de gastos.',
+    humanOverrideAllowed: true,
+  },
+  {
+    id: 'trust-body-workouts',
+    domain: 'corpo',
+    domainLabel: 'Corpo & Movimento',
+    domainIcon: 'fitness_center',
+    actionCategory: 'Ajuste Adaptativo de Carga',
+    currentLevel: 'L1',
+    trustScorePercent: 94,
+    description: 'Modulação de tonelagem e repetições em função de fadiga e sono.',
+    humanOverrideAllowed: true,
+  },
+  {
+    id: 'trust-education-planning',
+    domain: 'educacao',
+    domainLabel: 'Educação & Metas',
+    domainIcon: 'school',
+    actionCategory: 'Replanejamento de Cronograma',
+    currentLevel: 'L1',
+    trustScorePercent: 92,
+    description: 'Sugestão de módulos prioritários e espaçamento de revisões.',
+    humanOverrideAllowed: true,
+  },
+  {
+    id: 'trust-spiritual-privacy',
+    domain: 'espiritual',
+    domainLabel: 'Vida Espiritual & Textos',
+    domainIcon: 'lock',
+    actionCategory: 'Sigilo e Privacidade Absoluta',
+    currentLevel: 'L3',
+    trustScorePercent: 100,
+    description: 'Bloqueio irrestrito de qualquer telemetria de orações ou diários pessoais.',
+    humanOverrideAllowed: false,
+  },
+];
+
+export const GUARDIAN_AUDIT_LOGS: GuardianAuditLogEntry[] = [
+  {
+    id: 'aud-1',
+    timestamp: 'Hoje às 16:55:01',
+    domain: 'Agenda',
+    actionTitle: 'Disparo de Lembrete T-5 Telemedicina',
+    autonomyApplied: 'L1',
+    policyUsed: 'Política de Telemedicina #MED-01',
+    verdict: 'EXECUTADO_AUTONOMO',
+    correlationId: 'corr-telemed-20261006',
+    details: 'Lembrete enviado via Dynamic Island com link do Google Meet.',
+  },
+  {
+    id: 'aud-2',
+    timestamp: 'Hoje às 11:42:15',
+    domain: 'Finanças',
+    actionTitle: 'Detecção de Cobrança Duplicada R$ 89,90',
+    autonomyApplied: 'L2',
+    policyUsed: 'Antifraude & Duplicidade #FIN-04',
+    verdict: 'APROVADO_USUARIO',
+    correlationId: 'corr-saas-dup-8990',
+    details: 'Contestação formatada e autorizada pelo usuário no Action Center.',
+  },
+  {
+    id: 'aud-3',
+    timestamp: 'Hoje às 08:15:30',
+    domain: 'Corpo',
+    actionTitle: 'Ajuste de Carga no Treino B (-15%)',
+    autonomyApplied: 'L1',
+    policyUsed: 'Biofeedback & Longevidade #BIO-02',
+    verdict: 'EXECUTADO_AUTONOMO',
+    correlationId: 'corr-body-fatigue-44',
+    details: 'Sono de 5h40 disparou modulação preventiva no levantamento terra.',
+  },
+  {
+    id: 'aud-4',
+    timestamp: 'Hoje às 07:45:00',
+    domain: 'Espiritual',
+    actionTitle: 'Cifragem Local de Registro de Oração',
+    autonomyApplied: 'L3',
+    policyUsed: 'Constituição de Privacidade #ESP-01',
+    verdict: 'BLOQUEADO_SEGURANCA',
+    correlationId: 'corr-esp-vault-01',
+    details: 'Veto preventivo de sincronização não cifrada com nuvem.',
   },
 ];
