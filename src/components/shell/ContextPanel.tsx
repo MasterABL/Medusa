@@ -10,6 +10,7 @@ import { FinanceContextPanel } from '@/components/financas/FinanceContextPanel';
 import { BodyContextPanel } from '@/components/corpo/BodyContextPanel';
 import { GuardianContextPanel } from '@/components/guardian/GuardianContextPanel';
 import { SpiritualContextPanel } from '@/components/espiritual/SpiritualContextPanel';
+import { EmailContextPanel } from '@/components/email/EmailContextPanel';
 
 /**
  * Corpo do painel — compartilhado entre o `<aside>` fixo do desktop e o bottom sheet de
@@ -64,6 +65,8 @@ function ContextPanelBody({ onRequestClose, closeIcon }: { onRequestClose: () =>
             <GuardianContextPanel />
           ) : activeRoute === 'espiritual' ? (
             <SpiritualContextPanel />
+          ) : activeRoute === 'email' ? (
+            <EmailContextPanel />
           ) : (
             // Rotas sem painel próprio (Progresso, rota desconhecida): o painel do Hoje, com dados reais.
             // Antes: texto fixo "99.8% Estável · Sync ativo há 2m · Nuvem Pessoal" e marcos inventados.

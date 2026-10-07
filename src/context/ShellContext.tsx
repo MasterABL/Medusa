@@ -58,7 +58,7 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     // Recuperação de rota persistida via URL hash ou localStorage
-    const validRoutes = ['hoje', 'agenda', 'educacao', 'corpo', 'financas', 'guardian', 'espiritual', 'progresso'];
+    const validRoutes = ['hoje', 'agenda', 'email', 'educacao', 'corpo', 'financas', 'guardian', 'espiritual', 'progresso'];
     const hash = window.location.hash.replace('#', '').toLowerCase();
     const savedRoute = localStorage.getItem('medusa-active-route');
     if (hash && validRoutes.includes(hash)) {
@@ -301,7 +301,7 @@ export function ShellProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleHashChange = () => {
-      const validRoutes = ['hoje', 'agenda', 'educacao', 'corpo', 'financas', 'guardian', 'espiritual', 'progresso'];
+      const validRoutes = ['hoje', 'agenda', 'email', 'educacao', 'corpo', 'financas', 'guardian', 'espiritual', 'progresso'];
       const hash = window.location.hash.replace('#', '').toLowerCase();
       if (hash && validRoutes.includes(hash)) {
         setActiveRouteState(hash);

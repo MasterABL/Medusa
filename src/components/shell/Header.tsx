@@ -64,6 +64,8 @@ export function Header() {
         return 'Guardian';
       case 'espiritual':
         return 'Espiritual';
+      case 'email':
+        return 'E-mail';
       case 'progresso':
         return 'Progresso';
       default:

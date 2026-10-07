@@ -44,13 +44,16 @@ export function Sidebar() {
     ).length;
     const pendingApprovals = os.actionViews(100).filter((a) => a.state === 'aguardando_aprovacao').length;
     const overdueTasks = os.taskViews().filter((t) => t.overdue).length;
-    return { remainingToday, pendingApprovals, overdueTasks };
+    const emailInbox = os.emailInbox();
+    const emailUnread = emailInbox.status === 'ready' ? emailInbox.data.counts.nao_lidos : 0;
+    return { remainingToday, pendingApprovals, overdueTasks, emailUnread };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agendaItems, os, version, demo, ready]);
 
   const navItems: Array<{ route: string; label: string; icon: IconSemanticType; badge: string | null; badgePill?: boolean; dot?: boolean; accentDot?: boolean }> = [
     { route: 'hoje', label: 'Hoje', icon: 'bolt', badge: null, dot: badges.overdueTasks > 0 || badges.pendingApprovals > 0 },
     { route: 'agenda', label: 'Agenda', icon: 'calendar', badge: badges.remainingToday > 0 ? String(badges.remainingToday) : null, dot: false },
+    { route: 'email', label: 'E-mail', icon: 'mail', badge: badges.emailUnread > 0 ? String(badges.emailUnread) : null, dot: false },
     { route: 'educacao', label: 'Educação', icon: 'school', badge: null, dot: false },
     { route: 'corpo', label: 'Corpo', icon: 'motion_mode', badge: null, dot: false },
     { route: 'financas', label: 'Finanças', icon: 'layers', badge: null, dot: false },

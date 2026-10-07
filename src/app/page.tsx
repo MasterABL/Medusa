@@ -10,6 +10,7 @@ import { FinanceContainer } from '@/components/financas/FinanceContainer';
 import { BodyContainer } from '@/components/corpo/BodyContainer';
 import { GuardianContainer } from '@/components/guardian/GuardianContainer';
 import { SpiritualContainer } from '@/components/espiritual/SpiritualContainer';
+import { EmailContainer } from '@/components/email/EmailContainer';
 import { RoutePending } from '@/components/shell/RoutePending';
 
 const PENDING_ROUTES = ['progresso'];
@@ -45,6 +46,10 @@ export default function HomePage() {
 
   if (activeRoute === 'espiritual') {
     return <SpiritualContainer />;
+  }
+
+  if (activeRoute === 'email') {
+    return <EmailContainer />;
   }
 
   if (PENDING_ROUTES.includes(activeRoute)) {
