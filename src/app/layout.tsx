@@ -3,11 +3,12 @@ import './globals.css';
 import { ShellProvider } from '@/context/ShellContext';
 import { AgendaProvider } from '@/context/AgendaContext';
 import { EducationPanelProvider } from '@/context/EducationPanelContext';
+import { PersonalOSProvider } from '@/context/PersonalOSContext';
 import { ShellLayout } from '@/components/shell/ShellLayout';
 
 export const metadata: Metadata = {
   title: 'Medusa Shell · Arquitetura Definitiva V2',
-  description: 'Shell frontend funcional e visualmente fiel do Medusa Life OS com Dynamic Island, 3 Modos e 3 Temas.',
+  description: 'Medusa Life OS: Agenda, Hoje, Educação, Corpo, Finanças, Espiritual e Guardian, com Dynamic Island, 3 modos e temas claro/escuro.',
 };
 
 export const viewport: Viewport = {
@@ -39,9 +40,11 @@ export default function RootLayout({
       <body className="antialiased selection:bg-medusa-primary selection:text-[#1C2420]">
         <ShellProvider>
           <AgendaProvider>
-            <EducationPanelProvider>
-              <ShellLayout>{children}</ShellLayout>
-            </EducationPanelProvider>
+            <PersonalOSProvider>
+              <EducationPanelProvider>
+                <ShellLayout>{children}</ShellLayout>
+              </EducationPanelProvider>
+            </PersonalOSProvider>
           </AgendaProvider>
         </ShellProvider>
       </body>

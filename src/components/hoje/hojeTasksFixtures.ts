@@ -10,6 +10,10 @@ export interface HojeTask {
   isOverdue?: boolean;
   guardianActionRequired?: boolean;
   guardianActionLabel?: string;
+  /** Dado de exemplo (só no modo demonstração) — a tela marca. */
+  isExample?: boolean;
+  /** Motivo de não estar executável (dependência pendente, bloqueio manual...). */
+  blockedReason?: string;
 }
 
 export interface HojeHistoryEntry {
@@ -20,6 +24,7 @@ export interface HojeHistoryEntry {
   status: 'completed' | 'delayed' | 'missed' | 'cancelled';
   durationMinutes: number;
   resultSummary?: string;
+  isExample?: boolean;
 }
 
 export interface HojeGuardianNotice {
@@ -32,8 +37,12 @@ export interface HojeGuardianNotice {
   description: string;
   autonomyLevel: 'L1' | 'L2' | 'L3';
   actionLabel: string;
-  actionKind: 'open_telemed' | 'approve_dispute' | 'review_deadline' | 'dismiss';
+  actionKind: 'open_telemed' | 'approve_dispute' | 'review_deadline' | 'dismiss' | 'approve_action' | 'open_tasks' | 'open_agenda';
   status: 'active' | 'resolved' | 'dismissed';
+  /** Ação real do Guardian por trás do aviso (Action Center). */
+  actionId?: string;
+  /** Dado de exemplo (só no modo demonstração) — a tela marca. */
+  isExample?: boolean;
 }
 
 export const INITIAL_HOJE_TASKS: HojeTask[] = [

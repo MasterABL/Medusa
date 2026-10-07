@@ -4,12 +4,14 @@
 import { run as runtimeCore } from './runtime-core';
 import { run as journeys } from './journeys';
 import { run as cronograma } from './cronograma';
+import { run as emailLocal } from './email-local';
 
 type Result = { total: number; fails: number };
 const suites: Array<[string, () => Result | Promise<Result>]> = [
   ['runtime-core', runtimeCore],
   ['jornadas', journeys],
   ['cronograma', cronograma],
+  ['email-local', emailLocal],
 ];
 
 (async () => {

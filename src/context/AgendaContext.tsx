@@ -9,6 +9,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
+import { readDemoMode } from '@/lib/dataMode';
 import {
   AgendaCategory,
   AgendaDomain,
@@ -25,8 +26,6 @@ import {
   getPrevDate,
 } from '@/components/agenda/agendaHelpers';
 import { playFeedback } from '@/lib/audioFeedback';
-import { useShell } from '@/context/ShellContext';
-import { globalReminderOrchestrator } from '@/foundation/reminders';
 
 interface AgendaContextType {
   items: AgendaItem[];
@@ -49,6 +48,10 @@ interface AgendaContextType {
 
   // Reagendamento / Drag & Drop
   rescheduleItem: (itemId: string, newDate: string, newStartTime: string, newEndTime: string) => void;
+
+  // Item vindo de outro motor (Personal OS: recomendação aceita, plano aprovado, e-mail aceito).
+  // Preserva o id de origem (dedup) e nunca duplica: se o id já existe, não faz nada.
+  addExternalItem: (item: AgendaItem) => void;
 
   // Reconciliação com Cronograma de Educação
   reconcileEducationBlocks: (
@@ -89,11 +92,26 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       try {
         const saved = localStorage.getItem('medusa-agenda-items');
         if (saved) return JSON.parse(saved);
+        // Primeiro acesso: Agenda vazia de verdade. Os itens de exemplo só entram no modo
+        // demonstração (?demo=1) — antes eles viravam "compromissos" na Hoje e nos lembretes.
+        if (readDemoMode()) return getInitialAgendaItems();
       } catch {}
     }
-    return getInitialAgendaItems();
+    return [];
   });
-  const [categories, setCategories] = useState<AgendaCategory[]>(INITIAL_CATEGORIES);
+  // Categorias persistidas (antes viviam só na memória: criar uma categoria e recarregar a perdia).
+  const [categories, setCategories] = useState<AgendaCategory[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('medusa-agenda-categories');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return INITIAL_CATEGORIES;
+  });
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [viewMode, setViewModeState] = useState<AgendaViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -118,6 +136,12 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [items]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('medusa-agenda-categories', JSON.stringify(categories));
+    } catch {}
+  }, [categories]);
+
   const [selectedDomainFilter, setSelectedDomainFilter] = useState<AgendaDomain | 'all'>('all');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
@@ -127,37 +151,10 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
   const [lastDeletedItems, setLastDeletedItems] = useState<AgendaItem[] | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<AgendaItem[] | null>(null);
 
-  const { triggerIslandNotification, setActiveRoute } = useShell();
 
-  // Proactive Reminders Orchestration (Personal OS)
-  useEffect(() => {
-    globalReminderOrchestrator.setIslandChangeHandler((reminder) => {
-      if (reminder) {
-        triggerIslandNotification({
-          title: reminder.eventTitle,
-          tag: reminder.importance === 'high' ? 'COMPROMISSO CRÍTICO' : 'LEMBRETE',
-          description: reminder.message,
-          badge: `T-${reminder.triggerOffsetMinutes} MIN`,
-          state: reminder.importance === 'high' ? 'attention' : 'active',
-          durationMs: 9000,
-          actionLabel: reminder.actionLabel || 'Abrir compromisso',
-          onAction: () => {
-            setActiveRoute('agenda');
-            setSelectedItemId(reminder.eventId);
-            globalReminderOrchestrator.dismissActiveIslandReminder('opened');
-          },
-        });
-      }
-    });
-
-    const checkReminders = () => {
-      globalReminderOrchestrator.processAgendaItems(items, new Date());
-    };
-
-    checkReminders();
-    const interval = setInterval(checkReminders, 30_000);
-    return () => clearInterval(interval);
-  }, [items, triggerIslandNotification, setActiveRoute]);
+  // Lembretes: o motor v2 do Personal OS (PersonalOSProvider) lê estes itens e agenda
+  // T-30/T-15/T-5/horário exato por importância, com dedup entre fontes. O orquestrador v1
+  // que rodava aqui foi desligado para não existirem dois conjuntos de avisos.
 
   // Expiração do Toast de Desfazer (7 segundos)
   useEffect(() => {
@@ -584,6 +581,18 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
     playFeedback('delete');
   }, []);
 
+  const addExternalItem = useCallback(
+    (item: AgendaItem) => {
+      setItems((prev) => {
+        if (prev.some((it) => it.id === item.id)) return prev;
+        const category = categories.find((c) => c.id === item.categoryId) ?? categories.find((c) => c.domain === item.domain) ?? categories[0];
+        return [{ ...item, categoryId: category?.id ?? item.categoryId, colorId: category?.colorId ?? item.colorId }, ...prev];
+      });
+      playFeedback('success');
+    },
+    [categories]
+  );
+
   const contextValue = useMemo(
     () => ({
       items,
@@ -602,6 +611,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       deleteMultipleItems,
       duplicateItem,
       rescheduleItem,
+      addExternalItem,
       reconcileEducationBlocks,
       setCurrentDate,
       setViewMode,
@@ -638,6 +648,7 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
       deleteMultipleItems,
       duplicateItem,
       rescheduleItem,
+      addExternalItem,
       reconcileEducationBlocks,
       goToToday,
       goToPrevDate,

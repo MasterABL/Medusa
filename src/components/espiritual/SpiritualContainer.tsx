@@ -13,6 +13,26 @@ import {
 } from './spiritualFixtures';
 import { useShell } from '@/context/ShellContext';
 import { playFeedback } from '@/lib/audioFeedback';
+import { usePersonalOS } from '@/context/PersonalOSContext';
+import { useDemoMode } from '@/lib/dataMode';
+import { ProvenanceBadge } from '@/components/ui/ProvenanceBadge';
+import type { RecallGrade } from '@/domains/spiritual/model/memory';
+import type { BibleReference } from '@/domains/spiritual/model/bible';
+
+// Os textos bíblicos desta aba são conteúdo de exemplo (passagens fixas);
+// o que o usuário REGISTRA (gratidão, oração, revisão de memória) é salvo no Personal OS.
+const BOOK_CODE: Record<string, string> = { Romanos: 'ROM', Filipenses: 'PHP', Salmos: 'PSA', Salmo: 'PSA' };
+function parseReference(ref: string): BibleReference {
+  const m = ref.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+  if (!m) return { book: ref.toUpperCase(), chapter: 1 };
+  return {
+    book: BOOK_CODE[m[1]] ?? m[1].toUpperCase(),
+    chapter: Number(m[2]),
+    verseStart: m[3] ? Number(m[3]) : undefined,
+    verseEnd: m[4] ? Number(m[4]) : m[3] ? Number(m[3]) : undefined,
+  };
+}
+const GRADE_LABEL: Record<RecallGrade, string> = { errei: 'Errei', dificil: 'Difícil', bom: 'Bom', facil: 'Fácil' };
 
 type SpiritualSubView = 'escritura' | 'planos' | 'memoria' | 'oracao' | 'gratidao';
 type BreathPhase = 'inspira' | 'retém1' | 'expira' | 'retém2';
@@ -43,7 +63,25 @@ export function SpiritualContainer() {
   const [intentions, setIntentions] = useState(PRAYER_INTENTIONS);
 
   // Estados do Diário de Gratidão
-  const [gratitudeEntries, setGratitudeEntries] = useState(GRATITUDE_ENTRIES);
+  const { os, version } = usePersonalOS();
+  const demo = useDemoMode();
+  const gratitudeEntries = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    for (const g of os.spiritual.gratitude()) {
+      const list = groups.get(g.date) ?? [];
+      list.push(g.content);
+      groups.set(g.date, list);
+    }
+    const todayKey = os.now().slice(0, 10);
+    const real = Array.from(groups.entries()).map(([date, motives]) => ({
+      id: `real-${date}`,
+      date: date === todayKey ? 'Hoje' : `${date.slice(8, 10)}/${date.slice(5, 7)}`,
+      motives,
+      isExample: false,
+    }));
+    return [...real, ...(demo ? GRATITUDE_ENTRIES.map((e) => ({ ...e, isExample: true })) : [])];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [os, version, demo]);
   const [newMotiveDraft, setNewMotiveDraft] = useState<string>('');
 
   const { triggerIslandNotification } = useShell();
@@ -143,17 +181,47 @@ export function SpiritualContainer() {
   // Adicionar motivo de gratidão
   const handleAddGratitude = useCallback(() => {
     if (!newMotiveDraft.trim()) return;
-    setGratitudeEntries((prev) => [
-      {
-        id: `grat-${Date.now()}`,
-        date: 'Hoje',
-        motives: [newMotiveDraft, ...(prev[0]?.motives || []).slice(0, 2)],
-      },
-      ...prev.slice(1),
-    ]);
+    os.spiritual.addGratitude(newMotiveDraft);
     setNewMotiveDraft('');
     playFeedback('success');
-  }, [newMotiveDraft]);
+  }, [newMotiveDraft, os]);
+
+  // Revisão de memória: SM-2 real do domínio espiritual (o intervalo mostrado é o calculado, não um texto fixo)
+  const handleReviewMemory = useCallback(
+    (grade: RecallGrade) => {
+      const card = os.spiritual.addMemoryCard(parseReference(activeMemoryCard.reference));
+      const next = os.spiritual.reviewMemory(card.id, grade);
+      const days = next.srs.intervalDays;
+      playFeedback(grade === 'facil' ? 'success' : 'press');
+      triggerIslandNotification({
+        title: `${GRADE_LABEL[grade]} · próxima revisão em ${days} ${days === 1 ? 'dia' : 'dias'}`,
+        tag: 'MEMÓRIA SRS',
+        description: `${activeMemoryCard.reference} volta em ${next.srs.dueDate.slice(8, 10)}/${next.srs.dueDate.slice(5, 7)}. Revisão salva.`,
+        badge: 'SALVO',
+        state: 'active',
+        durationMs: 3500,
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [os, triggerIslandNotification, selectedMemoryCardId]
+  );
+
+  // Concluir a oração: registra a prática (com o tempo real de silêncio) no Personal OS
+  const handleFinishPrayer = useCallback(() => {
+    const minutes = Math.max(1, Math.round(silenceSeconds / 60));
+    os.spiritual.recordPractice('oracao', 'Oração contemplativa', minutes);
+    setIsMeditating(false);
+    setSilenceSeconds(0);
+    playFeedback('success');
+    triggerIslandNotification({
+      title: 'Oração registrada',
+      tag: 'PRESENÇA',
+      description: `${minutes} min de oração salvos. Presença conta dias, sem cobrança de sequência.`,
+      badge: 'SALVO',
+      state: 'active',
+      durationMs: 3000,
+    });
+  }, [os, silenceSeconds, triggerIslandNotification]);
 
   return (
     <main
@@ -187,6 +255,18 @@ export function SpiritualContainer() {
               ? 'Oração Contemplativa & Silêncio'
               : 'Diário de Gratidão & Paz'}
           </h1>
+          <ProvenanceBadge
+            kind={subView === 'gratidao' ? (gratitudeEntries.some((e) => !e.isExample) ? 'real' : 'empty') : 'fixture'}
+            detail={
+              subView === 'gratidao'
+                ? 'registros salvos neste aparelho'
+                : subView === 'memoria'
+                ? 'versículos de exemplo · revisões salvas'
+                : subView === 'oracao'
+                ? 'intenções de exemplo · oração registrada é salva'
+                : 'passagens e planos de exemplo'
+            }
+          />
         </div>
 
         {/* Subnav interna de Espiritual */}
@@ -573,57 +653,23 @@ export function SpiritualContainer() {
                 Avalie sua retenção ao recitar mentalmente:
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {(['errei', 'dificil', 'bom'] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => handleReviewMemory(g)}
+                    className="px-3 py-1.5 rounded-xl bg-surface border border-border/70 hover:border-border text-xs font-mono font-medium text-text-secondary"
+                  >
+                    {GRADE_LABEL[g]}
+                  </button>
+                ))}
                 <button
                   type="button"
-                  onClick={() => {
-                    playFeedback('press');
-                    triggerIslandNotification({
-                      title: 'Revisão Agendada (1d)',
-                      tag: 'MEMÓRIA SRS',
-                      description: 'Versículo marcado para revisão amanhã.',
-                      badge: 'REVISÃO',
-                      state: 'active',
-                      durationMs: 3000,
-                    });
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-surface border border-border/70 hover:border-border text-xs font-mono font-medium text-text-secondary"
-                >
-                  Difícil (1d)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playFeedback('press');
-                    triggerIslandNotification({
-                      title: 'Revisão Agendada (3d)',
-                      tag: 'MEMÓRIA SRS',
-                      description: 'Retenção moderada. Revisão em 3 dias.',
-                      badge: 'BOM',
-                      state: 'active',
-                      durationMs: 3000,
-                    });
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-surface border border-border/70 hover:border-border text-xs font-mono font-medium text-text-secondary"
-                >
-                  Bom (3d)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playFeedback('success');
-                    triggerIslandNotification({
-                      title: 'Versículo Retido!',
-                      tag: 'MEMÓRIA SRS',
-                      description: 'Excelente fixação. Próxima revisão em 7 dias.',
-                      badge: 'RETIDO',
-                      state: 'active',
-                      durationMs: 3000,
-                    });
-                  }}
+                  onClick={() => handleReviewMemory('facil')}
                   className="px-4 py-1.5 rounded-xl bg-[#ADE4B5] hover:bg-[#ADE4B5]/90 text-[#1C2420] text-xs font-mono font-bold"
                 >
-                  Fácil (7d)
+                  Fácil
                 </button>
               </div>
             </div>
@@ -681,6 +727,15 @@ export function SpiritualContainer() {
               </span>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleFinishPrayer}
+            disabled={silenceSeconds < 10}
+            className="px-4 py-2 rounded-xl border border-[#ADE4B5]/40 text-[#ADE4B5] text-xs font-mono font-semibold disabled:opacity-40"
+          >
+            Concluir e registrar oração
+          </button>
 
           {/* Intenções de Oração do Dia */}
           <div className="w-full max-w-xl text-left bg-[#18201D] border border-border/40 p-5 rounded-2xl space-y-3">
@@ -763,13 +818,19 @@ export function SpiritualContainer() {
 
           {/* Lista de Registros Preservados */}
           <div className="space-y-4">
+            {gratitudeEntries.length === 0 && (
+              <p className="text-[13px] text-text-muted" data-testid="gratitude-empty">
+                Nenhum registro ainda. O que você escrever acima fica salvo neste aparelho.
+              </p>
+            )}
             {gratitudeEntries.map((entry) => (
               <div
                 key={entry.id}
                 className="p-5 rounded-2xl bg-surface border border-border/70 shadow-calm space-y-3"
               >
-                <span className="text-[11px] font-mono font-bold text-text-muted uppercase block">
+                <span className="text-[11px] font-mono font-bold text-text-muted uppercase flex items-center gap-2">
                   {entry.date}
+                  {entry.isExample && <ProvenanceBadge kind="fixture" />}
                 </span>
 
                 <div className="space-y-2">

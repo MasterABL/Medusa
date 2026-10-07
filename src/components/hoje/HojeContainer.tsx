@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { hojeFixtureItems } from '@/fixtures/hojeFixtures';
 import { useAgenda } from '@/context/AgendaContext';
 import { useShell } from '@/context/ShellContext';
-import { formatDateISO } from '@/components/agenda/agendaFixtures';
-import { AgendaItem } from '@/types/agenda';
+import { useDemoMode } from '@/lib/dataMode';
+import { ProvenanceBadge } from '@/components/ui/ProvenanceBadge';
+import { useHojeData } from './useHojeData';
+import { EXECUTION_STATE_LABEL } from '@/foundation/actions/executors';
 import {
   groupHojeItems,
   formatMinutes,
@@ -15,14 +16,7 @@ import {
   HojeCategoria,
 } from '@/lib/hojeFoundation';
 import { playFeedback } from '@/lib/audioFeedback';
-import {
-  INITIAL_HOJE_TASKS,
-  INITIAL_HOJE_NOTICES,
-  INITIAL_HOJE_HISTORY,
-  HojeTask,
-  HojeGuardianNotice,
-  HojeHistoryEntry,
-} from './hojeTasksFixtures';
+import type { HojeGuardianNotice } from './hojeTasksFixtures';
 
 type HojeSubView = 'agora' | 'contexto' | 'historico';
 type TemporalWindow = 'agora' | 'proximo' | 'tarde' | 'noite' | 'amanha';
@@ -45,106 +39,65 @@ function useNowMinutes(): number {
   return now;
 }
 
-function mapAgendaToHojeItem(it: AgendaItem): HojeItem {
-  let cat: HojeCategoria = 'pessoal';
-  if (it.domain === 'education') cat = 'estudo';
-  else if (it.domain === 'work') cat = 'trabalho';
-  else if (it.domain === 'body') cat = 'saude';
-
-  let startMinutes = 8 * 60;
-  if (it.startTime) {
-    const [h, m] = it.startTime.split(':').map(Number);
-    if (!isNaN(h) && !isNaN(m)) startMinutes = h * 60 + m;
-  }
-  return {
-    id: it.id,
-    title: it.title,
-    category: cat,
-    startMinutes,
-    durationMinutes: it.durationMinutes || 60,
-  };
-}
-
 export function HojeContainer() {
   const nowMinutes = useNowMinutes();
   const { items: agendaItems } = useAgenda();
   const { setActiveRoute, triggerIslandNotification } = useShell();
+  const demo = useDemoMode();
+  const {
+    os,
+    ready,
+    todayItems,
+    provenance,
+    missingSources,
+    todayState,
+    completedItemIds,
+    tasks,
+    notices,
+    history,
+    recommendation,
+    windows,
+    completeBlock,
+    projects,
+  } = useHojeData(demo);
 
   // Subnavegação interna do domínio Hoje
   const [subView, setSubView] = useState<HojeSubView>('agora');
   const [temporalWindow, setTemporalWindow] = useState<TemporalWindow>('agora');
 
-  // Estados interativos da Matriz de Atenção
+  // Estados de interação puramente visual (seleção) — o resto vem do Personal OS e é persistido
   const [selectedRibbonItemId, setSelectedRibbonItemId] = useState<string | null>(null);
-  const [completedItemIds, setCompletedItemIds] = useState<Set<string>>(new Set());
-  const [lastCompletedItem, setLastCompletedItem] = useState<HojeItem | null>(null);
-  const [promotedIndexOffset, setPromotedIndexOffset] = useState<number>(0);
-  const [extendedMinutes, setExtendedMinutes] = useState<number>(0);
-  const [recommendationDismissed, setRecommendationDismissed] = useState<boolean>(false);
-  const [telemedConfirmed, setTelemedConfirmed] = useState<boolean>(false);
-
-  // Estados do Contexto / Tarefas de Hoje
-  const [tasks, setTasks] = useState<HojeTask[]>(INITIAL_HOJE_TASKS);
+  const [lastCompletedId, setLastCompletedId] = useState<string | null>(null);
   const [taskFilter, setTaskFilter] = useState<'all' | 'overdue' | 'today' | 'completed'>('all');
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDue, setNewTaskDue] = useState('');
+  const [newTaskMinutes, setNewTaskMinutes] = useState('');
+  const [newTaskProject, setNewTaskProject] = useState('');
+  const [newTaskDependsOn, setNewTaskDependsOn] = useState('');
+  const [newProjectTitle, setNewProjectTitle] = useState('');
+  const [newProjectObjective, setNewProjectObjective] = useState('');
+  const [newProjectDue, setNewProjectDue] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
 
-  // Estados das Ações do Guardian em Hoje
-  const [guardianNotices, setGuardianNotices] = useState<HojeGuardianNotice[]>(INITIAL_HOJE_NOTICES);
-
-  // Histórico realizado do dia
-  const [historyEntries, setHistoryEntries] = useState<HojeHistoryEntry[]>(INITIAL_HOJE_HISTORY);
-
-  const todayStr = useMemo(() => formatDateISO(new Date()), []);
-
-  const todayItems = useMemo(() => {
-    const rawToday = agendaItems.filter((it) => it.date === todayStr);
-    const mapped = rawToday.map(mapAgendaToHojeItem);
-    if (mapped.length >= 2) {
-      return mapped.sort((a, b) => a.startMinutes - b.startMinutes);
-    }
-    // Garante que o dia sempre tenha no mínimo dois blocos consecutivos para a Central Operacional
-    const existingTitles = new Set(mapped.map((m) => m.title));
-    const fillers = hojeFixtureItems.filter((f) => !existingTitles.has(f.title));
-    const combined = [...mapped, ...fillers.slice(0, Math.max(2, 4 - mapped.length))];
-    return combined.sort((a, b) => a.startMinutes - b.startMinutes);
-  }, [agendaItems, todayStr]);
-
-  const { agora: baseAgora, proximo: baseProximo, depois, maisTarde } = useMemo(
-    () => groupHojeItems(todayItems, nowMinutes),
-    [todayItems, nowMinutes]
-  );
-
-  // Determina a fila ordenada de blocos da janela temporal a partir de baseAgora
+  // Fila da janela: compromissos REAIS de hoje a partir do que está acontecendo agora.
+  // Sem itens hoje não há fila — e a tela diz isso (nada de bloco inventado para preencher).
+  const { agora: baseAgora } = useMemo(() => groupHojeItems(todayItems, nowMinutes), [todayItems, nowMinutes]);
   const windowQueue = useMemo(() => {
-    if (!todayItems || todayItems.length === 0) return [];
-    const agoraIdx = baseAgora ? todayItems.findIndex((it) => it.id === baseAgora.id) : 0;
-    const startIdx = agoraIdx >= 0 ? agoraIdx : 0;
-    const slice = todayItems.slice(startIdx);
-    if (slice.length >= 2) return slice;
-    if (slice.length === 1) {
-      const fallback: HojeItem = {
-        id: `${slice[0].id}-next-seq`,
-        title: 'Revisão e Encerramento Diário',
-        category: 'pessoal',
-        startMinutes: slice[0].startMinutes + slice[0].durationMinutes,
-        durationMinutes: 45,
-      };
-      return [slice[0], fallback];
-    }
-    return hojeFixtureItems.slice(0, 2);
-  }, [todayItems, baseAgora]);
+    if (todayItems.length === 0) return [];
+    const agoraIdx = baseAgora ? todayItems.findIndex((it) => it.id === baseAgora.id) : -1;
+    if (agoraIdx >= 0) return todayItems.slice(agoraIdx);
+    return todayItems.filter((it) => it.startMinutes + it.durationMinutes > nowMinutes);
+  }, [todayItems, baseAgora, nowMinutes]);
 
-  const activeItem: HojeItem | null = useMemo(() => {
-    const uncompleted = windowQueue.filter((it) => !completedItemIds.has(it.id));
-    return uncompleted[0] || null;
-  }, [windowQueue, completedItemIds]);
-
-  const nextItem: HojeItem | null = useMemo(() => {
-    const uncompleted = windowQueue.filter((it) => !completedItemIds.has(it.id));
-    return uncompleted[1] || null;
-  }, [windowQueue, completedItemIds]);
-
-  const isCurrentCompleted = false;
+  const activeItem: HojeItem | null = useMemo(() => windowQueue.filter((it) => !completedItemIds.has(it.id))[0] || null, [windowQueue, completedItemIds]);
+  const nextItem: HojeItem | null = useMemo(() => windowQueue.filter((it) => !completedItemIds.has(it.id))[1] || null, [windowQueue, completedItemIds]);
+  const lastCompletedItem: HojeItem | null = useMemo(() => {
+    const id = lastCompletedId ?? todayState.completedIds[todayState.completedIds.length - 1];
+    return todayItems.find((it) => it.id === id) ?? null;
+  }, [lastCompletedId, todayState, todayItems]);
+  const extendedMinutes = activeItem ? todayState.extendedMinutes[activeItem.id] ?? 0 : 0;
+  const telemedConfirmed = (id?: string) => !!id && todayState.checkins.includes(id);
+  const allTodayDone = todayItems.length > 0 && todayItems.every((it) => completedItemIds.has(it.id));
 
   // Cálculo de progresso do item atual
   const progressPercent = useMemo(() => {
@@ -162,133 +115,195 @@ export function HojeContainer() {
     return Math.max(0, total - elapsed);
   }, [activeItem, nowMinutes, extendedMinutes]);
 
-  // Checagem de telemedicina contextual
+  // Bloco que já passou do fim mas não foi marcado: é pendência, não "foco em execução".
+  const activeEndedMinutesAgo = useMemo(() => {
+    if (!activeItem) return 0;
+    const end = activeItem.startMinutes + activeItem.durationMinutes + extendedMinutes;
+    return nowMinutes >= end ? nowMinutes - end : 0;
+  }, [activeItem, nowMinutes, extendedMinutes]);
+  const activeEnded = !!activeItem && activeItem.startMinutes + activeItem.durationMinutes + extendedMinutes <= nowMinutes;
+
+  // Consulta/telemedicina de hoje (para o check-in)
+  const todayStr = os.now().slice(0, 10);
   const telemedicineEvent = useMemo(() => {
     return agendaItems.find((it) => {
-      const isToday = it.date === todayStr;
       const titleLower = it.title.toLowerCase();
       return (
-        isToday &&
-        (titleLower.includes('telemedicina') ||
-          titleLower.includes('consulta') ||
-          titleLower.includes('médico') ||
-          titleLower.includes('medico') ||
-          titleLower.includes('exame'))
+        it.date === todayStr &&
+        (titleLower.includes('telemedicina') || titleLower.includes('consulta') || titleLower.includes('médico') || titleLower.includes('medico') || titleLower.includes('exame'))
       );
     });
   }, [agendaItems, todayStr]);
 
-  // Ações interativas no Agora
+  // Concluir: persistido (recarregar não "desconclui")
   const handleCompleteActive = useCallback(() => {
     if (!activeItem) return;
     const currentCompleted = activeItem;
-    setLastCompletedItem(currentCompleted);
-    setCompletedItemIds((prev) => {
-      const next = new Set(prev);
-      next.add(currentCompleted.id);
-      return next;
-    });
-
-    // Registra imediatamente no histórico do dia
-    setHistoryEntries((prev) => [
-      {
-        id: `hist-${Date.now()}`,
-        title: currentCompleted.title,
-        category: currentCompleted.category,
-        timeLabel: `${formatMinutes(currentCompleted.startMinutes)} — ${formatMinutes(nowMinutes)}`,
-        status: 'completed',
-        durationMinutes: currentCompleted.durationMinutes + extendedMinutes,
-        resultSummary: 'Concluído na sessão operacional do Hoje.',
-      },
-      ...prev,
-    ]);
-
-    setExtendedMinutes(0);
+    completeBlock(currentCompleted, extendedMinutes);
+    setLastCompletedId(currentCompleted.id);
     playFeedback('action');
-
     triggerIslandNotification({
       title: 'Bloco Concluído!',
       tag: 'MATRIZ DE ATENÇÃO',
       description: `${currentCompleted.title} foi concluído. ${nextItem ? `Próximo: ${nextItem.title}` : 'Sem mais blocos na janela.'}`,
-      badge: 'PROMOVIDO',
+      badge: 'SALVO',
       state: 'active',
       durationMs: 4000,
     });
-  }, [activeItem, nextItem, nowMinutes, extendedMinutes, triggerIslandNotification]);
+  }, [activeItem, nextItem, extendedMinutes, completeBlock, triggerIslandNotification]);
 
   const handleExtendActive = useCallback(() => {
-    setExtendedMinutes((prev) => prev + 15);
+    if (!activeItem) return;
+    os.extendBlock(activeItem.id, 15);
     playFeedback('press');
-  }, []);
+  }, [activeItem, os]);
 
   const handleConfirmTelemed = useCallback(() => {
-    setTelemedConfirmed(true);
+    if (telemedicineEvent) os.confirmCheckin(telemedicineEvent.id);
     playFeedback('success');
+    const link = telemedicineEvent?.location?.startsWith('http') ? telemedicineEvent.location : undefined;
     triggerIslandNotification({
       title: 'Check-in Confirmado',
-      tag: 'TELEMEDICINA T-5',
-      description: 'Presença confirmada. Sala virtual pronta para atendimento.',
-      badge: 'PRONTO',
+      tag: 'CONSULTA',
+      description: link ? 'Presença confirmada (salva neste navegador). O link da sala está no compromisso.' : 'Presença confirmada e salva. Este compromisso não tem link de sala cadastrado.',
+      badge: 'CONFIRMADO',
       state: 'active',
       durationMs: 4500,
-      actionLabel: 'Abrir Sala',
-      onAction: () => {
-        const link = telemedicineEvent?.location?.startsWith('http')
-          ? telemedicineEvent.location
-          : undefined;
-        if (link) {
-          window.open(link, '_blank');
-        }
-      },
+      ...(link ? { actionLabel: 'Abrir Sala', onAction: () => window.open(link, '_blank') } : {}),
     });
-  }, [telemedicineEvent, triggerIslandNotification]);
+  }, [telemedicineEvent, os, triggerIslandNotification]);
 
-  // Ações nas tarefas
-  const handleToggleTask = useCallback((taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        const nextStatus = t.status === 'completed' ? 'pending' : 'completed';
-        playFeedback(nextStatus === 'completed' ? 'action' : 'press');
-        return {
-          ...t,
-          status: nextStatus,
-        };
-      })
-    );
-  }, []);
-
-  // Ações nos avisos do Guardian
-  const handleResolveNotice = useCallback(
-    (noticeId: string, actionKind: string) => {
-      setGuardianNotices((prev) =>
-        prev.map((n) => (n.id === noticeId ? { ...n, status: 'resolved' as const } : n))
-      );
-      playFeedback('success');
-
-      if (actionKind === 'open_telemed') {
-        handleConfirmTelemed();
-      } else if (actionKind === 'approve_dispute') {
-        triggerIslandNotification({
-          title: 'Estorno L2 Autorizado',
-          tag: 'GUARDIAN ACTION',
-          description: 'Contestação de R$ 89,90 enviada para a operadora do cartão.',
-          badge: 'RESOLVIDO',
-          state: 'active',
-          durationMs: 4000,
-        });
-      } else if (actionKind === 'review_deadline') {
-        setActiveRoute('educacao');
+  // Tarefas reais (Personal OS). Exemplos (modo demo) não são editáveis.
+  const handleToggleTask = useCallback(
+    (taskId: string) => {
+      const t = tasks.find((x) => x.id === taskId);
+      if (!t || t.isExample) return;
+      try {
+        os.setTaskStatus(taskId, t.status === 'completed' ? 'todo' : 'done');
+        playFeedback(t.status === 'completed' ? 'press' : 'action');
+      } catch (err) {
+        playFeedback('error');
+        triggerIslandNotification({ title: 'Ainda não dá para concluir', tag: 'TAREFAS', description: err instanceof Error ? err.message : String(err), state: 'attention', durationMs: 4500 });
       }
     },
-    [handleConfirmTelemed, triggerIslandNotification, setActiveRoute]
+    [tasks, os, triggerIslandNotification]
   );
+
+  const handleTaskStatus = useCallback(
+    (taskId: string, to: 'blocked' | 'cancelled' | 'todo') => {
+      try {
+        if (to === 'blocked') {
+          const reason = typeof window !== 'undefined' ? window.prompt('Por que esta tarefa está bloqueada?') : null;
+          if (!reason?.trim()) return;
+          os.setTaskStatus(taskId, 'blocked', { reason });
+        } else {
+          os.setTaskStatus(taskId, to);
+        }
+        playFeedback('press');
+      } catch (err) {
+        triggerIslandNotification({ title: 'Não foi possível', tag: 'TAREFAS', description: err instanceof Error ? err.message : String(err), state: 'attention', durationMs: 4000 });
+      }
+    },
+    [os, triggerIslandNotification]
+  );
+
+  const handleCreateTask = useCallback(() => {
+    setFormError(null);
+    try {
+      os.createTask({
+        title: newTaskTitle,
+        dueAt: newTaskDue || undefined,
+        estimatedMinutes: newTaskMinutes ? Number(newTaskMinutes) : undefined,
+        projectId: newTaskProject || undefined,
+        dependsOn: newTaskDependsOn ? [newTaskDependsOn] : [],
+        domain: newTaskProject ? os.projects().find((p) => p.id === newTaskProject)?.relatedDomains[0] : undefined,
+      });
+      setNewTaskTitle('');
+      setNewTaskDue('');
+      setNewTaskMinutes('');
+      setNewTaskDependsOn('');
+      playFeedback('success');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : String(err));
+      playFeedback('error');
+    }
+  }, [os, newTaskTitle, newTaskDue, newTaskMinutes, newTaskProject, newTaskDependsOn]);
+
+  const handleCreateProject = useCallback(() => {
+    setFormError(null);
+    try {
+      os.createProject({ title: newProjectTitle, objective: newProjectObjective || newProjectTitle, deadline: newProjectDue ? { label: 'Entrega', dueAt: newProjectDue } : undefined });
+      setNewProjectTitle('');
+      setNewProjectObjective('');
+      setNewProjectDue('');
+      playFeedback('success');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : String(err));
+      playFeedback('error');
+    }
+  }, [os, newProjectTitle, newProjectObjective, newProjectDue]);
+
+  // Avisos do Guardian: aprovar pelo Action Center real; a mensagem diz o que DE FATO aconteceu
+  const handleResolveNotice = useCallback(
+    (notice: HojeGuardianNotice) => {
+      if (notice.isExample) {
+        os.dismissNotice(notice.id);
+        triggerIslandNotification({ title: 'Exemplo', tag: 'DADOS DE EXEMPLO', description: 'Aviso de demonstração — nenhuma ação real foi executada.', badge: 'EXEMPLO', state: 'active', durationMs: 3000 });
+        return;
+      }
+      if (notice.actionKind === 'approve_action' && notice.actionId) {
+        try {
+          const r = os.approve(notice.actionId);
+          playFeedback(r.state === 'executada' ? 'success' : 'action');
+          triggerIslandNotification({
+            title: EXECUTION_STATE_LABEL[r.state],
+            tag: 'GUARDIAN',
+            description: r.state === 'aprovada_sem_executor' ? 'Aprovação registrada na auditoria. Nada foi executado: não há executor conectado para esta ação.' : r.report?.evidence ?? r.report?.error ?? 'Decisão registrada.',
+            badge: r.state === 'executada' ? 'EXECUTADO' : r.state === 'aprovada_sem_executor' ? 'SEM EXECUTOR' : 'REGISTRADO',
+            state: r.state === 'falhou' ? 'error' : 'active',
+            durationMs: 5000,
+            actionLabel: 'Ver no Guardian',
+            onAction: () => setActiveRoute('guardian'),
+          });
+        } catch (err) {
+          triggerIslandNotification({ title: 'Não foi possível aprovar', tag: 'GUARDIAN', description: err instanceof Error ? err.message : String(err), state: 'error', durationMs: 4500 });
+        }
+      } else if (notice.actionKind === 'open_telemed') {
+        handleConfirmTelemed();
+      } else if (notice.actionKind === 'open_tasks') {
+        setSubView('contexto');
+      } else if (notice.actionKind === 'open_agenda') {
+        setActiveRoute('agenda');
+      }
+    },
+    [os, handleConfirmTelemed, triggerIslandNotification, setActiveRoute]
+  );
+
+  const handleAcceptRecommendation = useCallback(() => {
+    if (!recommendation) return;
+    try {
+      const r = os.acceptRecommendation(recommendation);
+      playFeedback(r.state === 'executada' ? 'success' : 'action');
+      triggerIslandNotification({
+        title: r.state === 'executada' ? 'Bloco reservado na Agenda' : EXECUTION_STATE_LABEL[r.state],
+        tag: 'RECOMENDAÇÃO · GUARDIAN',
+        description: r.state === 'executada' ? `${recommendation.durationMinutes} min para "${recommendation.title}" às ${recommendation.window.startIso.slice(11, 16)}.` : r.report?.error ?? 'Decisão registrada.',
+        badge: r.state === 'executada' ? 'NA AGENDA' : 'REGISTRADO',
+        state: 'active',
+        durationMs: 4500,
+        actionLabel: 'Ver na Agenda',
+        onAction: () => setActiveRoute('agenda'),
+      });
+    } catch (err) {
+      triggerIslandNotification({ title: 'Não foi possível reservar', tag: 'RECOMENDAÇÃO', description: err instanceof Error ? err.message : String(err), state: 'error', durationMs: 4000 });
+    }
+  }, [recommendation, os, triggerIslandNotification, setActiveRoute]);
 
   // Filtragem de tarefas
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       if (taskFilter === 'overdue') return t.isOverdue && t.status !== 'completed';
-      if (taskFilter === 'today') return !t.isOverdue && t.status !== 'completed';
+      if (taskFilter === 'today') return !t.isOverdue && t.status !== 'completed' && t.status !== 'cancelled';
       if (taskFilter === 'completed') return t.status === 'completed';
       return true;
     });
@@ -296,14 +311,9 @@ export function HojeContainer() {
 
   // Contadores analíticos do dia
   const completedTasksCount = useMemo(() => tasks.filter((t) => t.status === 'completed').length, [tasks]);
-  const overdueTasksCount = useMemo(
-    () => tasks.filter((t) => t.isOverdue && t.status !== 'completed').length,
-    [tasks]
-  );
-  const completedBlocksCount = useMemo(
-    () => historyEntries.filter((h) => h.status === 'completed').length,
-    [historyEntries]
-  );
+  const overdueTasksCount = useMemo(() => tasks.filter((t) => t.isOverdue && t.status !== 'completed').length, [tasks]);
+  const completedBlocksCount = useMemo(() => history.filter((h) => h.status === 'completed').length, [history]);
+  const guardianNotices = notices;
 
   // Formatação do dia
   const dateFormatted = useMemo(() => {
@@ -330,8 +340,22 @@ export function HojeContainer() {
             </span>
             <span className="text-text-muted/40">•</span>
             <span className="text-[11px] font-mono text-text-secondary tabular-nums">
-              {formatMinutes(nowMinutes)}
+              {ready ? formatMinutes(nowMinutes) : '--:--'}
             </span>
+            {ready && (
+              <ProvenanceBadge
+                kind={provenance}
+                detail={
+                  provenance === 'empty'
+                    ? 'nada na Agenda hoje'
+                    : provenance === 'fixture'
+                    ? 'modo demonstração'
+                    : provenance === 'partial'
+                    ? `${missingSources.length} fonte(s) não conectada(s)`
+                    : 'Agenda e tarefas reais'
+                }
+              />
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary capitalize">
             {dateFormatted}
@@ -429,6 +453,7 @@ export function HojeContainer() {
                         <span className="text-[10px] font-mono font-bold text-[#71DBD2]">
                           {notice.autonomyLevel}
                         </span>
+                        {notice.isExample && <ProvenanceBadge kind="fixture" />}
                       </div>
                       <h4 className="text-[13px] font-bold text-text-primary truncate">
                         {notice.title}
@@ -442,18 +467,14 @@ export function HojeContainer() {
                   <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/40">
                     <button
                       type="button"
-                      onClick={() =>
-                        setGuardianNotices((prev) =>
-                          prev.map((n) => (n.id === notice.id ? { ...n, status: 'dismissed' } : n))
-                        )
-                      }
+                      onClick={() => os.dismissNotice(notice.id)}
                       className="px-2.5 py-1 text-[11px] font-mono text-text-muted hover:text-text-primary transition-colors"
                     >
                       Dispensar
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleResolveNotice(notice.id, notice.actionKind)}
+                      onClick={() => handleResolveNotice(notice)}
                       className="px-3.5 py-1.5 rounded-xl bg-[#71DBD2] hover:bg-[#71DBD2]/90 text-[#1C2420] text-[12px] font-semibold transition-transform active:scale-95 shadow-subtle flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[15px]">check</span>
@@ -475,11 +496,11 @@ export function HojeContainer() {
           <section aria-label="Compromisso Atual" className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
-                Agora (Foco em Execução)
+                {activeEnded ? 'Pendente de conclusão' : 'Agora (Foco em Execução)'}
               </span>
               {activeItem && (
                 <span className="text-[11px] font-mono text-text-muted tabular-nums">
-                  {minutesRemaining} min restantes
+                  {activeEnded ? `Encerrou há ${activeEndedMinutesAgo} min · marque como concluído` : `${minutesRemaining} min restantes`}
                 </span>
               )}
             </div>
@@ -595,6 +616,23 @@ export function HojeContainer() {
                   </div>
                 </div>
               </div>
+            ) : todayItems.length === 0 ? (
+              /* ESTADO VAZIO VERDADEIRO: nada na Agenda hoje — nunca preenchido com blocos inventados */
+              <div data-testid="today-empty-state" className="p-6 sm:p-8 rounded-2xl bg-surface border border-border/70 shadow-calm text-center space-y-3">
+                <span className="material-symbols-outlined text-3xl text-text-muted">event_available</span>
+                <h2 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight">Nenhum compromisso na sua Agenda hoje</h2>
+                <p className="text-[13px] text-text-secondary max-w-md mx-auto">
+                  {ready ? 'O Hoje mostra só o que existe de verdade. Adicione compromissos na Agenda ou tarefas aqui e o Medusa organiza o dia.' : 'Carregando o que está salvo neste navegador…'}
+                </p>
+                <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+                  <button type="button" onClick={() => setActiveRoute('agenda')} className="px-4 py-2 rounded-xl bg-[#71DBD2] hover:bg-[#71DBD2]/90 text-[#1C2420] text-[12px] font-semibold shadow-subtle">
+                    Abrir Agenda
+                  </button>
+                  <button type="button" onClick={() => setSubView('contexto')} className="px-4 py-2 rounded-xl bg-surface border border-border/80 text-[12px] font-medium text-text-primary shadow-subtle">
+                    Tarefas ({tasks.filter((t) => t.status !== 'completed' && t.status !== 'cancelled').length})
+                  </button>
+                </div>
+              </div>
             ) : (
               /* ESTADO CALMO: QUANDO NÃO HÁ PRÓXIMO BLOCO, O BLOCO RECÉM-CONCLUÍDO PERMANECE REPRESENTADO E HÁ TRANSIÇÃO EXPLÍCITA */
               <div className="flex flex-col gap-4 animate-in fade-in duration-300">
@@ -647,15 +685,16 @@ export function HojeContainer() {
                     <div className="flex items-center justify-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#71DBD2] animate-pulse" />
                       <span className="text-[11px] font-mono uppercase tracking-widest text-[#2D6A5D] font-bold">
-                        Transição Concluída · Estado Calmo
+                        {allTodayDone ? 'Transição Concluída · Estado Calmo' : 'Sem mais compromissos hoje'}
                       </span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
-                      Janela do Dia Concluída
+                      {allTodayDone ? 'Janela do Dia Concluída' : 'Nada mais agendado para hoje'}
                     </h2>
                     <p className="text-[13px] text-text-secondary leading-relaxed">
-                      Todos os blocos de compromisso programados para esta janela foram cumpridos com sucesso.
-                      O ritmo operacional entra em descanso e desaceleração tranquila.
+                      {allTodayDone
+                        ? 'Todos os blocos de hoje foram marcados como concluídos.'
+                        : `${completedItemIds.size} de ${todayItems.length} bloco(s) marcado(s) como concluído(s). Os demais já passaram sem confirmação.`}
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
@@ -857,19 +896,19 @@ export function HojeContainer() {
             {/* Descrição contextual da janela selecionada */}
             <div className="p-4 rounded-xl bg-surface border border-border/60 text-[12px] text-text-secondary flex items-center justify-between">
               {temporalWindow === 'agora' && (
-                <span>Janela ativa de foco. Energia recomendada: execução pura sem interrupções.</span>
+                <span>{activeItem ? (activeEnded ? `Pendente: ${activeItem.title} encerrou há ${activeEndedMinutesAgo} min e não foi marcado como concluído.` : `Agora: ${activeItem.title} (${minutesRemaining} min restantes).`) : 'Nenhum compromisso em andamento agora.'}</span>
               )}
               {temporalWindow === 'proximo' && (
-                <span>Transição iminente. Prepare o ambiente para o próximo bloco agendado.</span>
+                <span>{nextItem ? `Próximo: ${nextItem.title} às ${formatMinutes(nextItem.startMinutes)}.` : 'Sem próximo compromisso hoje.'}</span>
               )}
               {temporalWindow === 'tarde' && (
-                <span>Janela da tarde: 3 blocos previstos. Foco moderado e pausa para café.</span>
+                <span>{windows.tarde}</span>
               )}
               {temporalWindow === 'noite' && (
-                <span>Janela noturna: Treino de Força B + Descompressão e Prática Espiritual.</span>
+                <span>{windows.noite}</span>
               )}
               {temporalWindow === 'amanha' && (
-                <span>Amanhã: 4 compromissos na Agenda + Entrega do Projeto Integrado da Faculdade.</span>
+                <span>{windows.amanha}</span>
               )}
               <button
                 type="button"
@@ -882,8 +921,8 @@ export function HojeContainer() {
             </div>
           </section>
 
-          {/* E. RECOMENDAÇÃO MEDUSA (PERSONAL OS) */}
-          {!recommendationDismissed && (
+          {/* E. RECOMENDAÇÃO MEDUSA (PERSONAL OS) — Recommendation Engine sobre tarefas reais e tempo livre real */}
+          {recommendation && (
             <section aria-label="Recomendação Medusa" className="flex flex-col gap-3">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
                 Recomendação Medusa · Personal OS
@@ -896,10 +935,10 @@ export function HojeContainer() {
                   </div>
                   <div className="space-y-0.5">
                     <h4 className="text-[14px] font-bold text-text-primary">
-                      Janela de transição pós-trabalho
+                      {recommendation.title} · {recommendation.durationMinutes} min {recommendation.timing === 'agora' ? 'agora' : `às ${recommendation.window.startIso.slice(11, 16)}`}
                     </h4>
                     <p className="text-[12px] text-text-secondary">
-                      Reserve 15 minutos de descompressão antes de iniciar o treino ou a prática espiritual para restaurar a atenção.
+                      {recommendation.reasons.map((r) => r.detail).join(' · ')}
                     </p>
                   </div>
                 </div>
@@ -907,21 +946,18 @@ export function HojeContainer() {
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
                     type="button"
-                    onClick={() => setRecommendationDismissed(true)}
+                    onClick={() => os.dismissNotice(`rec:${recommendation.id}`)}
                     className="px-3 py-1.5 rounded-xl text-[12px] font-medium text-text-muted hover:text-text-primary transition-colors"
                   >
                     Dispensar
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveRoute('corpo');
-                      playFeedback('press');
-                    }}
+                    onClick={handleAcceptRecommendation}
                     className="px-3.5 py-1.5 rounded-xl bg-[#71DBD2] hover:bg-[#71DBD2]/90 text-[#1C2420] text-[12px] font-semibold transition-colors shadow-subtle flex items-center gap-1"
                   >
-                    <span>Ver Treino</span>
-                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    <span>Reservar na Agenda</span>
+                    <span className="material-symbols-outlined text-[14px]">event_available</span>
                   </button>
                 </div>
               </div>
@@ -972,12 +1008,69 @@ export function HojeContainer() {
             </div>
           </div>
 
+          {/* Nova tarefa (Personal OS · Tasks) — salva neste navegador */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreateTask();
+            }}
+            className="p-4 rounded-2xl bg-surface border border-border/70 shadow-subtle flex flex-col gap-2"
+            aria-label="Nova tarefa"
+          >
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                placeholder="Nova tarefa…"
+                aria-label="Título da tarefa"
+                className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-surface-secondary/50 border border-border/60 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              />
+              <button type="submit" disabled={!newTaskTitle.trim()} className="px-4 py-2 rounded-xl bg-[#71DBD2] hover:bg-[#71DBD2]/90 disabled:opacity-50 text-[#1C2420] text-[12px] font-semibold shadow-subtle">
+                Adicionar
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+              <label className="flex flex-col gap-0.5 text-text-muted">
+                Prazo
+                <input type="datetime-local" value={newTaskDue} onChange={(e) => setNewTaskDue(e.target.value)} className="px-2 py-1.5 rounded-lg bg-surface-secondary/50 border border-border/60 text-text-primary" />
+              </label>
+              <label className="flex flex-col gap-0.5 text-text-muted">
+                Minutos
+                <input type="number" min={1} value={newTaskMinutes} onChange={(e) => setNewTaskMinutes(e.target.value)} placeholder="—" className="px-2 py-1.5 rounded-lg bg-surface-secondary/50 border border-border/60 text-text-primary" />
+              </label>
+              <label className="flex flex-col gap-0.5 text-text-muted">
+                Projeto
+                <select value={newTaskProject} onChange={(e) => setNewTaskProject(e.target.value)} className="px-2 py-1.5 rounded-lg bg-surface-secondary/50 border border-border/60 text-text-primary">
+                  <option value="">Nenhum</option>
+                  {projects.map((p) => (
+                    <option key={p.project.id} value={p.project.id}>
+                      {p.project.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-0.5 text-text-muted">
+                Depende de
+                <select value={newTaskDependsOn} onChange={(e) => setNewTaskDependsOn(e.target.value)} className="px-2 py-1.5 rounded-lg bg-surface-secondary/50 border border-border/60 text-text-primary">
+                  <option value="">Nada</option>
+                  {tasks
+                    .filter((t) => !t.isExample && t.status !== 'completed' && t.status !== 'cancelled')
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+            {formError && <p role="alert" className="text-[11px] text-[#C45B5B]">{formError}</p>}
+          </form>
+
           {/* Lista de Tarefas Interativas */}
           <div className="flex flex-col gap-3">
             {filteredTasks.length > 0 ? (
               filteredTasks.map((task) => {
                 const isCompleted = task.status === 'completed';
-                const isSelected = selectedTaskId === task.id;
 
                 return (
                   <div
@@ -1037,8 +1130,31 @@ export function HojeContainer() {
                           >
                             {task.title}
                           </h3>
+                          {task.blockedReason && !isCompleted && (
+                            <p className="text-[11px] text-text-muted">{task.status === 'delayed' ? `Bloqueada: ${task.blockedReason}` : `Ainda não executável — ${task.blockedReason}`}</p>
+                          )}
+                          {task.isExample && <ProvenanceBadge kind="fixture" />}
                         </div>
                       </div>
+
+                      {!task.isExample && (
+                        <div className="flex items-center gap-1 flex-shrink-0 text-[11px] font-mono">
+                          {task.status === 'delayed' || task.status === 'cancelled' ? (
+                            <button type="button" onClick={() => handleTaskStatus(task.id, 'todo')} className="px-2 py-1 rounded-lg text-text-secondary hover:text-text-primary">
+                              Retomar
+                            </button>
+                          ) : !isCompleted ? (
+                            <>
+                              <button type="button" onClick={() => handleTaskStatus(task.id, 'blocked')} className="px-2 py-1 rounded-lg text-text-muted hover:text-text-primary">
+                                Bloquear
+                              </button>
+                              <button type="button" onClick={() => handleTaskStatus(task.id, 'cancelled')} className="px-2 py-1 rounded-lg text-text-muted hover:text-text-primary">
+                                Cancelar
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      )}
 
                       {/* Botão de detalhes / ação do Guardian */}
                       {task.guardianActionRequired && !isCompleted && (
@@ -1058,10 +1174,56 @@ export function HojeContainer() {
             ) : (
               <div className="p-8 rounded-2xl bg-surface border border-border/60 text-center space-y-1 text-text-secondary">
                 <span className="material-symbols-outlined text-3xl text-text-muted">task_alt</span>
-                <p className="text-[13px] font-medium">Nenhuma tarefa correspondente ao filtro selecionado.</p>
+                <p className="text-[13px] font-medium">{tasks.length === 0 ? 'Nenhuma tarefa ainda. Crie a primeira acima.' : 'Nenhuma tarefa correspondente ao filtro selecionado.'}</p>
               </div>
             )}
           </div>
+
+          {/* Projetos (Personal OS · Projects): objetivo, progresso e viabilidade do prazo contra o tempo livre real */}
+          <section aria-label="Projetos" className="flex flex-col gap-3">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">Projetos</span>
+            {projects.map((p) => {
+              const pct = Math.round(p.progress.completionRatio * 100);
+              const viab: Record<string, string> = { folgado: 'prazo folgado', apertado: 'prazo apertado', inviavel: 'prazo inviável com o tempo livre', sem_estimativa: 'falta estimativa de esforço', sem_prazo: 'sem prazo', vencido: 'prazo vencido' };
+              return (
+                <div key={p.project.id} className="p-4 rounded-2xl bg-surface border border-border/70 shadow-calm flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="text-[14px] font-bold text-text-primary truncate">{p.project.title}</h4>
+                      <p className="text-[11px] text-text-secondary truncate">{p.project.objective}</p>
+                    </div>
+                    <span className="text-[11px] font-mono text-text-muted flex-shrink-0">
+                      {p.progress.doneTasks}/{p.progress.totalTasks} · {viab[p.deadline.feasibility] ?? p.deadline.feasibility}
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-secondary/70 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-[#71DBD2] h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                  </div>
+                  {p.deadline.deadline && (
+                    <p className="text-[11px] font-mono text-text-muted">
+                      {p.deadline.deadline.label}: {p.deadline.deadline.dueAt.slice(8, 10)}/{p.deadline.deadline.dueAt.slice(5, 7)} · faltam {p.progress.remainingMinutes} min de trabalho
+                      {p.deadline.availableMinutes !== undefined ? ` · ${p.deadline.availableMinutes} min livres na Agenda até lá` : ''}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleCreateProject();
+              }}
+              className="p-4 rounded-2xl bg-surface border border-dashed border-border/70 flex flex-col sm:flex-row gap-2"
+              aria-label="Novo projeto"
+            >
+              <input value={newProjectTitle} onChange={(e) => setNewProjectTitle(e.target.value)} placeholder="Novo projeto…" aria-label="Título do projeto" className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-surface-secondary/50 border border-border/60 text-[13px] text-text-primary placeholder:text-text-muted" />
+              <input value={newProjectObjective} onChange={(e) => setNewProjectObjective(e.target.value)} placeholder="Objetivo" aria-label="Objetivo do projeto" className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-surface-secondary/50 border border-border/60 text-[13px] text-text-primary placeholder:text-text-muted" />
+              <input type="date" value={newProjectDue} onChange={(e) => setNewProjectDue(e.target.value)} aria-label="Prazo do projeto" className="px-3 py-2 rounded-xl bg-surface-secondary/50 border border-border/60 text-[12px] text-text-primary" />
+              <button type="submit" disabled={!newProjectTitle.trim()} className="px-4 py-2 rounded-xl bg-surface border border-border/80 disabled:opacity-50 text-[12px] font-semibold text-text-primary shadow-subtle">
+                Criar projeto
+              </button>
+            </form>
+          </section>
         </div>
       )}
 
@@ -1091,7 +1253,10 @@ export function HojeContainer() {
           </div>
 
           <div className="space-y-3">
-            {historyEntries.map((entry) => (
+            {history.length === 0 && (
+              <div className="p-6 rounded-2xl bg-surface border border-border/60 text-center text-[13px] text-text-secondary">Nenhum bloco concluído hoje ainda.</div>
+            )}
+            {history.map((entry) => (
               <div
                 key={entry.id}
                 className="p-4 rounded-2xl bg-surface border border-border/70 shadow-calm flex flex-col sm:flex-row sm:items-center justify-between gap-3"

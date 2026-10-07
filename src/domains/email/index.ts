@@ -8,5 +8,6 @@ export * from './services/actions';
 export * from './services/bridges';
 export * from './services/followUp';
 export * from './providers/types';
+export * from './providers/local';
 export * from './selectors';
 export * from './search';

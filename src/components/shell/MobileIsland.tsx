@@ -3,10 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
+import { usePersonalOS } from '@/context/PersonalOSContext';
+import { routeIslandDefault } from '@/lib/islandDefaults';
 
 export function MobileIsland() {
-  const { islandState, setIslandState, isQuiet, islandNotification } = useShell();
-  const baseFixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+  const { islandState, setIslandState, isQuiet, islandNotification, activeRoute } = useShell();
+  const { os, version } = usePersonalOS();
+  const rawFixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+  // mesma regra da ilha do desktop: fora de notificação, só o que existe de verdade
+  const baseFixture = React.useMemo(
+    () => (islandState === 'active' ? routeIslandDefault(rawFixture, activeRoute, os) : rawFixture),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [islandState, rawFixture, activeRoute, os, version]
+  );
   const fixture = islandNotification ? {
     ...baseFixture,
     tag: islandNotification.title || islandNotification.tag || baseFixture.tag,

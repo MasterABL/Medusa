@@ -24,7 +24,7 @@ import type { EventContextCategory } from '../../../foundation/reminders/types';
 import type { TaskPriority } from '../../tasks/model/types';
 import type { EntityRef } from '../../../foundation/relations/graph';
 
-export type EmailProviderKind = 'gmail' | 'outlook' | 'fixture';
+export type EmailProviderKind = 'gmail' | 'outlook' | 'fixture' | 'local';
 
 export interface EmailAddress {
   name?: string;

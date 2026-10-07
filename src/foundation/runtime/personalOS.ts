@@ -77,6 +77,8 @@ import type { ThreadAnalysis } from '../../domains/email/services/pipeline';
 import { createEmailActionCenter } from '../../domains/email/services/actions';
 import { emailContextSource, reminderEventsFromEmail } from '../../domains/email/services/bridges';
 import { gmailProviderState } from '../../domains/email/providers/types';
+import { localEmailMessage, parsePastedEmail } from '../../domains/email/providers/local';
+import type { LocalEmailInput } from '../../domains/email/providers/local';
 import { googleCalendarProviderState, outlookCalendarProviderState } from '../../domains/calendar/providers';
 import { selectEmailInbox } from '../../domains/email/selectors';
 import type { EmailFilterId, EmailInbox } from '../../domains/email/selectors';
@@ -185,6 +187,8 @@ export interface ActionView {
   approvalExpiresAt?: string;
   outcome?: { result: string; evidence?: string };
   restored: boolean;
+  /** Nasceu de dado de EXEMPLO (e-mail fixture, anomalia de exemplo): a UI deve marcar. */
+  example: boolean;
 }
 
 export interface PersonalOSOptions {
@@ -748,8 +752,15 @@ export function createPersonalOS(opts: PersonalOSOptions) {
         approvalExpiresAt: u.approval?.expiresAt,
         outcome: u.outcome ? { result: u.outcome.result, evidence: u.outcome.evidence } : undefined,
         restored: !!a.restoredAt,
+        example: isExampleAction(u.id, u.intent),
       };
     });
+  }
+
+  function isExampleAction(actionId: string, intent: string): boolean {
+    if (intent.includes('[dados de exemplo]')) return true;
+    const email = emailProposalByAction.get(actionId);
+    return !!email && emailMessages.get(email.messageId)?.source.origin === 'fixture';
   }
 
   function auditTrail(limit = 50): ActionAuditLogEntry[] {
@@ -882,6 +893,15 @@ export function createPersonalOS(opts: PersonalOSOptions) {
     syncReminders();
     changed();
     return { analyzed: messages.length, proposals: emailProposalByAction.size - before };
+  }
+
+  /** Provedor local: o usuário cola/digita um e-mail e ele entra no MESMO pipeline de um provedor real. */
+  function importLocalEmail(input: string | LocalEmailInput): { message: EmailMessage; duplicate: boolean; analyzed: number; proposals: number } {
+    const parsed = typeof input === 'string' ? parsePastedEmail(input) : input;
+    const message = localEmailMessage(parsed, clock());
+    const duplicate = emailMessages.has(message.id);
+    const r = ingestEmails([message]);
+    return { message, duplicate, ...r };
   }
 
   function emailInbox(filter: EmailFilterId = 'todos' as EmailFilterId): DataState<EmailInbox> {
@@ -1058,6 +1078,7 @@ export function createPersonalOS(opts: PersonalOSOptions) {
 
     // e-mail
     ingestEmails,
+    importLocalEmail,
     emailInbox,
     emailCandidatesFor,
     emailAnalysis: (messageId: string) => emailAnalyses.get(messageId),

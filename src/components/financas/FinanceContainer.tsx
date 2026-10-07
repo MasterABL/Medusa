@@ -14,12 +14,15 @@ import {
 } from './financeFixtures';
 import { useShell } from '@/context/ShellContext';
 import { playFeedback } from '@/lib/audioFeedback';
+import { usePersonalOS } from '@/context/PersonalOSContext';
+import { ProvenanceBadge } from '@/components/ui/ProvenanceBadge';
 
 type FinanceSubView = 'equilibrio' | 'contas-cartoes' | 'transacoes' | 'metas' | 'anomalias';
 
 export function FinanceContainer() {
   const reconciled = useMemo(() => getReconciledFinanceData(), []);
   const { triggerIslandNotification, setActiveRoute } = useShell();
+  const { os } = usePersonalOS();
 
   // Subnavegação interna de Finanças
   const [subView, setSubView] = useState<FinanceSubView>('equilibrio');
@@ -48,29 +51,33 @@ export function FinanceContainer() {
   const simulatedRunwayDays = Math.round(reconciled.tenhoTotal / dailyBurn);
   const marginPerDay = Math.round(effectiveLivre / 30);
 
-  // Ação de estorno da anomalia financeira (em 1 clique com bridge Guardian)
+  // Contestar: vira PROPOSTA no Guardian (finance/DISPUTE_CHARGE, L2). Não existe executor
+  // conectado a emissor de cartão — por isso a mensagem nunca diz "estorno enviado".
+  // Fluxo: Contestar → Guardian → proposta → aprovação (Action Center) → executor (não conectado).
   const handleResolveAnomalia = useCallback(
     (anomalyId?: string) => {
+      const anomaly = anomalies.find((a) => a.id === anomalyId) ?? anomalies[0];
+      if (!anomaly) return;
+      const view = os.disputeFor(anomaly.id) ?? os.disputeCharge({ anomalyId: anomaly.id, description: anomaly.title, amount: anomaly.amount, origin: 'fixture' });
       setAnomaliaResolvida(true);
-      if (anomalyId) {
-        setAnomalies((prev) =>
-          prev.map((a) => (a.id === anomalyId ? { ...a, status: 'contestado' as const } : a))
-        );
-      }
-      playFeedback('success');
+      setAnomalies((prev) => prev.map((a) => (a.id === anomaly.id ? { ...a, status: 'contestado' as const } : a)));
+      playFeedback('action');
       triggerIslandNotification({
-        title: 'Contestação Enviada ao Guardian',
-        tag: 'FINANÇAS & PROTEÇÃO',
-        description: 'Estorno de R$ 89,90 solicitado ao emissor do cartão. Protocolo L2 gerado.',
-        badge: 'ESTORNO ATIVO',
+        title: 'Contestação proposta ao Guardian',
+        tag: 'FINANÇAS · DADOS DE EXEMPLO',
+        description: `${view.stateLabel}. Nenhum emissor foi acionado — não há executor conectado a bancos.`,
+        badge: 'AGUARDANDO APROVAÇÃO',
         state: 'active',
-        durationMs: 4000,
+        durationMs: 5000,
         actionLabel: 'Ver no Guardian',
         onAction: () => setActiveRoute('guardian'),
       });
     },
-    [triggerIslandNotification, setActiveRoute]
+    [anomalies, os, triggerIslandNotification, setActiveRoute]
   );
+
+  /** Estado verdadeiro da contestação, lido do Guardian (não do clique). */
+  const disputeLabel = useCallback((anomalyId: string): string | undefined => os.disputeFor(anomalyId)?.stateLabel, [os]);
 
   const toggleDrawer = useCallback((drawer: 'origens' | 'compromissos') => {
     setActiveDrawer((prev) => (prev === drawer ? 'nenhuma' : drawer));
@@ -108,9 +115,7 @@ export function FinanceContainer() {
               Finanças Pessoais · Comando de Caixa
             </span>
             <span className="text-text-muted/40">•</span>
-            <span className="text-[11px] font-mono text-text-secondary">
-              D+0 Reconciliado
-            </span>
+            <ProvenanceBadge kind="fixture" detail="sem banco conectado (Open Finance bloqueado)" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
             {subView === 'equilibrio'
@@ -205,7 +210,7 @@ export function FinanceContainer() {
           >
             <span className="material-symbols-outlined text-[16px]">shield</span>
             <span>Anomalias</span>
-            {!anomaliaResolvida && (
+            {!(anomaliaResolvida || !!os.disputeFor('anom-1')) && (
               <span className="w-2 h-2 rounded-full bg-[#C45B5B]" />
             )}
           </button>
@@ -412,7 +417,7 @@ export function FinanceContainer() {
           </section>
 
           {/* D. ANOMALIA EM DESTAQUE (BRIDGE COM O GUARDIAN) */}
-          {!anomaliaResolvida && (
+          {!(anomaliaResolvida || !!os.disputeFor('anom-1')) && (
             <section aria-label="Alerta de Anomalia" className="flex flex-col gap-3">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted">
                 Proteção Ativa do Guardian
@@ -750,7 +755,7 @@ export function FinanceContainer() {
 
           <div className="space-y-3.5">
             {anomalies.map((anom) => {
-              const isResolved = anom.status === 'contestado' || anom.status === 'resolvido';
+              const isResolved = anom.status === 'contestado' || anom.status === 'resolvido' || !!os.disputeFor(anom.id);
 
               return (
                 <div
@@ -786,7 +791,7 @@ export function FinanceContainer() {
                               : 'bg-[#C45B5B]/20 text-[#C45B5B]'
                           }`}
                         >
-                          {isResolved ? 'Contestado' : 'Pendente de Ação'}
+                          {isResolved ? disputeLabel(anom.id) ?? 'Resolvido (exemplo)' : 'Pendente de Ação'}
                         </span>
                       </div>
                       <h4 className="text-[14px] font-bold text-text-primary">
@@ -813,9 +818,13 @@ export function FinanceContainer() {
                         <span>Contestar Estorno</span>
                       </button>
                     ) : (
-                      <span className="text-[11px] font-mono text-[#ADE4B5] font-semibold">
-                        Protocolo L2 ativo
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveRoute('guardian')}
+                        className="text-[11px] font-mono text-text-secondary hover:text-text-primary font-semibold underline-offset-2 hover:underline"
+                      >
+                        {disputeLabel(anom.id) ?? 'Resolvido (exemplo)'} · ver
+                      </button>
                     )}
                   </div>
                 </div>
