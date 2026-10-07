@@ -101,6 +101,18 @@ export function classify(
     };
   }
 
+  // Ação informativa (lembrete): L1 sem exigir histórico — mas só com regra de baixo risco e
+  // reversível, e nunca quando o próprio usuário vem rejeitando (confiança 'requer_atencao').
+  if (rule.informationalOnly && rule.baseRisk === 'baixo' && rule.reversible && trust?.state !== 'requer_atencao') {
+    return {
+      level: 'L1',
+      requiresApproval: false,
+      reason: `Ação informativa ao próprio usuário ("${action.type}"): ${rule.informationalOnly.reason}`,
+      matchedRule: rule,
+      isUnknownActionType: false,
+    };
+  }
+
   // ceilingLevel === 'L1': só executa sozinho se a confiança observada já sustenta isso.
   if (hasSufficientTrustForL1(rule, trust)) {
     return {

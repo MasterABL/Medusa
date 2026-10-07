@@ -6,6 +6,8 @@
  */
 
 import type { AgendaItem } from '../../types/agenda';
+import { classifyEvent, toLegacyImportance } from '../context/importance';
+import type { ImportanceTier, ImportanceClassification } from '../context/importance';
 import type {
   EventImportance,
   EventContextCategory,
@@ -19,113 +21,22 @@ export interface ExtendedAgendaItemProps {
 }
 
 /**
- * Classifica a importância e categoria contextual do evento baseado em:
- * 1. Propriedades explícitas (se definidas no item)
- * 2. Análise semântica do título, categoria e domínio
+ * Classifica a importância e categoria contextual do evento.
+ *
+ * Desde o Personal OS Core, delega para a tabela de regras configurável
+ * (`foundation/context/importance.ts`). O retorno mantém o formato antigo
+ * (`importance` high/medium/low + `category`) para quem já consome isto, e
+ * acrescenta `tier` (com `critical`), `rigid` e a procedência da decisão.
  */
 export function classifyEventImportance(item: AgendaItem & ExtendedAgendaItemProps): {
   importance: EventImportance;
   category: EventContextCategory;
+  tier: ImportanceTier;
+  rigid: boolean;
+  source: ImportanceClassification['source'];
 } {
-  // 1. Respeitar sobrescrita explícita se já existir no item
-  if (item.importance && item.contextCategory) {
-    return { importance: item.importance, category: item.contextCategory };
-  }
-
-  const titleLower = (item.title || '').toLowerCase().trim();
-  const descLower = (item.description || '').toLowerCase().trim();
-  const fullText = `${titleLower} ${descLower}`;
-
-  // 2. Alto impacto / Horário rígido (crítico para a vida do usuário)
-  if (
-    fullText.includes('telemedicina') ||
-    fullText.includes('consulta online') ||
-    fullText.includes('videochamada médica')
-  ) {
-    return { importance: 'high', category: 'telemedicine' };
-  }
-
-  if (
-    fullText.includes('consulta') ||
-    fullText.includes('médic') ||
-    fullText.includes('dentista') ||
-    fullText.includes('psicólog') ||
-    fullText.includes('exame') ||
-    fullText.includes('laboratório')
-  ) {
-    return { importance: 'high', category: 'medical_consultation' };
-  }
-
-  if (
-    fullText.includes('prova') ||
-    fullText.includes('exame final') ||
-    fullText.includes('banca') ||
-    fullText.includes('concurso')
-  ) {
-    return { importance: 'high', category: 'exam' };
-  }
-
-  if (
-    fullText.includes('reunião diretoria') ||
-    fullText.includes('reunião com cliente') ||
-    fullText.includes('entrevista') ||
-    fullText.includes('audiência') ||
-    fullText.includes('alinhamento executivo')
-  ) {
-    return { importance: 'high', category: 'critical_meeting' };
-  }
-
-  if (
-    item.isFlexible === false &&
-    (item.domain === 'work' || item.kind === 'event') &&
-    (fullText.includes('prazo') || fullText.includes('entrega') || fullText.includes('apresentação'))
-  ) {
-    return { importance: 'high', category: 'strict_appointment' };
-  }
-
-  // 3. Médio impacto (hábitos, rotinas, desenvolvimento e corpo)
-  if (
-    item.domain === 'body' ||
-    item.source?.sourceType === 'workout' ||
-    fullText.includes('treino') ||
-    fullText.includes('academia') ||
-    fullText.includes('musculação') ||
-    fullText.includes('corrida')
-  ) {
-    return { importance: 'medium', category: 'workout' };
-  }
-
-  if (
-    item.domain === 'education' ||
-    item.source?.sourceType === 'education_session' ||
-    fullText.includes('estudo') ||
-    fullText.includes('aula') ||
-    fullText.includes('inglês') ||
-    fullText.includes('revisão')
-  ) {
-    return { importance: 'medium', category: 'study' };
-  }
-
-  if (
-    item.domain === 'spiritual' ||
-    fullText.includes('oração') ||
-    fullText.includes('devocional') ||
-    fullText.includes('leitura bíblica') ||
-    fullText.includes('culto')
-  ) {
-    return { importance: 'medium', category: 'practice' };
-  }
-
-  if (item.kind === 'time_block' || item.kind === 'routine' || item.source?.sourceType === 'task') {
-    return { importance: 'medium', category: 'task' };
-  }
-
-  // 4. Baixo impacto (flexível, opcional)
-  if (item.isFlexible === true) {
-    return { importance: 'low', category: 'flexible_block' };
-  }
-
-  return { importance: 'low', category: 'optional_reminder' };
+  const c = classifyEvent(item);
+  return { importance: toLegacyImportance(c.tier), category: c.category, tier: c.tier, rigid: c.rigid, source: c.source };
 }
 
 /**
