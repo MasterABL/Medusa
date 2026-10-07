@@ -60,3 +60,11 @@ export function __resetOutcomesForTests(): void {
   outcomes = [];
   counter = 0;
 }
+
+/** Repõe resultados observados de um snapshot (só ids novos). */
+export function restoreOutcomes(list: ActionOutcome[]): number {
+  const known = new Set(outcomes.map((o) => o.id));
+  const fresh = list.filter((o) => o && typeof o.id === 'string' && !known.has(o.id));
+  outcomes = [...fresh, ...outcomes].sort((a, b) => a.observedAt.localeCompare(b.observedAt));
+  return fresh.length;
+}

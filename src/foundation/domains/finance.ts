@@ -140,6 +140,7 @@ export const financeDomain: DomainDefinition = {
     'CREATE_PROJECTION',
     'EXECUTE_PAYMENT',
     'TRANSFER_FUNDS',
+    'DISPUTE_CHARGE',
   ],
   motionIdentityId: 'motion-finance',
   soundProfileId: 'sound-finance',

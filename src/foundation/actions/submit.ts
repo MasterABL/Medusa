@@ -81,6 +81,10 @@ export function executeAuthorized(actionId: string, run: () => ExecutionReport):
   if (!current || current.status !== 'AUTHORIZED') {
     throw new Error(`Ação "${actionId}" não está autorizada (status: ${current?.status ?? 'inexistente'}).`);
   }
+  if (current.restoredAt) {
+    // Autorização de uma sessão anterior: re-hidratar não pode virar re-execução.
+    throw new Error(`Ação "${actionId}" foi autorizada numa sessão anterior (restaurada em ${current.restoredAt}) — não é reexecutada; proponha de novo.`);
+  }
   beginExecution(actionId);
   let report: ExecutionReport;
   try {

@@ -85,3 +85,11 @@ export function __resetFeedbackForTests(): void {
   feedbacks = [];
   counter = 0;
 }
+
+/** Repõe feedbacks de um snapshot (só ids novos). Não reconta confiança: o perfil de trust é restaurado à parte. */
+export function restoreFeedback(list: ActionFeedback[]): number {
+  const known = new Set(feedbacks.map((f) => f.id));
+  const fresh = list.filter((f) => f && typeof f.id === 'string' && !known.has(f.id));
+  feedbacks = [...fresh, ...feedbacks];
+  return fresh.length;
+}

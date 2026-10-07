@@ -138,6 +138,14 @@ const DEFAULT_AUTONOMY_RULES: AutonomyPolicyRule[] = [
   },
   {
     domain: 'finance',
+    actionType: 'DISPUTE_CHARGE',
+    baseRisk: 'moderado',
+    reversible: false,
+    ceilingLevel: 'L2',
+    notes: 'Contestar cobrança junto ao emissor fala com terceiro em nome do usuário — sempre aprovação; sem executor conectado, a aprovação não vira "estorno enviado".',
+  },
+  {
+    domain: 'finance',
     actionType: 'EXECUTE_PAYMENT',
     baseRisk: 'alto',
     reversible: false,
