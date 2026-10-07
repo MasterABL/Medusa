@@ -810,47 +810,105 @@ export interface BlocoAgendaCronograma {
   endTime?: string;
 }
 
+/** Intervalo já ocupado na Agenda (compromisso real) — o gerador nunca coloca estudo por cima. */
+export interface IntervaloOcupado {
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+}
+
 const ISO_WEEKDAY: Record<Weekday, number> = { seg: 1, ter: 2, qua: 3, qui: 4, sex: 5, sab: 6, dom: 7 };
 
-function dataDaSemana(dia: Weekday, hoje: Date): Date {
+const pad2 = (n: number) => String(n).padStart(2, '0');
+/** Data local YYYY-MM-DD (nunca toISOString, que é UTC e muda o dia perto da meia-noite). */
+function isoLocal(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function paraMinutos(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+function paraHora(min: number): string {
+  return `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`;
+}
+
+/**
+ * Próxima ocorrência FUTURA de cada dia escolhido, a partir de `hoje` (inclusive hoje,
+ * desde que ainda caiba um bloco depois de agora). Antes, as datas saíam da semana
+ * corrente — um dia que já tinha passado gerava bloco no passado.
+ */
+function proximasDatas(dias: Weekday[], hoje: Date): Array<{ dia: Weekday; data: string; minimoMin: number }> {
   const hojeIso = hoje.getDay() === 0 ? 7 : hoje.getDay();
-  const segunda = new Date(hoje);
-  segunda.setDate(hoje.getDate() - (hojeIso - 1));
-  const data = new Date(segunda);
-  data.setDate(segunda.getDate() + (ISO_WEEKDAY[dia] - 1));
-  return data;
+  const agoraMin = hoje.getHours() * 60 + hoje.getMinutes();
+  return dias
+    .map((dia) => {
+      const delta = (ISO_WEEKDAY[dia] - hojeIso + 7) % 7;
+      const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + delta, 12);
+      return { dia, data: isoLocal(d), minimoMin: delta === 0 ? agoraMin + 15 : 0, delta };
+    })
+    .sort((a, b) => a.delta - b.delta)
+    .map(({ dia, data, minimoMin }) => ({ dia, data, minimoMin }));
 }
 
-function somarMinutos(horaStr: string, minutos: number): string {
-  const [h, m] = horaStr.split(':').map(Number);
-  const total = (h || 0) * 60 + (m || 0) + minutos;
-  const novaHora = Math.floor((total % (24 * 60)) / 60);
-  const novoMin = total % 60;
-  return `${String(novaHora).padStart(2, '0')}:${String(novoMin).padStart(2, '0')}`;
+const INICIO_DIA = 6 * 60;
+const FIM_DIA = 23 * 60;
+
+/** Primeiro início ≥ `desde` no dia em que `duracao` cabe sem encostar em nada ocupado (com `folga`). */
+function primeiroEncaixe(ocupados: Array<{ s: number; e: number }>, desde: number, duracao: number, folga: number): number | undefined {
+  const ordenados = [...ocupados].sort((a, b) => a.s - b.s);
+  let inicio = Math.max(desde, INICIO_DIA);
+  for (const o of ordenados) {
+    if (inicio + duracao + folga <= o.s) break;
+    if (o.e + folga > inicio) inicio = Math.max(inicio, o.e + folga);
+  }
+  return inicio + duracao <= FIM_DIA ? inicio : undefined;
 }
 
+/**
+ * Distribui as disciplinas do plano pelos PRÓXIMOS dias escolhidos.
+ *
+ *  - datas sempre a partir de `hoje` (padrão: agora) — nunca uma data fixa de fixture;
+ *  - cada dia recebe as disciplinas em sequência, separadas pelo buffer do plano —
+ *    antes, todas começavam no mesmo `horarioPico` e se sobrepunham no mesmo dia;
+ *  - compromissos já existentes na Agenda (`ocupados`) são respeitados: o bloco
+ *    anda para o primeiro encaixe livre do dia, ou para o próximo dia escolhido;
+ *  - o que não cabe em nenhum dia do horizonte simplesmente não vira bloco
+ *    (melhor faltar do que inventar sobreposição).
+ */
 export function gerarBlocosAgendaSemana(
   plan: CronogramaPlan,
   diasDisponiveis: Weekday[],
-  hoje: Date = new Date(2026, 8, 28)
+  hoje: Date = new Date(),
+  ocupados: IntervaloOcupado[] = []
 ): BlocoAgendaCronograma[] {
   if (diasDisponiveis.length === 0) return [];
   const disciplinasComHoras = plan.alocacao.filter((a) => a.horasSemana > 0);
-  const baseHoraInicio = plan.horarioPico || '14:00';
+  const pico = paraMinutos(plan.horarioPico || '14:00');
+  const folga = Math.max(0, plan.bufferMinutos ?? 15);
+  const datas = proximasDatas(diasDisponiveis, hoje);
 
-  return disciplinasComHoras.map((a, i) => {
-    const dia = diasDisponiveis[i % diasDisponiveis.length];
-    const data = dataDaSemana(dia, hoje);
+  const ocupadosPorData = new Map<string, Array<{ s: number; e: number }>>();
+  for (const o of ocupados) {
+    const lista = ocupadosPorData.get(o.date) ?? [];
+    lista.push({ s: paraMinutos(o.startTime), e: paraMinutos(o.endTime) });
+    ocupadosPorData.set(o.date, lista);
+  }
+
+  const blocos: BlocoAgendaCronograma[] = [];
+  disciplinasComHoras.forEach((a, i) => {
     const durationMinutes = Math.min(180, Math.max(30, Math.round(a.horasSemana * 60)));
-    const startTime = baseHoraInicio;
-    const endTime = somarMinutos(startTime, durationMinutes);
-
-    return {
-      disciplina: a.disciplina,
-      date: data.toISOString().slice(0, 10),
-      durationMinutes,
-      startTime,
-      endTime,
-    };
+    // tenta o dia "dele" no rodízio e, se não couber, os seguintes
+    for (let k = 0; k < datas.length; k += 1) {
+      const alvo = datas[(i + k) % datas.length];
+      const lista = ocupadosPorData.get(alvo.data) ?? [];
+      const inicio = primeiroEncaixe(lista, Math.max(pico, alvo.minimoMin), durationMinutes, folga);
+      if (inicio === undefined) continue;
+      const fim = inicio + durationMinutes;
+      lista.push({ s: inicio, e: fim });
+      ocupadosPorData.set(alvo.data, lista);
+      blocos.push({ disciplina: a.disciplina, date: alvo.data, durationMinutes, startTime: paraHora(inicio), endTime: paraHora(fim) });
+      return;
+    }
   });
+  return blocos.sort((x, y) => x.date.localeCompare(y.date) || (x.startTime ?? '').localeCompare(y.startTime ?? ''));
 }

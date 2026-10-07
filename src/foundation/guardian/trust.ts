@@ -110,3 +110,20 @@ export function expireStaleEvidence(now: Date, ttlMs: number): number {
   }
   return dropped;
 }
+
+/**
+ * Repõe perfis de confiança de um snapshot. A evidência é a fonte da verdade:
+ * o perfil é RECALCULADO a partir dela (nunca se confia num `state` gravado),
+ * e um perfil já vivo nesta sessão não é sobrescrito.
+ */
+export function restoreTrustProfiles(list: ActionTrustProfile[]): number {
+  let added = 0;
+  for (const p of list) {
+    if (!p || !Array.isArray(p.evidence)) continue;
+    const k = key(p.domain, p.actionType);
+    if (profiles.has(k)) continue;
+    profiles.set(k, buildProfile(p.domain, p.actionType, p.evidence));
+    added += 1;
+  }
+  return added;
+}

@@ -7,6 +7,7 @@ import { EnemCronogramaView } from './EnemCronogramaView';
 import { CompletedActivityList } from './CompletedActivityList';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { useAgenda } from '@/context/AgendaContext';
+import { intervalosOcupados } from '@/lib/agendaBusy';
 import { CronogramaOnboarding } from './CronogramaOnboarding';
 import { gerarBlocosAgendaSemana } from './cronogramaPlanner';
 import { getTrackAccent } from './trackAccent';
@@ -43,7 +44,7 @@ export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
     setCronogramaPlan,
     markCronogramaOnboardingSeen,
   } = useEducationPanel();
-  const { reconcileEducationBlocks } = useAgenda();
+  const { reconcileEducationBlocks, items: agendaItems } = useAgenda();
   const cronograma = trackDef.cronograma ?? [];
   const simulados = cronograma.filter((b) => b.activityType === 'simulado');
   const completedModules = trackItems.filter((m) => m.status === 'completed');
@@ -163,7 +164,7 @@ export function EnemHub({ trackDef, trackItems, onStartStudy }: EnemHubProps) {
                 setCronogramaPlan(newPlan);
                 markCronogramaOnboardingSeen();
                 if (diasReais && diasReais.length > 0) {
-                  const blocos = gerarBlocosAgendaSemana(newPlan, diasReais);
+                  const blocos = gerarBlocosAgendaSemana(newPlan, diasReais, new Date(), intervalosOcupados(agendaItems, new Date(), 8, (it) => it.source?.sourceType === 'education_session'));
                   reconcileEducationBlocks(blocos);
                 }
               }}

@@ -110,3 +110,19 @@ export function __resetActionBusForTests(): void {
   actions.clear();
   counter = 0;
 }
+
+/**
+ * Repõe ações vindas de um snapshot persistido (ver `guardian/snapshot.ts`).
+ * Só acrescenta ids que ainda não existem nesta sessão — nunca sobrescreve uma
+ * ação viva. Não passa pelo Guardian de novo: a decisão original já está no
+ * audit log restaurado junto.
+ */
+export function restoreActions(list: Action[]): number {
+  let added = 0;
+  for (const a of list) {
+    if (!a || typeof a.id !== 'string' || actions.has(a.id)) continue;
+    actions.set(a.id, a);
+    added += 1;
+  }
+  return added;
+}

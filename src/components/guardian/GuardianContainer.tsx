@@ -16,6 +16,9 @@ import {
 } from './guardianFixtures';
 import { useShell } from '@/context/ShellContext';
 import { playFeedback } from '@/lib/audioFeedback';
+import { usePersonalOS } from '@/context/PersonalOSContext';
+import { useDemoMode } from '@/lib/dataMode';
+import { ProvenanceBadge } from '@/components/ui/ProvenanceBadge';
 
 type GuardianSubView = 'cadeia' | 'radar' | 'actions' | 'autonomia' | 'historico';
 
@@ -37,7 +40,74 @@ export function GuardianContainer() {
   // Estados do Radar
   const [radarItems, setRadarItems] = useState<GuardianRadarItem[]>(GUARDIAN_RADAR_ITEMS);
 
-  const { triggerIslandNotification, setActiveRoute } = useShell();
+  const { triggerIslandNotification } = useShell();
+  const { os, version } = usePersonalOS();
+  const demo = useDemoMode();
+
+  // ---- Action Center REAL (Personal OS · Guardian) ----
+  const DOMAIN_UI: Record<string, { domain: GuardianActionItem['domain']; label: string; icon: string }> = {
+    finance: { domain: 'financas', label: 'Finanças', icon: 'credit_card' },
+    agenda: { domain: 'agenda', label: 'Agenda', icon: 'schedule' },
+    email: { domain: 'agenda', label: 'E-mail', icon: 'mail' },
+    education: { domain: 'educacao', label: 'Educação', icon: 'school' },
+    body: { domain: 'corpo', label: 'Corpo', icon: 'fitness_center' },
+    spiritual: { domain: 'espiritual', label: 'Espiritual', icon: 'self_improvement' },
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const realViews = useMemo(() => os.actionViews(100), [os, version]);
+  const realActions: GuardianActionItem[] = useMemo(
+    () =>
+      realViews
+        .filter((a) => a.type !== 'CREATE_REMINDER' && a.type !== 'CLASSIFY_EMAIL')
+        .map((a) => {
+          const ui = DOMAIN_UI[a.domain] ?? { domain: 'agenda' as const, label: a.domain, icon: 'shield' };
+          const status: GuardianActionItem['status'] =
+            a.state === 'aguardando_aprovacao' ? 'pending' : a.state === 'executada' ? 'executed' : a.state === 'desfeita' ? 'undone' : a.state === 'rejeitada' || a.state === 'cancelada' || a.state === 'falhou' ? 'rejected' : 'approved';
+          return {
+            id: `real:${a.id}`,
+            realId: a.id,
+            domain: ui.domain,
+            domainLabel: ui.label,
+            domainIcon: ui.icon,
+            title: a.intent,
+            intent: `${a.type}${a.outcome?.evidence ? ` · ${a.outcome.evidence}` : ''}`,
+            autonomyLevel: (a.autonomy as GuardianActionItem['autonomyLevel']) ?? 'L2',
+            status,
+            reversible: false,
+            reason: a.reason ?? '',
+            requestedAt: `${a.createdAt.slice(8, 10)}/${a.createdAt.slice(5, 7)} ${a.createdAt.slice(11, 16)}`,
+            stateLabel: a.stateLabel,
+            isExample: a.example,
+          };
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [realViews]
+  );
+  const displayedActions: GuardianActionItem[] = useMemo(
+    () => [...realActions, ...(demo ? actionsList.map((a) => ({ ...a, isExample: true })) : [])],
+    [realActions, actionsList, demo]
+  );
+  const realAudit: GuardianAuditLogEntry[] = useMemo(() => {
+    const intents = new Map(realViews.map((a) => [a.id, a.intent]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return os.auditTrail(200).map((e) => ({
+      id: e.id,
+      timestamp: `${e.createdAt.slice(8, 10)}/${e.createdAt.slice(5, 7)} ${e.createdAt.slice(11, 19)}`,
+      domain: (DOMAIN_UI[e.domain]?.label ?? e.domain) as string,
+      actionTitle: intents.get(e.actionId) ?? e.actionType,
+      autonomyApplied: e.autonomyLevel,
+      policyUsed: `${e.domain}/${e.actionType}`,
+      verdict: e.statusAtLog === 'REJECTED' ? 'RECUSADO_USUARIO' : e.statusAtLog === 'SUCCESS' && e.autonomyLevel === 'L1' ? 'EXECUTADO_AUTONOMO' : e.statusAtLog === 'AUTHORIZED' && e.autonomyLevel !== 'L1' ? 'APROVADO_USUARIO' : 'BLOQUEADO_SEGURANCA',
+      statusLabel: e.statusAtLog,
+      correlationId: e.actionId,
+      details: e.decision.reason,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [os, version, realViews]);
+  const displayedAudit: GuardianAuditLogEntry[] = useMemo(
+    () => [...realAudit, ...(demo ? GUARDIAN_AUDIT_LOGS.map((l) => ({ ...l, isExample: true })) : [])],
+    [realAudit, demo]
+  );
 
   const currentCase: DecisionChainCase = useMemo(() => {
     return GUARDIAN_CASES.find((c) => c.id === selectedCaseId) || GUARDIAN_CASES[0];
@@ -80,70 +150,67 @@ export function GuardianContainer() {
     });
     playFeedback('success');
     triggerIslandNotification({
-      title: 'Ação Aprovada',
-      tag: 'GUARDIAN DECISION',
-      description: currentCase.actionPrompt.successMessage,
-      badge: 'L2 CONFIRMADO',
+      title: 'Caso de exemplo',
+      tag: 'DADOS DE EXEMPLO',
+      description: 'Demonstração da cadeia causal — nenhuma ação real foi executada.',
+      badge: 'EXEMPLO',
       state: 'active',
       durationMs: 4000,
     });
   }, [currentCase, triggerIslandNotification]);
 
-  // Ações do Action Center
+  // Ações do Action Center: reais passam pelo Guardian; exemplos só mudam a tela e dizem isso
   const handleApproveAction = useCallback(
     (actionId: string) => {
-      setActionsList((prev) =>
-        prev.map((a) =>
-          a.id === actionId
-            ? { ...a, status: 'approved' as const, executedAt: 'Agora' }
-            : a
-        )
-      );
-      playFeedback('success');
-      triggerIslandNotification({
-        title: 'Ação Aprovada com Sucesso',
-        tag: 'ACTION CENTER',
-        description: 'Decisão autorizada e registrada na trilha de auditoria.',
-        badge: 'EXECUTADO',
-        state: 'active',
-        durationMs: 3500,
-      });
+      const item = displayedActions.find((a) => a.id === actionId);
+      if (item?.realId) {
+        try {
+          const r = os.approve(item.realId);
+          playFeedback(r.state === 'executada' ? 'success' : 'action');
+          triggerIslandNotification({
+            title: item.stateLabel && r.state !== 'executada' ? 'Ação aprovada' : 'Ação executada',
+            tag: 'ACTION CENTER',
+            description: r.state === 'aprovada_sem_executor' ? 'Aprovação registrada na auditoria. Nada foi executado: não há executor conectado para esta ação.' : r.report?.evidence ?? r.report?.error ?? 'Decisão registrada na auditoria.',
+            badge: r.state === 'executada' ? 'EXECUTADO' : r.state === 'aprovada_sem_executor' ? 'SEM EXECUTOR' : 'REGISTRADO',
+            state: r.state === 'falhou' ? 'error' : 'active',
+            durationMs: 4500,
+          });
+        } catch (err) {
+          triggerIslandNotification({ title: 'Não foi possível aprovar', tag: 'ACTION CENTER', description: err instanceof Error ? err.message : String(err), state: 'error', durationMs: 4000 });
+        }
+        return;
+      }
+      setActionsList((prev) => prev.map((a) => (a.id === actionId ? { ...a, status: 'approved' as const, executedAt: 'Agora' } : a)));
+      playFeedback('press');
+      triggerIslandNotification({ title: 'Exemplo', tag: 'DADOS DE EXEMPLO', description: 'Ação de demonstração — nada foi executado.', badge: 'EXEMPLO', state: 'active', durationMs: 3000 });
     },
-    [triggerIslandNotification]
+    [displayedActions, os, triggerIslandNotification]
   );
 
   const handleRejectAction = useCallback(
     (actionId: string) => {
-      setActionsList((prev) =>
-        prev.map((a) => (a.id === actionId ? { ...a, status: 'rejected' as const } : a))
-      );
+      const item = displayedActions.find((a) => a.id === actionId);
+      if (item?.realId) {
+        try {
+          os.reject(item.realId);
+        } catch (err) {
+          triggerIslandNotification({ title: 'Não foi possível recusar', tag: 'ACTION CENTER', description: err instanceof Error ? err.message : String(err), state: 'error', durationMs: 4000 });
+          return;
+        }
+      } else {
+        setActionsList((prev) => prev.map((a) => (a.id === actionId ? { ...a, status: 'rejected' as const } : a)));
+      }
       playFeedback('press');
-      triggerIslandNotification({
-        title: 'Ação Recusada',
-        tag: 'ACTION CENTER',
-        description: 'Ação descartada. Nenhuma alteração foi efetuada nos dados.',
-        badge: 'CANCELADO',
-        state: 'active',
-        durationMs: 3000,
-      });
+      triggerIslandNotification({ title: 'Ação Recusada', tag: 'ACTION CENTER', description: item?.realId ? 'Recusa registrada na auditoria. Nada foi executado.' : 'Exemplo recusado — nada foi executado.', badge: 'RECUSADO', state: 'active', durationMs: 3000 });
     },
-    [triggerIslandNotification]
+    [displayedActions, os, triggerIslandNotification]
   );
 
   const handleUndoAction = useCallback(
     (actionId: string) => {
-      setActionsList((prev) =>
-        prev.map((a) => (a.id === actionId ? { ...a, status: 'undone' as const } : a))
-      );
+      setActionsList((prev) => prev.map((a) => (a.id === actionId ? { ...a, status: 'undone' as const } : a)));
       playFeedback('action');
-      triggerIslandNotification({
-        title: 'Ação Revertida',
-        tag: 'GUARDIAN UNDO',
-        description: 'Efeito desfeito com sucesso. Estado anterior restaurado.',
-        badge: 'REVERTIDO',
-        state: 'active',
-        durationMs: 3500,
-      });
+      triggerIslandNotification({ title: 'Exemplo', tag: 'DADOS DE EXEMPLO', description: 'Desfazer de demonstração — nada real foi alterado.', badge: 'EXEMPLO', state: 'active', durationMs: 3000 });
     },
     [triggerIslandNotification]
   );
@@ -166,8 +233,8 @@ export function GuardianContainer() {
 
   // Contadores
   const pendingActionsCount = useMemo(
-    () => actionsList.filter((a) => a.status === 'pending').length,
-    [actionsList]
+    () => displayedActions.filter((a) => a.status === 'pending').length,
+    [displayedActions]
   );
   const criticalRadarCount = useMemo(
     () => radarItems.filter((r) => r.severity === 'critico').length,
@@ -191,6 +258,10 @@ export function GuardianContainer() {
             <span className="text-[11px] font-mono text-text-secondary">
               Sistema de Decisões Causal
             </span>
+            <ProvenanceBadge
+              kind={subView === 'actions' || subView === 'historico' ? (demo ? 'partial' : 'real') : 'fixture'}
+              detail={subView === 'actions' || subView === 'historico' ? (demo ? 'reais + exemplos marcados' : 'Guardian real, salvo neste navegador') : 'casos de demonstração'}
+            />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
             {subView === 'cadeia'
@@ -592,12 +663,17 @@ export function GuardianContainer() {
               </p>
             </div>
             <span className="text-[12px] font-mono text-text-muted">
-              {actionsList.filter((a) => a.status === 'pending').length} aguardando decisão
+              {displayedActions.filter((a) => a.status === 'pending').length} aguardando decisão
             </span>
           </div>
 
           <div className="flex flex-col gap-3.5">
-            {actionsList.map((action) => {
+            {displayedActions.length === 0 && (
+              <div className="p-8 rounded-2xl bg-surface border border-border/60 text-center text-[13px] text-text-secondary">
+                Nenhuma ação proposta ainda. Contestações, planos e recomendações aceitas aparecem aqui para sua decisão.
+              </div>
+            )}
+            {displayedActions.map((action) => {
               const isPending = action.status === 'pending';
               const isApproved = action.status === 'approved' || action.status === 'executed';
               const isRejected = action.status === 'rejected';
@@ -641,14 +717,16 @@ export function GuardianContainer() {
                               : 'bg-surface-secondary text-text-muted'
                           }`}
                         >
-                          {isPending
-                            ? 'Pendente L2'
-                            : isApproved
-                            ? 'Executado'
-                            : isRejected
-                            ? 'Recusado'
-                            : 'Desfeito'}
+                          {action.stateLabel ??
+                            (isPending
+                              ? 'Pendente L2'
+                              : isApproved
+                              ? 'Aprovado (exemplo)'
+                              : isRejected
+                              ? 'Recusado'
+                              : 'Desfeito')}
                         </span>
+                        {action.isExample && <ProvenanceBadge kind="fixture" />}
                       </div>
 
                       <h3 className="text-base font-bold text-text-primary">
@@ -832,12 +910,17 @@ export function GuardianContainer() {
               </p>
             </div>
             <span className="text-[12px] font-mono text-text-muted">
-              {GUARDIAN_AUDIT_LOGS.length} registros auditados
+              {displayedAudit.length} registros auditados
             </span>
           </div>
 
           <div className="space-y-3">
-            {GUARDIAN_AUDIT_LOGS.map((log) => (
+            {displayedAudit.length === 0 && (
+              <div className="p-8 rounded-2xl bg-surface border border-border/60 text-center text-[13px] text-text-secondary">
+                A trilha de auditoria está vazia: nenhuma decisão foi registrada ainda.
+              </div>
+            )}
+            {displayedAudit.map((log) => (
               <div
                 key={log.id}
                 className="p-4 rounded-2xl bg-surface border border-border/70 shadow-calm flex flex-col gap-2"
@@ -864,8 +947,9 @@ export function GuardianContainer() {
                         : 'bg-[#C45B5B]/20 text-[#C45B5B]'
                     }`}
                   >
-                    {log.verdict}
+                    {log.statusLabel ?? log.verdict}
                   </span>
+                  {log.isExample && <ProvenanceBadge kind="fixture" />}
                 </div>
 
                 <div className="space-y-1">

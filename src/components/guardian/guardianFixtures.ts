@@ -62,6 +62,12 @@ export interface GuardianActionItem {
   requestedAt: string;
   expiresIn?: string;
   executedAt?: string;
+  /** Ação real do Guardian (Action Center) por trás do card. */
+  realId?: string;
+  /** Rótulo verdadeiro do estado de execução (ex.: "Ação aprovada — executor não conectado"). */
+  stateLabel?: string;
+  /** Dado de exemplo (modo demonstração). */
+  isExample?: boolean;
 }
 
 export interface GuardianTrustPolicy {
@@ -86,6 +92,9 @@ export interface GuardianAuditLogEntry {
   verdict: 'EXECUTADO_AUTONOMO' | 'APROVADO_USUARIO' | 'RECUSADO_USUARIO' | 'BLOQUEADO_SEGURANCA';
   correlationId: string;
   details: string;
+  /** Status real registrado no audit log (quando a entrada é real). */
+  statusLabel?: string;
+  isExample?: boolean;
 }
 
 export const GUARDIAN_CASES: DecisionChainCase[] = [

@@ -52,3 +52,11 @@ export function __resetDecisionContextForTests(): void {
   records = [];
   counter = 0;
 }
+
+/** Repõe contextos de decisão de um snapshot (só ids novos). */
+export function restoreDecisionContexts(list: DecisionContextRecord[]): number {
+  const known = new Set(records.map((r) => r.id));
+  const fresh = list.filter((r) => r && typeof r.id === 'string' && !known.has(r.id));
+  records = [...fresh, ...records];
+  return fresh.length;
+}

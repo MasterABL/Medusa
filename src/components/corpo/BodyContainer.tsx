@@ -15,6 +15,50 @@ import {
 } from './bodyFixtures';
 import { useShell } from '@/context/ShellContext';
 import { playFeedback } from '@/lib/audioFeedback';
+import { usePersonalOS } from '@/context/PersonalOSContext';
+import { useDemoMode } from '@/lib/dataMode';
+import { ProvenanceBadge } from '@/components/ui/ProvenanceBadge';
+import { parseReps } from '@/domains/body/services/sessionEngine';
+import type { WorkoutSession, WorkoutSheet } from '@/domains/body/model/training';
+
+// A ficha (exercícios, cargas sugeridas) é de exemplo; as séries e cargas que o usuário
+// registra na bancada vão para a sessão de treino real do Personal OS (persistida).
+function sheetFromRoutine(routine: WorkoutSplitRoutine): WorkoutSheet {
+  return {
+    id: `ficha-exemplo:${routine.id}`,
+    label: `Treino ${routine.splitCode}`,
+    exercises: routine.exercises.map((ex, i) => ({
+      id: ex.id,
+      name: ex.name,
+      order: i,
+      plannedSets: ex.totalSets,
+      reps: parseReps(String(ex.reps)),
+      restSeconds: ex.restSeconds,
+    })),
+  };
+}
+
+/** Bancada a partir da sessão real: séries feitas e carga registrada vêm da sessão; o resto, da ficha. */
+function exercisesFromSession(routine: WorkoutSplitRoutine, session?: WorkoutSession): ExerciseItem[] {
+  let activeSet = false;
+  return routine.exercises.map((ex) => {
+    const done = session ? session.sets.filter((st) => st.exerciseId === ex.id) : [];
+    const lastLoad = [...done].reverse().find((st) => st.loadKg !== undefined)?.loadKg;
+    const finished = done.length >= ex.totalSets;
+    let status: ExerciseItem['status'] = finished ? 'concluido' : 'aguardando';
+    if (!finished && !activeSet) {
+      status = 'ativo';
+      activeSet = true;
+    }
+    return {
+      ...ex,
+      history: [...ex.history],
+      currentSet: Math.min(done.length + 1, ex.totalSets),
+      weightKg: lastLoad ?? ex.weightKg,
+      status,
+    };
+  });
+}
 
 type BodySubView = 'evolucao' | 'treino' | 'prontidao' | 'rotinas' | 'medidas';
 
@@ -36,6 +80,27 @@ export function BodyContainer() {
   const [lastWeightDelta, setLastWeightDelta] = useState<number | null>(null);
 
   const { triggerIslandNotification, setActiveRoute } = useShell();
+  const { os, ready, version } = usePersonalOS();
+  const demo = useDemoMode();
+  const activeRoutine = WORKOUT_ROUTINES.find((r) => r.id === activeRoutineId) ?? WORKOUT_ROUTINES[1];
+  const activeSheetId = sheetFromRoutine(activeRoutine).id;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const realSessions = useMemo(() => os.body.sessions(), [os, version]);
+
+  // Fora do modo demonstração, a bancada nasce do estado REAL (sessão em andamento ou ficha zerada),
+  // não do treino pela metade da fixture.
+  useEffect(() => {
+    if (!ready || demo) return;
+    const open = WORKOUT_ROUTINES.find((r) => os.body.activeSession(sheetFromRoutine(r).id)) ?? WORKOUT_ROUTINES[1];
+    const session = os.body.activeSession(sheetFromRoutine(open).id);
+    setActiveRoutineId(open.id);
+    const list = exercisesFromSession(open, session);
+    setExercises(list);
+    const idx = list.findIndex((e) => e.status === 'ativo');
+    setActiveExerciseIndex(idx >= 0 ? idx : Math.max(0, list.length - 1));
+    setWorkoutFinished(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, demo, os]);
 
   // Movimento fundamental selecionado na Home
   const selectedMovement: FundamentalMovement = useMemo(() => {
@@ -77,6 +142,16 @@ export function BodyContainer() {
 
   // Registrar série concluída na bancada cinética
   const handleCompleteSet = useCallback(() => {
+    let saved = false;
+    if (!demo) {
+      try {
+        os.body.ensureSheet(sheetFromRoutine(activeRoutine));
+        os.body.logSet(activeSheetId, { reps: activeExercise.reps, loadKg: activeExercise.weightKg });
+        saved = true;
+      } catch {
+        saved = false;
+      }
+    }
     setExercises((prev) => {
       const next = [...prev];
       const cur = { ...next[activeExerciseIndex] };
@@ -102,12 +177,14 @@ export function BodyContainer() {
     triggerIslandNotification({
       title: 'Série Registrada!',
       tag: 'BANCADA CINÉTICA',
-      description: `${activeExercise.name}: ${activeExercise.reps} reps com ${activeExercise.weightKg} kg. Descanso iniciado.`,
-      badge: 'DESCANSO ATIVO',
+      description: `${activeExercise.name}: ${activeExercise.reps} reps com ${activeExercise.weightKg} kg. ${
+        saved ? 'Série salva.' : demo ? 'Modo exemplo — nada foi salvo.' : 'Não foi possível salvar a série.'
+      } Descanso iniciado.`,
+      badge: saved ? 'SALVO' : demo ? 'EXEMPLO' : 'NÃO SALVO',
       state: 'active',
       durationMs: 3500,
     });
-  }, [activeExerciseIndex, activeExercise, triggerIslandNotification]);
+  }, [activeExerciseIndex, activeExercise, triggerIslandNotification, demo, os, activeRoutine, activeSheetId]);
 
   // Ajustes de carga no exercício ativo (+ / - 2kg ou 5kg)
   const handleAdjustWeight = useCallback(
@@ -133,28 +210,40 @@ export function BodyContainer() {
   }, []);
 
   const handleFinishWorkout = useCallback(() => {
+    const ended = demo ? undefined : os.body.finishWorkout(activeSheetId);
     setWorkoutFinished(true);
     setRestTimerRunning(false);
     playFeedback('celebration');
     triggerIslandNotification({
       title: 'Treino Concluído!',
       tag: 'CORPO & FORÇA',
-      description: 'Sessão B finalizada com sucesso. Estímulo neural e muscular registrado.',
-      badge: 'RECUPERAÇÃO OK',
+      description: ended
+        ? `${activeRoutine.title}: ${ended.sets.length} séries salvas no histórico.`
+        : demo
+        ? 'Modo exemplo — nenhuma sessão foi salva.'
+        : 'Nenhuma série registrada nesta sessão; nada foi salvo.',
+      badge: ended ? 'SALVO' : demo ? 'EXEMPLO' : 'SEM SÉRIES',
       state: 'active',
       durationMs: 4500,
     });
-  }, [triggerIslandNotification]);
+  }, [triggerIslandNotification, demo, os, activeSheetId, activeRoutine]);
 
   // Iniciar uma rotina específica na Bancada Cinética
   const handleStartRoutine = useCallback((routine: WorkoutSplitRoutine) => {
     setActiveRoutineId(routine.id);
-    setExercises(JSON.parse(JSON.stringify(routine.exercises)));
-    setActiveExerciseIndex(0);
+    if (demo) {
+      setExercises(JSON.parse(JSON.stringify(routine.exercises)));
+      setActiveExerciseIndex(0);
+    } else {
+      const list = exercisesFromSession(routine, os.body.activeSession(sheetFromRoutine(routine).id));
+      setExercises(list);
+      const idx = list.findIndex((e) => e.status === 'ativo');
+      setActiveExerciseIndex(idx >= 0 ? idx : 0);
+    }
     setWorkoutFinished(false);
     setSubView('treino');
     playFeedback('action');
-  }, []);
+  }, [demo, os]);
 
   return (
     <main
@@ -185,6 +274,18 @@ export function BodyContainer() {
               ? 'Fichas & Histórico de Sessões'
               : 'Composição Corporal & Medidas'}
           </h1>
+          <ProvenanceBadge
+            kind={subView === 'treino' ? (demo ? 'fixture' : 'partial') : subView === 'rotinas' ? 'partial' : 'fixture'}
+            detail={
+              subView === 'treino'
+                ? demo
+                  ? 'treino de exemplo · nada é salvo'
+                  : 'ficha de exemplo · séries registradas são salvas'
+                : subView === 'rotinas'
+                ? 'fichas de exemplo · sessões salvas aparecem no histórico'
+                : 'números de exemplo · sem sensor/integração conectada'
+            }
+          />
         </div>
 
         {/* Subnav interna de Corpo */}
@@ -879,7 +980,38 @@ export function BodyContainer() {
             </span>
 
             <div className="space-y-3">
-              {PAST_SESSIONS.map((sess) => (
+              {realSessions.filter((x) => x.status !== 'in_progress').map((x) => {
+                const routine = WORKOUT_ROUTINES.find((r) => sheetFromRoutine(r).id === x.sheetId);
+                const minutes = x.endedAt ? Math.max(1, Math.round((Date.parse(x.endedAt) - Date.parse(x.startedAt)) / 60000)) : 0;
+                const tonnage = x.sets.reduce((acc, st) => acc + (st.loadKg ?? 0) * (st.reps ?? 0), 0);
+                return (
+                  <div
+                    key={x.id}
+                    className="p-3.5 rounded-xl bg-surface-secondary/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px]"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] text-text-muted">
+                          {x.startedAt.slice(8, 10)}/{x.startedAt.slice(5, 7)}
+                        </span>
+                        <ProvenanceBadge kind="real" />
+                      </div>
+                      <h4 className="font-bold text-text-primary text-[14px]">{routine?.title ?? 'Treino'}</h4>
+                    </div>
+                    <div className="flex items-center gap-4 text-text-secondary font-mono text-[11px]">
+                      <span>{minutes} min</span>
+                      <span>{tonnage.toLocaleString('pt-BR')} kg</span>
+                      <span>{x.sets.length} séries</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {!demo && !realSessions.some((x) => x.status !== 'in_progress') && (
+                <p className="text-[12px] text-text-muted" data-testid="body-history-empty">
+                  Nenhuma sessão concluída ainda. Ao finalizar um treino na bancada, ele aparece aqui.
+                </p>
+              )}
+              {(demo ? PAST_SESSIONS : []).map((sess) => (
                 <div
                   key={sess.id}
                   className="p-3.5 rounded-xl bg-surface-secondary/40 border border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px]"
@@ -887,6 +1019,7 @@ export function BodyContainer() {
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] text-text-muted">{sess.date}</span>
+                      <ProvenanceBadge kind="fixture" />
                       <span className="text-text-muted/40">•</span>
                       <span className="font-mono text-[10px] font-bold text-[#18534B] dark:text-[#ADE4B5]">
                         {sess.split}

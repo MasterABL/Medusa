@@ -65,69 +65,9 @@ function ContextPanelBody({ onRequestClose, closeIcon }: { onRequestClose: () =>
           ) : activeRoute === 'espiritual' ? (
             <SpiritualContextPanel />
           ) : (
-            <>
-              <div className="space-y-2.5 pb-6 border-b border-border/60">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                    Guardian &amp; Bio-Estado
-                  </span>
-                  <span className="text-[11px] font-mono text-[#18534B] dark:text-medusa-primary font-semibold tabular-nums">
-                    99.8% Estável
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-3xl font-bold tracking-tight text-text-primary tabular-nums">
-                    88<span className="text-xs font-normal text-text-muted ml-1">/ 100</span>
-                  </span>
-                  <span className="text-[11px] text-text-secondary">Fluxo contínuo</span>
-                </div>
-                <div className="w-full bg-surface-subtle h-1 rounded-full overflow-hidden">
-                  <div className="bg-medusa-primary h-full w-[88%] rounded-full" />
-                </div>
-                <div className="text-[10px] text-text-muted font-mono pt-0.5">
-                  Sync ativo há 2m · Nuvem Pessoal
-                </div>
-              </div>
-
-              <div className="space-y-2 pb-6 border-b border-border/60">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                    Próxima Transição
-                  </span>
-                  <span className="text-[10px] font-mono text-text-muted tabular-nums">14:30</span>
-                </div>
-                <h4 className="text-[13px] font-semibold tracking-tight text-text-primary">
-                  Revisão Estratégica do Sistema
-                </h4>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-text-secondary">Bloco de 45m</span>
-                  <span className="text-text-muted font-mono tabular-nums">Em 2h 15m</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                    Marcos da Sessão
-                  </span>
-                  <span className="text-[10px] font-mono text-text-muted">Hoje</span>
-                </div>
-                <div className="space-y-2 text-[12px]">
-                  <div className="flex items-baseline justify-between text-text-primary">
-                    <span className="font-medium">Alinhamento Arquitetural</span>
-                    <span className="text-text-muted font-mono text-[11px] tabular-nums">11:00</span>
-                  </div>
-                  <div className="flex items-baseline justify-between text-text-secondary">
-                    <span>Sessão de Leitura &amp; Síntese</span>
-                    <span className="text-text-muted font-mono text-[11px] tabular-nums">16:00</span>
-                  </div>
-                  <div className="flex items-baseline justify-between text-text-secondary">
-                    <span>Caminhada Restaurativa</span>
-                    <span className="text-text-muted font-mono text-[11px] tabular-nums">18:00</span>
-                  </div>
-                </div>
-              </div>
-            </>
+            // Rotas sem painel próprio (Progresso, rota desconhecida): o painel do Hoje, com dados reais.
+            // Antes: texto fixo "99.8% Estável · Sync ativo há 2m · Nuvem Pessoal" e marcos inventados.
+            <TodayContextPanel />
           )}
         </>
       )}

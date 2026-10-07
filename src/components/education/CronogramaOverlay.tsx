@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { TRACK_DEFINITIONS } from './educationFixtures';
 import { useEducationPanel } from '@/context/EducationPanelContext';
 import { useAgenda } from '@/context/AgendaContext';
+import { intervalosOcupados } from '@/lib/agendaBusy';
 import { EnemCronogramaView } from './EnemCronogramaView';
 import { CronogramaOnboarding } from './CronogramaOnboarding';
 import { CronogramaPlan, Weekday, gerarBlocosAgendaSemana } from './cronogramaPlanner';
@@ -42,7 +43,7 @@ export function CronogramaOverlay({ onStartStudy }: CronogramaOverlayProps) {
     setCronogramaPlan,
     setEnemView,
   } = useEducationPanel();
-  const { reconcileEducationBlocks } = useAgenda();
+  const { reconcileEducationBlocks, items: agendaItems } = useAgenda();
   const cronograma = TRACK_DEFINITIONS.vestibular.cronograma ?? [];
   const isDashboardContext = Boolean(onStartStudy);
 
@@ -51,7 +52,7 @@ export function CronogramaOverlay({ onStartStudy }: CronogramaOverlayProps) {
     setCronogramaPlan(plan);
     markCronogramaOnboardingSeen();
     if (diasReais && diasReais.length > 0) {
-      const blocos = gerarBlocosAgendaSemana(plan, diasReais);
+      const blocos = gerarBlocosAgendaSemana(plan, diasReais, new Date(), intervalosOcupados(agendaItems, new Date(), 8, (it) => it.source?.sourceType === 'education_session'));
       reconcileEducationBlocks(blocos);
     }
   };

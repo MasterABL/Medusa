@@ -28,13 +28,58 @@ import { guardianDomain } from './guardian';
 import { financeDomain } from './finance';
 import { bodyDomain } from './body';
 import { spiritualDomain } from './spiritual';
+import { emailDomain } from './email';
 
-export { hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain, spiritualDomain };
+export { hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain, spiritualDomain, emailDomain };
 
-const DOMAINS = [hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain, spiritualDomain];
+const DOMAINS = [hojeDomain, agendaDomain, educationDomain, guardianDomain, financeDomain, bodyDomain, spiritualDomain, emailDomain];
 
 // Seção 4 da missão — exemplos concretos, granularidade domain+actionType.
 const DEFAULT_AUTONOMY_RULES: AutonomyPolicyRule[] = [
+  // ===== E-mail (Gmail / Agenda) — ver domains/email.ts =====
+  { domain: 'email', actionType: 'CLASSIFY_EMAIL', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L1', informationalOnly: { reason: 'classificar não muda nada na caixa nem no mundo — só organiza a leitura.' } },
+  { domain: 'email', actionType: 'DETECT_EMAIL_EVENT', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L1', informationalOnly: { reason: 'detectar um provável compromisso só gera uma proposta; nada é agendado.' } },
+  { domain: 'email', actionType: 'OPEN_EMAIL_DOCUMENT', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L1', informationalOnly: { reason: 'abrir um anexo para o próprio usuário ler.' } },
+  { domain: 'email', actionType: 'CREATE_TASK_FROM_EMAIL', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L1', minTrustForL1: 0.8, notes: 'Criar tarefa sozinho só depois de o usuário aceitar muitas propostas parecidas; sem isso vira proposta (L2).' },
+  { domain: 'email', actionType: 'MARK_EMAIL_IMPORTANT', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L1', minTrustForL1: 0.8, notes: 'Mexe na caixa do provedor (rótulo) — reversível, mas só sozinho com confiança.' },
+  { domain: 'email', actionType: 'MARK_EMAIL_READ', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L1', minTrustForL1: 0.9 },
+  { domain: 'email', actionType: 'SUGGEST_TASK_FROM_EMAIL', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L2', notes: 'Tarefa derivada de e-mail — o usuário decide.' },
+  { domain: 'email', actionType: 'SUGGEST_EVENT_FROM_EMAIL', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L2', notes: 'Compromisso detectado no e-mail vai para a Agenda só com confirmação.' },
+  { domain: 'email', actionType: 'SUGGEST_DEADLINE_FROM_EMAIL', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L2' },
+  { domain: 'email', actionType: 'SUGGEST_REPLY', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L2', notes: 'Lembrar que alguém espera resposta. Enviar é SEND_EMAIL_REPLY (L3).' },
+  { domain: 'email', actionType: 'SUGGEST_FOLLOW_UP', baseRisk: 'baixo', reversible: true, ceilingLevel: 'L2', notes: 'Acompanhamento sem resposta/prazo vencido — uma vez por janela, sem spam.' },
+  { domain: 'email', actionType: 'ARCHIVE_EMAIL', baseRisk: 'moderado', reversible: true, ceilingLevel: 'L2' },
+  { domain: 'email', actionType: 'SEND_EMAIL_REPLY', baseRisk: 'alto', reversible: false, ceilingLevel: 'L3', notes: 'Falar em nome do usuário — sempre aprovação humana.' },
+  { domain: 'email', actionType: 'FORWARD_EMAIL', baseRisk: 'alto', reversible: false, ceilingLevel: 'L3', notes: 'Compartilha conteúdo com terceiros.' },
+  { domain: 'email', actionType: 'DELETE_EMAIL', baseRisk: 'alto', reversible: false, ceilingLevel: 'L3' },
+  { domain: 'email', actionType: 'CANCEL_EVENT_FROM_EMAIL', baseRisk: 'alto', reversible: false, ceilingLevel: 'L3', notes: 'Desmarcar compromisso porque um e-mail disse — confirmar com o usuário.' },
+  { domain: 'email', actionType: 'SCHEDULE_PAYMENT_FROM_EMAIL', baseRisk: 'alto', reversible: false, ceilingLevel: 'L3', notes: 'Dinheiro: o Medusa nunca paga sozinho.' },
+
+  {
+    domain: 'agenda',
+    actionType: 'CREATE_REMINDER',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L1',
+    informationalOnly: { reason: 'lembrar um compromisso não altera nada no mundo e pode ser dispensado.' },
+    notes: 'Lembrete proativo (T-30/T-15/T-5/horário exato). Personal OS Core.',
+  },
+  {
+    domain: 'agenda',
+    actionType: 'SUGGEST_FOCUS_BLOCK',
+    baseRisk: 'baixo',
+    reversible: true,
+    ceilingLevel: 'L2',
+    notes: 'Sugerir um bloco de foco (ex.: 45 min para o projeto) — o usuário decide.',
+  },
+  {
+    domain: 'agenda',
+    actionType: 'APPLY_SUGGESTED_SCHEDULE',
+    baseRisk: 'moderado',
+    reversible: true,
+    ceilingLevel: 'L2',
+    notes: 'Gravar na Agenda um plano montado pelo planner — sempre com confirmação.',
+  },
   {
     domain: 'agenda',
     actionType: 'MOVE_STUDY_BLOCK_WITHIN_WINDOW',
@@ -90,6 +135,14 @@ const DEFAULT_AUTONOMY_RULES: AutonomyPolicyRule[] = [
     reversible: true,
     ceilingLevel: 'L2',
     notes: 'Alterar orçamento — supervisão.',
+  },
+  {
+    domain: 'finance',
+    actionType: 'DISPUTE_CHARGE',
+    baseRisk: 'moderado',
+    reversible: false,
+    ceilingLevel: 'L2',
+    notes: 'Contestar cobrança junto ao emissor fala com terceiro em nome do usuário — sempre aprovação; sem executor conectado, a aprovação não vira "estorno enviado".',
   },
   {
     domain: 'finance',

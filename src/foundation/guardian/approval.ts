@@ -87,3 +87,14 @@ export function __resetApprovalsForTests(): void {
   requests = [];
   counter = 0;
 }
+
+/** Repõe pedidos de aprovação de um snapshot (só ids novos). */
+export function restoreApprovalRequests(list: ApprovalRequest[]): number {
+  let added = 0;
+  for (const r of list) {
+    if (!r || typeof r.id !== 'string' || requests.some((x) => x.id === r.id)) continue;
+    requests.push({ ...r });
+    added += 1;
+  }
+  return added;
+}

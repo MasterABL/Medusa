@@ -4,51 +4,20 @@ import React, { useEffect, useRef } from 'react';
 import { useShell } from '@/context/ShellContext';
 import { ISLAND_FIXTURES } from '@/fixtures/islandFixtures';
 import { playFeedback } from '@/lib/audioFeedback';
+import { usePersonalOS } from '@/context/PersonalOSContext';
+import { routeIslandDefault } from '@/lib/islandDefaults';
 
 export function DynamicIsland() {
   const { islandState, isQuiet, setIslandState, breakpoint, isVoiceActive, setVoiceActive, islandNotification, activeRoute } = useShell();
   const baseFixture = ISLAND_FIXTURES[islandState] || ISLAND_FIXTURES.active;
+  const { os, version } = usePersonalOS();
 
   // Contexto dinâmico por domínio quando não há notificação transitória prioritária
   const domainDefaultFixture = React.useMemo(() => {
     if (islandState !== 'active') return baseFixture;
-    switch (activeRoute) {
-      case 'financas':
-        return {
-          ...baseFixture,
-          tag: 'SOLVÊNCIA ATIVA',
-          desc: 'Margem livre +34.2% · D+0',
-          timerBadge: 'R$ 4.310',
-          badgeType: 'support' as const,
-        };
-      case 'corpo':
-        return {
-          ...baseFixture,
-          tag: 'CADÊNCIA VIVA',
-          desc: 'Ritmo 74 BPM · Zona 2',
-          timerBadge: '420 TSS',
-          badgeType: 'secondary' as const,
-        };
-      case 'guardian':
-        return {
-          ...baseFixture,
-          tag: 'SENTINELA ATIVA',
-          desc: 'Topologia 7 facetas nominal',
-          timerBadge: 'NOMINAL',
-          badgeType: 'primary' as const,
-        };
-      case 'espiritual':
-        return {
-          ...baseFixture,
-          tag: 'SANTUÁRIO VIVO',
-          desc: 'Crepúsculo · Modo Presença',
-          timerBadge: 'DIA 47',
-          badgeType: 'accent' as const,
-        };
-      default:
-        return baseFixture;
-    }
-  }, [islandState, activeRoute, baseFixture]);
+    return routeIslandDefault(baseFixture, activeRoute, os);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [islandState, activeRoute, baseFixture, os, version]);
 
   const fixture = islandNotification ? {
     ...domainDefaultFixture,

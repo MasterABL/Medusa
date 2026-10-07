@@ -52,4 +52,9 @@ export interface Action<TPayload = unknown> {
   executedAt?: string;
   /** Referência ao ActionAuditLogEntry gerado quando a ação é processada. */
   auditReference?: string;
+  /**
+   * Preenchido quando a ação veio de um snapshot persistido (outra sessão). Uma ação
+   * restaurada é HISTÓRICO: nunca é executada de novo (ver `executeAuthorized`).
+   */
+  restoredAt?: string;
 }

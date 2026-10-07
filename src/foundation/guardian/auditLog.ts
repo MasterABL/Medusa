@@ -59,3 +59,11 @@ export function __resetAuditLogForTests(): void {
   entries = [];
   counter = 0;
 }
+
+/** Repõe entradas do audit log de um snapshot. Continua append-only: só ids novos, em ordem cronológica. */
+export function restoreAuditEntries(list: ActionAuditLogEntry[]): number {
+  const known = new Set(entries.map((e) => e.id));
+  const fresh = list.filter((e) => e && typeof e.id === 'string' && !known.has(e.id));
+  entries = [...fresh, ...entries].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return fresh.length;
+}

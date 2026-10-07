@@ -4,6 +4,11 @@ import React from 'react';
 import { useShell } from '@/context/ShellContext';
 import { AnimatedIcon, IconSemanticType } from '@/components/ui/AnimatedIcon';
 import { playFeedback } from '@/lib/audioFeedback';
+import { useAgenda } from '@/context/AgendaContext';
+import { withoutAgendaExamples } from '@/lib/agendaExamples';
+import { useDemoMode } from '@/lib/dataMode';
+import { usePersonalOS } from '@/context/PersonalOSContext';
+import { expandRecurringItems } from '@/components/agenda/agendaHelpers';
 
 export function Sidebar() {
   const {
@@ -26,13 +31,30 @@ export function Sidebar() {
   // No Foco ou Mobile/Tablet, a sidebar permanente é 0px estrutural
   const isDrawerActive = (isFocus || isMobile || isTablet) && isDrawerOpen;
 
+  // Contadores CALCULADOS (antes: '3' e '14' escritos no código). Sem dado real, sem número.
+  const { items: agendaItems } = useAgenda();
+  const { os, version, ready } = usePersonalOS();
+  const demo = useDemoMode();
+  const badges = React.useMemo(() => {
+    const nowIso = os.now();
+    const today = nowIso.slice(0, 10);
+    const d = new Date(`${today}T00:00:00`);
+    const remainingToday = withoutAgendaExamples(expandRecurringItems(ready ? agendaItems : [], d, d), demo).filter(
+      (it) => it.date === today && it.status !== 'cancelled' && (it.allDay || !it.endTime || it.endTime > nowIso.slice(11, 16))
+    ).length;
+    const pendingApprovals = os.actionViews(100).filter((a) => a.state === 'aguardando_aprovacao').length;
+    const overdueTasks = os.taskViews().filter((t) => t.overdue).length;
+    return { remainingToday, pendingApprovals, overdueTasks };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agendaItems, os, version, demo, ready]);
+
   const navItems: Array<{ route: string; label: string; icon: IconSemanticType; badge: string | null; badgePill?: boolean; dot?: boolean; accentDot?: boolean }> = [
-    { route: 'hoje', label: 'Hoje', icon: 'bolt', badge: null, dot: true },
-    { route: 'agenda', label: 'Agenda', icon: 'calendar', badge: '3', dot: false },
-    { route: 'educacao', label: 'Educação', icon: 'school', badge: '14', badgePill: true, dot: false },
+    { route: 'hoje', label: 'Hoje', icon: 'bolt', badge: null, dot: badges.overdueTasks > 0 || badges.pendingApprovals > 0 },
+    { route: 'agenda', label: 'Agenda', icon: 'calendar', badge: badges.remainingToday > 0 ? String(badges.remainingToday) : null, dot: false },
+    { route: 'educacao', label: 'Educação', icon: 'school', badge: null, dot: false },
     { route: 'corpo', label: 'Corpo', icon: 'motion_mode', badge: null, dot: false },
-    { route: 'financas', label: 'Finanças', icon: 'layers', badge: null, dot: false, accentDot: true },
-    { route: 'guardian', label: 'Guardian', icon: 'shield', badge: null, dot: false },
+    { route: 'financas', label: 'Finanças', icon: 'layers', badge: null, dot: false },
+    { route: 'guardian', label: 'Guardian', icon: 'shield', badge: badges.pendingApprovals > 0 ? String(badges.pendingApprovals) : null, badgePill: true, dot: false },
     { route: 'espiritual', label: 'Espiritual', icon: 'self_improvement', badge: null, dot: false },
     { route: 'progresso', label: 'Progresso', icon: 'analytics', badge: null, dot: false },
   ];
