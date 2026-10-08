@@ -14,7 +14,7 @@ interface EmailTriageViewProps {
   onSelectThread: (threadId: string) => void;
   onOpenWorkspace: (threadId: string) => void;
   onApproveProposal?: (actionId: string) => void;
-  proposals?: Array<{ actionId: string; view?: { intent?: string; autonomy?: string; state: string } }>;
+  proposals?: Array<{ actionId: string; messageId?: string; candidateId?: string; view?: { intent?: string; autonomy?: string; state: string } }>;
 }
 
 export function EmailTriageView({
@@ -116,7 +116,9 @@ export function EmailTriageView({
             const senderName = latestMsg?.sender?.name || latestMsg?.sender?.address || 'Desconhecido';
             const provenance = latestMsg?.source?.origin === 'fixture' ? 'fixture' : 'real';
             const importanceStyle = getImportanceBadge(row.thread.importance);
-            const pendingForThread = proposals.filter((p) => p.view?.state === 'aguardando_aprovacao');
+            const pendingForThread = proposals.filter(
+              (p) => p.view?.state === 'aguardando_aprovacao' && row.thread.messages.some((m) => m.id === p.messageId)
+            );
 
             return (
               <div

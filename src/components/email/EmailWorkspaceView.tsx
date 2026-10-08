@@ -12,6 +12,8 @@ interface EmailWorkspaceViewProps {
   analyses: EmailAnalysis[];
   proposals: Array<{
     actionId: string;
+    messageId?: string;
+    candidateId?: string;
     view?: {
       id: string;
       intent: string;
@@ -80,8 +82,7 @@ export function EmailWorkspaceView({
 
   // Filas do Guardian relacionadas a esta conversa
   const threadProposals = proposals.filter((p) => {
-    // Propostas onde a ação cita este e-mail ou gerada para este thread
-    return candidates.some((c) => c.status === 'proposed');
+    return thread.messages.some((m) => m.id === p.messageId);
   });
 
   return (
@@ -353,10 +354,16 @@ export function EmailWorkspaceView({
             ) : (
               <div className="flex flex-col gap-3">
                 {candidates.map((c, idx) => {
-                  const matchingProposal = threadProposals[idx] || threadProposals[0];
+                  const matchingProposal = threadProposals.find((p) => p.candidateId === c.id) || threadProposals[idx] || threadProposals[0];
                   const autonomyLevel = matchingProposal?.view?.autonomy || (c.kind === 'finance' ? 'L3' : 'L2');
                   const state = matchingProposal?.view?.state || 'aguardando_aprovacao';
-                  const isApproved = state === 'aprovado' || c.status === 'accepted';
+                  const isApproved =
+                    state === 'aprovado' ||
+                    state === 'executado' ||
+                    state === 'aprovada_sem_executor' ||
+                    c.status === 'accepted' ||
+                    c.status === 'linked_existing' ||
+                    c.matchedExisting !== undefined;
                   const isRejected = state === 'rejeitado' || c.status === 'dismissed';
 
                   return (
