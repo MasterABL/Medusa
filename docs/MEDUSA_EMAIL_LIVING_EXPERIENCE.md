@@ -15,6 +15,7 @@ Branch: feat/email-living-experience
 HEAD: Atualizado com os componentes de produção do E-mail Living Experience
 Base: 7bdd64a / f655701
 Working Tree: Limpo (arquivos novos e modificados rastreados para PR)
+Deploy Preview (Vercel): https://medusa-8sw4or4is-abimaelbalbino12-6079s-projects.vercel.app/?demo=1#email
 Test Suite Fundação: 676/676 checagens PASS
 Test Suite E-mail: 148/148 checagens PASS
 Test Suite Integração: 85/85 checagens PASS (14/14 email-local)
