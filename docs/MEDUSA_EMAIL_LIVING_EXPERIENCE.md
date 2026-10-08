@@ -29,15 +29,15 @@ Browser QA (Edge Headless): 33/33 checagens PASS (100%)
 
 ## 2. Modelos Conceituais no Google Stitch
 
-Todos os 3 modelos originais foram inspecionados, validados e vinculados no projeto oficial do Design System do Medusa:
+Todos os 3 modelos foram gerados, validados e publicados no projeto oficial do Design System do Medusa no Google Stitch:
 
-**Projeto Stitch:** `5720802213349840316`
+**Projeto Stitch:** [Medusa Life OS Design System (`5720802213349840316`)](https://stitch.withgoogle.com/projects/5720802213349840316)
 
-| Modelo | Screen ID | URL Direta no Stitch | Estado |
+| Modelo | Screen ID | Link no Google Stitch | Preview Direto de Imagem (Acesso Universal sem Login) |
 | :--- | :--- | :--- | :--- |
-| **Modelo A — Inbox Operacional** | `b0a5cb6a2e08432e8e1b00c69b62c8a9` | [Stitch Screen A](https://stitch.withgoogle.com/projects/5720802213349840316/screens/b0a5cb6a2e08432e8e1b00c69b62c8a9) | Acessível / Validado |
-| **Modelo B — Contexto Primeiro** | `6a829cc7a40b45cb890e92e0e6f9927a` | [Stitch Screen B](https://stitch.withgoogle.com/projects/5720802213349840316/screens/6a829cc7a40b45cb890e92e0e6f9927a) | Acessível / Validado |
-| **Modelo C — Thread + Action Workspace** | `fcb6a4320eca4dc1a741115f363b839e` | [Stitch Screen C](https://stitch.withgoogle.com/projects/5720802213349840316/screens/fcb6a4320eca4dc1a741115f363b839e) | Acessível / Validado |
+| **Modelo A — Inbox Operacional (Triagem Rápida & 11 Filtros)** | `e27442b48205479785ad17775feb474c` | [Abrir no Stitch](https://stitch.withgoogle.com/projects/5720802213349840316/screens/e27442b48205479785ad17775feb474c) | [Ver Imagem do Modelo A](https://lh3.googleusercontent.com/aida/AEtjO1V5T3Wb-fUtl8TJfSTyOmq0prJqWMzgWNbTeEl7YPgaHrbSqv1Pc5UxgwaBMmQNZdBlhHweogjZyhefdh7ve9bfy9_lj0MChW6uoG6DFIMyhzISjqJJ7PUcOq_GUZgkz0SyrujoT_3RD6b-56wpxlxE9ZNYD2YhWHqdWVGAAZF5Q0C4qMdUeQ9UmFczKQAfDPX-C8nF1VF_Z9tDwsbz9yi8XneqKJY51kcHOWBdNnW7DDPwpscT56G5BWw) |
+| **Modelo B — Radar de Atenção (Contexto Primeiro & 3 Zonas)** | `e0b25d0b703749a9afb29aa50a8d8a31` | [Abrir no Stitch](https://stitch.withgoogle.com/projects/5720802213349840316/screens/e0b25d0b703749a9afb29aa50a8d8a31) | [Ver Imagem do Modelo B](https://lh3.googleusercontent.com/aida/AEtjO1VnuU6ojRjL2XRstP1q2feqBwbxOemmFZQdm-fAoHNYj-s9kSJ14L4OAMW97-XqJ522PhkFZ7-_QEPpLnFP95145cjzd07UJi8ipL83CAeQI36oqw9cHJ49gaJiu_xfCsd_0oJ9Y_MhR8nff2aep35Xd3N4aOjSNI5BTwUd4Mu90bTN0XDl2u-TbxRbdZXjLEbv9JJdonpJPPvCvl9gDOV-IQ8gwLnuOpub9bgB2UJrci3XHU8VRoby7b0) |
+| **Modelo C — Thread + Action Workspace (Divisão 60/40)** | `a40501ea4a734b06a025d4d24e607a44` | [Abrir no Stitch](https://stitch.withgoogle.com/projects/5720802213349840316/screens/a40501ea4a734b06a025d4d24e607a44) | [Ver Imagem do Modelo C](https://lh3.googleusercontent.com/aida/AEtjO1Ws3qn9R-nQVXtk3qHLvpHsU64KXu4WWzqJ7hHj7Fi5iwkMmAsatY9TZSZpcsTNGkTsojVr7ZA0hs0m6qJMTFrHeuv_MWpyKE5R7qsz8aRu1DWB8oYHlKMr3mDGpFaHV_ypu1PSZ4j7Rsr5IZiuk8P2bTZc-kJXIKAHlCLtOtUNUveoU-ezYj-wTMhtKPCMx1YzXk5pkq_vgy1PfQGvCk0QAOoPZ7g3bCEoK8tDubdobTKXHai6Pb7H9A) |
 
 ---
 
